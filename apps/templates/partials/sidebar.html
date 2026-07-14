@@ -1,0 +1,506 @@
+<!-- Left Sidebar Start -->
+<div class="app-sidebar-menu">
+    <div class="h-100" data-simplebar>
+
+        <!--- Sidemenu -->
+        <div id="sidebar-menu">
+
+            <div class="logo-box">
+                <a href="{{ url_for('pages.dashboard') }}" class="logo logo-light text-decoration-none">
+                    {% if brand and brand.logo_url %}
+                    <span class="logo-sm"><img src="{{ brand.logo_url }}" alt="{{ brand.company_name }}" style="max-height:28px;"></span>
+                    <span class="logo-lg"><img src="{{ brand.logo_url }}" alt="{{ brand.company_name }}" style="max-height:36px;"></span>
+                    {% else %}
+                    <span class="logo-sm fw-bold text-white">AS</span>
+                    <span class="logo-lg fw-semibold text-white fs-15">{{ brand.company_name if brand else 'AKRAM SWEET' }}</span>
+                    {% endif %}
+                </a>
+                <a href="{{ url_for('pages.dashboard') }}" class="logo logo-dark text-decoration-none">
+                    {% if brand and brand.logo_url %}
+                    <span class="logo-sm"><img src="{{ brand.logo_url }}" alt="{{ brand.company_name }}" style="max-height:28px;"></span>
+                    <span class="logo-lg"><img src="{{ brand.logo_url }}" alt="{{ brand.company_name }}" style="max-height:36px;"></span>
+                    {% else %}
+                    <span class="logo-sm fw-bold text-primary">AS</span>
+                    <span class="logo-lg fw-semibold text-primary fs-15">{{ brand.company_name if brand else 'AKRAM SWEET' }}</span>
+                    {% endif %}
+                </a>
+            </div>
+
+            <ul id="side-menu">
+
+                <li class="menu-title">Menu</li>
+
+                <li>
+                    <a href="#sidebarDashboards" data-bs-toggle="collapse">
+                        <span class="nav-icon">
+                            <iconify-icon icon="solar:home-2-bold-duotone"></iconify-icon>
+                        </span>
+                        <span> Dashboard </span>
+                        <span class="menu-arrow"></span>
+                    </a>
+                    <div class="collapse" id="sidebarDashboards">
+                        <ul class="nav-second-level">
+                            <li>
+                                <a href="{{ url_for('pages.dashboard') }}" class="tp-link">Sales</a>
+                            </li>
+                            <li>
+                                <a href="{{ url_for('pages.analytics') }}" class="tp-link">Analytics</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <li class="menu-title mt-2">Shareholders</li>
+
+                <li>
+                    <a href="#sidebarShareholders" data-bs-toggle="collapse">
+                        <span class="nav-icon"><iconify-icon icon="solar:wallet-money-bold-duotone"></iconify-icon></span>
+                        <span> Profit Calculation </span>
+                        <span class="menu-arrow"></span>
+                    </a>
+                    <div class="collapse show" id="sidebarShareholders">
+                        <ul class="nav-second-level">
+                            {% if current_user.is_authenticated and current_user.is_shareholder() %}
+                            <li><a href="{{ url_for('portal.dashboard') }}" class="tp-link">My Dashboard</a></li>
+                            <li><a href="{{ url_for('portal.reports') }}" class="tp-link">My Reports</a></li>
+                            <li><a href="{{ url_for('portal.ownership') }}" class="tp-link">My Ownership</a></li>
+                            <li><a href="{{ url_for('portal.profile') }}" class="tp-link">Account Settings</a></li>
+                            {% endif %}
+                            <li><a href="{{ url_for('periods.list_periods') }}" class="tp-link">Monthly Periods</a></li>
+                            <li><a href="{{ url_for('shareholders.list_shareholders') }}" class="tp-link">Shareholders</a></li>
+                            <li><a href="{{ url_for('app_settings.arrangements') }}" class="tp-link">Special Arrangements</a></li>
+                            {% if current_user.is_authenticated and not current_user.is_shareholder() %}
+                            <li><a href="{{ url_for('reports.certificates_register') }}" class="tp-link">Monthly Certificates</a></li>
+                            {% endif %}
+                            <li><a href="{{ url_for('reports.history') }}" class="tp-link">Reports History</a></li>
+                            {% if current_user.can_manage_users() %}
+                            <li><a href="{{ url_for('users.list_users') }}" class="tp-link">Staff Users</a></li>
+                            {% endif %}
+                            {% if current_user.can_view_audit_log() %}
+                            <li><a href="{{ url_for('app_settings.audit_log') }}" class="tp-link">Audit Trail</a></li>
+                            {% endif %}
+                            <li><a href="{{ url_for('app_settings.system_settings') }}" class="tp-link">System Settings</a></li>
+                            {% if current_user.is_management() %}
+                            <li><a href="{{ url_for('app_settings.dashboard_settings') }}" class="tp-link">Dashboard KPIs</a></li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </li>
+
+                <li class="menu-title mt-2">Apps</li>
+
+                <li>
+                    <a href="/apps-todolist" class="tp-link">
+                        <span class="nav-icon"><iconify-icon icon="solar:bill-list-bold-duotone"></iconify-icon></span>
+                        <span> Todo List </span>
+                    </a>
+                </li>
+
+                <li>
+                    <a href="/apps-contacts" class="tp-link">
+                        <span class="nav-icon"><iconify-icon
+                                icon="solar:shield-user-bold-duotone"></iconify-icon></span>
+                        <span> Contacts </span>
+                    </a>
+                </li>
+
+                <li>
+                    <a href="/apps-calendar" class="tp-link">
+                        <span class="nav-icon"><iconify-icon
+                                icon="solar:calendar-minimalistic-bold-duotone"></iconify-icon></span>
+                        <span> Calendar </span>
+                    </a>
+                </li>
+
+                <li class="menu-title">Pages</li>
+
+                <li>
+                    <a href="#sidebarAuth" data-bs-toggle="collapse">
+                        <span class="nav-icon"><iconify-icon
+                                icon="solar:lock-keyhole-bold-duotone"></iconify-icon></span>
+                        <span> Authentication </span>
+                        <span class="menu-arrow"></span>
+                    </a>
+                    <div class="collapse" id="sidebarAuth">
+                        <ul class="nav-second-level">
+                            <li>
+                                <a href="{{ url_for('auth.login') }}" class="tp-link">Log In</a>
+                            </li>
+                            <li>
+                                <a href="/auth-register" class="tp-link">Register</a>
+                            </li>
+                            <li>
+                                <a href="/auth-recoverpw" class="tp-link">Recover Password</a>
+                            </li>
+                            <li>
+                                <a href="/auth-lock-screen" class="tp-link">Lock Screen</a>
+                            </li>
+                            <li>
+                                <a href="/auth-confirm-mail" class="tp-link">Confirm Mail</a>
+                            </li>
+                            <li>
+                                <a href="/email-verification" class="tp-link">Email Verification</a>
+                            </li>
+                            <li>
+                                <a href="{{ url_for('auth.logout') }}" class="tp-link">Logout</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <li>
+                    <a href="#sidebarError" data-bs-toggle="collapse">
+                        <span class="nav-icon"><iconify-icon icon="solar:cpu-bolt-bold-duotone"></iconify-icon></span>
+                        <span> Error Pages </span>
+                        <span class="menu-arrow"></span>
+                    </a>
+                    <div class="collapse" id="sidebarError">
+                        <ul class="nav-second-level">
+                            <li>
+                                <a href="/error-404" class="tp-link">Error 404</a>
+                            </li>
+                            <li>
+                                <a href="/error-500" class="tp-link">Error 500</a>
+                            </li>
+                            <li>
+                                <a href="/error-503" class="tp-link">Error 503</a>
+                            </li>
+                            <li>
+                                <a href="/error-429" class="tp-link">Error 429</a>
+                            </li>
+                            <li>
+                                <a href="/offline-page" class="tp-link">Offline Page</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <li>
+                    <a href="#sidebarExpages" data-bs-toggle="collapse">
+                        <span class="nav-icon"><iconify-icon
+                                icon="solar:clipboard-text-bold-duotone"></iconify-icon></span>
+                        <span> Utility </span>
+                        <span class="menu-arrow"></span>
+                    </a>
+                    <div class="collapse" id="sidebarExpages">
+                        <ul class="nav-second-level">
+                            <li>
+                                <a href="/pages-starter" class="tp-link">Starter</a>
+                            </li>
+                            <li>
+                                <a href="/pages-profile" class="tp-link">Profile</a>
+                            </li>
+                            <li>
+                                <a href="/pages-pricing" class="tp-link">Pricing</a>
+                            </li>
+                            <li>
+                                <a href="/pages-timeline" class="tp-link">Timeline</a>
+                            </li>
+                            <li>
+                                <a href="/pages-invoice" class="tp-link">Invoice</a>
+                            </li>
+                            <li>
+                                <a href="/pages-faqs" class="tp-link">FAQs</a>
+                            </li>
+                            <li>
+                                <a href="/pages-gallery" class="tp-link">Gallery</a>
+                            </li>
+                            <li>
+                                <a href="/pages-maintenance" class="tp-link">Maintenance</a>
+                            </li>
+                            <li>
+                                <a href="/pages-coming-soon" class="tp-link">Coming Soon</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <li class="menu-title mt-2">General</li>
+
+                <li>
+                    <a href="#sidebarBaseui" data-bs-toggle="collapse">
+                        <span class="nav-icon"><iconify-icon
+                                icon="solar:compass-square-bold-duotone"></iconify-icon></span>
+                        <span> Components </span>
+                        <span class="menu-arrow"></span>
+                    </a>
+                    <div class="collapse" id="sidebarBaseui">
+                        <ul class="nav-second-level">
+                            <li>
+                                <a href="/ui-accordions" class="tp-link">Accordions</a>
+                            </li>
+                            <li>
+                                <a href="/ui-alerts" class="tp-link">Alerts</a>
+                            </li>
+                            <li>
+                                <a href="/ui-badges" class="tp-link">Badges</a>
+                            </li>
+                            <li>
+                                <a href="/ui-breadcrumb" class="tp-link">Breadcrumb</a>
+                            </li>
+                            <li>
+                                <a href="/ui-buttons" class="tp-link">Buttons</a>
+                            </li>
+                            <li>
+                                <a href="/ui-cards" class="tp-link">Cards</a>
+                            </li>
+                            <li>
+                                <a href="/ui-collapse" class="tp-link">Collapse</a>
+                            </li>
+                            <li>
+                                <a href="/ui-dropdowns" class="tp-link">Dropdowns</a>
+                            </li>
+                            <li>
+                                <a href="/ui-video" class="tp-link">Embed Video</a>
+                            </li>
+                            <li>
+                                <a href="/ui-grid" class="tp-link">Grid</a>
+                            </li>
+                            <li>
+                                <a href="/ui-images" class="tp-link">Images</a>
+                            </li>
+                            <li>
+                                <a href="/ui-list" class="tp-link">List Group</a>
+                            </li>
+                            <li>
+                                <a href="/ui-modals" class="tp-link">Modals</a>
+                            </li>
+                            <li>
+                                <a href="/ui-placeholders" class="tp-link">Placeholders</a>
+                            </li>
+                            <li>
+                                <a href="/ui-pagination" class="tp-link">Pagination</a>
+                            </li>
+                            <li>
+                                <a href="/ui-popovers" class="tp-link">Popovers</a>
+                            </li>
+                            <li>
+                                <a href="/ui-progress" class="tp-link">Progress</a>
+                            </li>
+                            <li>
+                                <a href="/ui-scrollspy" class="tp-link">Scrollspy</a>
+                            </li>
+                            <li>
+                                <a href="/ui-spinners" class="tp-link">Spinners</a>
+                            </li>
+                            <li>
+                                <a href="/ui-tabs" class="tp-link">Tabs</a>
+                            </li>
+                            <li>
+                                <a href="/ui-tooltips" class="tp-link">Tooltips</a>
+                            </li>
+                            <li>
+                                <a href="/ui-typography" class="tp-link">Typography</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <li>
+                    <a href="#sidebarWidgetsui" data-bs-toggle="collapse">
+                        <span class="nav-icon"><iconify-icon
+                                icon="solar:box-minimalistic-bold-duotone"></iconify-icon></span>
+                        <span> Widgets </span>
+                        <span class="menu-arrow"></span>
+                    </a>
+                    <div class="collapse" id="sidebarWidgetsui">
+                        <ul class="nav-second-level">
+                            <li>
+                                <a href="/widget-card" class="tp-link">Widget Card</a>
+                            </li>
+                            <li>
+                                <a href="/widget-chart" class="tp-link">Widget Chart</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <!-- <li>
+                    <a  href="/widgets" class="tp-link">
+                        <span class="nav-icon"><iconify-icon
+                                icon="solar:box-minimalistic-bold-duotone"></iconify-icon></span>
+                        <span> Widgets </span>
+                    </a>
+                </li> -->
+
+                <li>
+                    <a href="#sidebarAdvancedUI" data-bs-toggle="collapse">
+                        <span class="nav-icon"><iconify-icon
+                                icon="solar:quit-full-screen-square-bold-duotone"></iconify-icon></span>
+                        <span> Extended UI </span>
+                        <span class="menu-arrow"></span>
+                    </a>
+                    <div class="collapse" id="sidebarAdvancedUI">
+                        <ul class="nav-second-level">
+                            <li>
+                                <a href="/extended-carousel" class="tp-link">Carousel</a>
+                            </li>
+                            <li>
+                                <a href="/extended-notifications" class="tp-link">Notifications</a>
+                            </li>
+                            <li>
+                                <a href="/extended-offcanvas" class="tp-link">Offcanvas</a>
+                            </li>
+                            <li>
+                                <a href="/extended-range-slider" class="tp-link">Range Slider</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <li>
+                    <a href="#sidebarIcons" data-bs-toggle="collapse">
+                        <span class="nav-icon"><iconify-icon
+                                icon="solar:wind-bold-duotone"></iconify-icon></span>
+                        <span> Icons </span>
+                        <span class="menu-arrow"></span>
+                    </a>
+                    <div class="collapse" id="sidebarIcons">
+                        <ul class="nav-second-level">
+                            <li>
+                                <a href="/icons-feather" class="tp-link">Feather Icons</a>
+                            </li>
+                            <li>
+                                <a href="/icons-mdi" class="tp-link">Material Design Icons</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <li>
+                    <a href="#sidebarForms" data-bs-toggle="collapse">
+                        <span class="nav-icon"><iconify-icon
+                                icon="solar:document-add-bold-duotone"></iconify-icon></span>
+                        <span> Forms </span>
+                        <span class="menu-arrow"></span>
+                    </a>
+                    <div class="collapse" id="sidebarForms">
+                        <ul class="nav-second-level">
+                            <li>
+                                <a href="/forms-elements" class="tp-link">General Elements</a>
+                            </li>
+                            <li>
+                                <a href="/forms-validation" class="tp-link">Validation</a>
+                            </li>
+                            <li>
+                                <a href="/forms-quilljs" class="tp-link">Quilljs Editor</a>
+                            </li>
+                            <li>
+                                <a href="/forms-pickers" class="tp-link">Picker</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <li>
+                    <a href="#sidebarTables" data-bs-toggle="collapse">
+                        <span class="nav-icon"><iconify-icon icon="solar:siderbar-bold-duotone"></iconify-icon></span>
+                        <span> Tables </span>
+                        <span class="menu-arrow"></span>
+                    </a>
+                    <div class="collapse" id="sidebarTables">
+                        <ul class="nav-second-level">
+                            <li>
+                                <a href="/tables-basic" class="tp-link">Basic Tables</a>
+                            </li>
+                            <li>
+                                <a href="/tables-datatables" class="tp-link">Data Tables</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <li>
+                    <a href="#sidebarCharts" data-bs-toggle="collapse">
+                        <span class="nav-icon"><iconify-icon
+                                icon="solar:pie-chart-2-bold-duotone"></iconify-icon></span>
+                        <span> Apex Charts </span>
+                        <span class="menu-arrow"></span>
+                    </a>
+                    <div class="collapse" id="sidebarCharts">
+                        <ul class="nav-second-level">
+                            <li>
+                                <a href="/charts-area" class="tp-link">Area</a>
+                            </li>
+                            <li>
+                                <a href="/charts-bar" class="tp-link">Bar</a>
+                            </li>
+                            <li>
+                                <a href="/charts-boxplot" class="tp-link">Boxplot</a>
+                            </li>
+                            <li>
+                                <a href="/charts-bubble" class="tp-link">Bubble</a>
+                            </li>
+                            <li>
+                                <a href="/charts-candlestick" class="tp-link">Candlestick</a>
+                            </li>
+                            <li>
+                                <a href="/charts-column" class="tp-link">Column</a>
+                            </li>
+                            <li>
+                                <a href="/charts-funnel" class="tp-link">Funnel</a>
+                            </li>
+                            <li>
+                                <a href="/charts-heatmap" class="tp-link">Heatmap</a>
+                            </li>
+                            <li>
+                                <a href="/charts-line" class="tp-link">Line</a>
+                            </li>
+                            <li>
+                                <a href="/charts-mixed" class="tp-link">Mixed</a>
+                            </li>
+                            <li>
+                                <a href="/charts-pie" class="tp-link">Pie</a>
+                            </li>
+                            <li>
+                                <a href="/charts-polararea" class="tp-link">Polar</a>
+                            </li>
+                            <li>
+                                <a href="/charts-radar" class="tp-link">Radar</a>
+                            </li>
+                            <li>
+                                <a href="/charts-radialbar" class="tp-link">Radialbar</a>
+                            </li>
+                            <li>
+                                <a href="/charts-rangearea" class="tp-link">Range Area</a>
+                            </li>
+                            <li>
+                                <a href="/charts-scatter" class="tp-link">Scatter</a>
+                            </li>
+                            <li>
+                                <a href="/charts-timeline" class="tp-link">Timeline</a>
+                            </li>
+                            <li>
+                                <a href="/charts-treemap" class="tp-link">Treemap</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <li>
+                    <a href="#sidebarMaps" data-bs-toggle="collapse">
+                        <span class="nav-icon"><iconify-icon icon="solar:map-point-bold-duotone"></iconify-icon></span>
+                        <span> Maps </span>
+                        <span class="menu-arrow"></span>
+                    </a>
+                    <div class="collapse" id="sidebarMaps">
+                        <ul class="nav-second-level">
+                            <li>
+                                <a href="/maps-google" class="tp-link">Google Maps</a>
+                            </li>
+                            <li>
+                                <a href="/maps-vector" class="tp-link">Vector Maps</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+            </ul>
+        </div>
+        <!-- End Sidebar -->
+
+        <div class="clearfix"></div>
+
+    </div>
+</div>
+<!-- Left Sidebar End -->

@@ -1,0 +1,323 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Widgets{% endblock title %}
+
+{% block css %}
+
+{% include 'partials/head-css.html' %}
+
+{% endblock css %}
+
+{% block body_attribute %}data-menu-color="dark" data-sidebar="default"{% endblock body_attribute %}
+
+{% block page_content %}
+
+<div class="py-3 d-flex align-items-sm-center flex-sm-row flex-column">
+  <div class="flex-grow-1">
+    <h4 class="fs-18 fw-semibold m-0">Widgets</h4>
+  </div>
+
+  <div class="text-end">
+    <ol class="breadcrumb m-0 py-0">
+      <li class="breadcrumb-item"><a href="javascript: void(0);">General</a></li>
+      <li class="breadcrumb-item active">Widgets</li>
+    </ol>
+  </div>
+</div>
+
+<!-- start row -->
+<div class="row">
+  <div class="col-md-12 col-xl-4">
+    <div class="card">
+      <div class="card-header">
+        <div class="d-flex align-items-center">
+          <h5 class="card-title text-dark mb-0">Employee Performance Rating</h5>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div id="employeeRating-chart" class="apex-charts"></div>
+      </div>
+
+    </div> <!-- end card -->
+  </div>
+
+  <div class="col-md-12 col-xl-8">
+    <div class="card">
+      <div class="card-header">
+
+        <div class="d-flex align-items-center">
+          <h5 class="card-title text-dark mb-0">Money Flow</h5>
+
+          <div class="ms-auto">
+            <button class="btn btn-sm bg-primary-subtle border dropdown-toggle fw-medium text-primary" type="button"
+                    data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i
+              class="mdi mdi-currency-usd me-1 fs-14"></i>Profile<i class="mdi mdi-chevron-down ms-1 fs-14"></i>
+            </button>
+            <div class="dropdown-menu">
+              <a class="dropdown-item" href="#">Profile</a>
+              <a class="dropdown-item" href="#">Income</a>
+              <a class="dropdown-item" href="#">Expense</a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div id="chart-money" class="apex-charts"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- end row -->
+
+<!-- Average revenue -->
+<div class="row">
+  <div class="col-md-12 col-xl-6">
+    <div class="row">
+      <div class="col-md-12 col-xl-12">
+        <div class="card">
+          <div class="card-header">
+            <div class="d-flex align-items-center">
+              <h5 class="card-title text-dark mb-0">Traffic summary</h5>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div id="chart-traffic" class="apex-charts"></div>
+          </div> <!-- end card body -->
+        </div> <!-- end card -->
+      </div>
+
+      <div class="col-md-12 col-xl-12">
+        <div class="card">
+          <div class="card-header">
+            <div class="d-flex align-items-center">
+              <h5 class="card-title text-dark mb-0">Subscribers</h5>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div id="chart-development-activity" class="apex-charts"></div>
+          </div> <!-- end card body -->
+        </div> <!-- end card -->
+
+      </div>
+    </div>
+  </div> <!-- end sales -->
+
+  <div class="col-md-12 col-xl-6">
+    <div class="card">
+      <div class="card-header">
+        <div class="d-flex align-items-center">
+          <h5 class="card-title text-dark mb-0">Web Analytics</h5>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="justify-content-center mb-4">
+          <div class="row g-3">
+            <div class="col-md-6 col-xl-3">
+              <a href="#">
+                <div class="border rounded-3 px-2 py-3 text-center">
+                  <p class="mb-2 text-dark">Users</p>
+                  <h3 class="m-0 mb-2 fs-24 text-dark">3 680</h3>
+                  <p class="text-muted mb-0 fs-13">
+                    <span class="text-success bg-success-subtle rounded-2 p-1 me-2"><i
+                      class="mdi mdi-arrow-up-circle"></i> 2.5%</span>
+                  </p>
+                </div>
+              </a>
+            </div>
+            <div class="col-md-6 col-xl-3">
+              <a href="#">
+                <div class="border rounded-3 px-2 py-3 text-center">
+                  <p class="mb-2 text-dark">New Users</p>
+                  <h3 class="m-0 mb-2 fs-24 text-dark">2 870</h3>
+                  <p class="text-muted mb-0 fs-13">
+                    <span class="text-success bg-success-subtle rounded-2 p-1 me-2"><i
+                      class="mdi mdi-arrow-up-circle"></i> 1.6%</span>
+                  </p>
+                </div>
+              </a>
+            </div>
+            <div class="col-md-6 col-xl-3">
+              <a href="#">
+                <div class="border rounded-3 px-2 py-3 text-center">
+                  <p class="mb-2 text-dark">Key Event</p>
+                  <h3 class="m-0 mb-2 fs-24 text-dark">78</h3>
+                  <p class="text-muted mb-0 fs-13">
+                    <span class="text-danger bg-danger-subtle rounded-2 p-1 me-2"><i
+                      class="mdi mdi-arrow-down-circle"></i> 7.7%</span>
+                  </p>
+                </div>
+              </a>
+            </div>
+            <div class="col-md-6 col-xl-3">
+              <a href="#">
+                <div class="border rounded-3 px-2 py-3 text-center">
+                  <p class="mb-2 text-dark">Event Count</p>
+                  <h3 class="m-0 mb-2 fs-24 text-dark">9.4K</h3>
+                  <p class="text-muted mb-0 fs-13">
+                    <span class="text-success bg-success-subtle rounded-2 p-1 me-2"><i
+                      class="mdi mdi-arrow-up-circle"></i> 17.6%</span>
+                  </p>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+        <div id="chart-new-clients" class="apex-charts"></div>
+        <div class="row">
+          <div class="col-12">
+            <a
+              class="btn text-dark border fw-normal d-flex align-items-center justify-content-center text-capitalize rounded-3 mt-3 fw-semibold">View
+              reports snapshot <i class="mdi mdi-arrow-right ms-2 fs-17"></i></a>
+          </div>
+        </div>
+      </div>
+
+    </div> <!-- end card -->
+  </div> <!-- end sales -->
+</div>
+
+<!-- Sale Section Mix Widget -->
+<div class="row">
+  <div class="col-md-12 col-xl-3">
+    <div class="card">
+      <div class="card-header">
+        <div class="d-flex align-items-center">
+          <h5 class="card-title text-dark mb-0">Website Visitors</h5>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div id="website-visitors" class="apex-charts"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-12 col-xl-3">
+    <div class="card">
+      <div class="card-header">
+        <div class="d-flex align-items-center">
+          <h5 class="card-title text-dark mb-0">Orders Overview</h5>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div id="recent-orders" class="apex-charts"></div>
+
+        <div class="d-flex gap-3 justify-content-between mt-3">
+          <div class="d-flex">
+            <div class="bg-primary-subtle rounded-2 p-1 me-2 border border-dashed border-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+                <path fill="#7168EE"
+                      d="M7 15h2c0 1.08 1.37 2 3 2s3-.92 3-2c0-1.1-1.04-1.5-3.24-2.03C9.64 12.44 7 11.78 7 9c0-1.79 1.47-3.31 3.5-3.82V3h3v2.18C15.53 5.69 17 7.21 17 9h-2c0-1.08-1.37-2-3-2s-3 .92-3 2c0 1.1 1.04 1.5 3.24 2.03C14.36 11.56 17 12.22 17 15c0 1.79-1.47 3.31-3.5 3.82V21h-3v-2.18C8.47 18.31 7 16.79 7 15"></path>
+              </svg>
+            </div>
+            <div class="d-flex flex-column">
+              <small>
+                <script>document.write(new Date().getFullYear() - 1)</script>
+              </small>
+              <h6 class="mb-0 fs-15">$32.5k</h6>
+            </div>
+          </div>
+
+          <div class="d-flex">
+            <div class="bg-success-subtle rounded-2 p-1 me-2 border border-dashed border-success">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+                <path fill="#46B277" d="M12 12V2c5.523 0 10 4.477 10 10z" opacity="0.25"></path>
+                <path fill="#46B277" d="m12 12l5 8.66A10.01 10.01 0 0 0 22 12z" opacity="0.5"></path>
+                <path fill="#46B277"
+                      d="M17 20.66L12 12V2c-5.523.002-9.999 4.48-9.997 10.003c.002 5.523 4.48 9.999 10.004 9.997A10 10 0 0 0 17 20.662l.003-.005l-.004.003z"></path>
+              </svg>
+            </div>
+            <div class="d-flex flex-column">
+              <small>
+                <script>document.write(new Date().getFullYear() - 2)</script>
+              </small>
+              <h6 class="mb-0 fs-15">$41.2k</h6>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-12 col-xl-6">
+    <div class="card">
+      <div class="card-header">
+        <div class="d-flex align-items-center">
+          <h5 class="card-title text-dark mb-0">Average Revenue</h5>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div id="average-revenue" class="apex-charts"></div>
+
+        <div class="row">
+          <div class="col-md-4 col-xl-4">
+            <div class="mt-3">
+              <p class="mb-2 text-dark fs-15">This month</p>
+              <h3 class="m-0 mb-1 fs-18 text-dark">$ 36,026.89</h3>
+              <div class="d-flex align-items-center">
+                <span
+                  class="avatar-xs rounded-circle bg-success-subtle d-flex justify-content-center align-items-center me-2"><i
+                  class="mdi mdi-arrow-up fs-13 text-success"></i></span>
+                <p class="text-muted mb-0 fs-13">+ $ 1,670.76</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-4 col-xl-4">
+            <div class="mt-3">
+              <p class="mb-2 text-dark fs-15">Today</p>
+              <h3 class="m-0 mb-1 fs-18 text-dark">$ 1,260.16</h3>
+              <div class="d-flex align-items-center">
+                <span
+                  class="avatar-xs rounded-circle bg-danger-subtle d-flex justify-content-center align-items-center me-2"><i
+                  class="mdi mdi-arrow-down fs-13 text-danger"></i></span>
+                <p class="text-muted mb-0 fs-13">+ $ 1,670.76</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-4 col-xl-4">
+            <div class="mt-3">
+              <p class="mb-2 text-dark fs-15">This Year</p>
+              <h3 class="m-0 mb-1 fs-18 text-dark">$ 136,026.89</h3>
+              <div class="d-flex align-items-center">
+                <span
+                  class="avatar-xs rounded-circle bg-success-subtle d-flex justify-content-center align-items-center me-2"><i
+                  class="mdi mdi-arrow-up fs-13 text-success"></i></span>
+                <p class="text-muted mb-0 fs-13">+ $ 11,670.76</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock page_content %}
+
+{% block extra_javascript %}
+
+<!-- Apexcharts JS -->
+<script src="{{ config.ASSETS_ROOT }}/libs/apexcharts/apexcharts.min.js"></script>
+<!-- for basic area chart -->
+<script src="https://apexcharts.com/samples/assets/stock-prices.js"></script>
+<!-- Widgets Init Js -->
+<script src="{{ config.ASSETS_ROOT }}/js/pages/widgets-chart.init.js"></script>
+<!-- App js-->
+<script src="{{ config.ASSETS_ROOT }}/js/app.js"></script>
+
+{% endblock extra_javascript %}
+
+
+

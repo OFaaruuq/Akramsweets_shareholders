@@ -1,0 +1,26 @@
+{% extends 'layouts/vertical.html' %}
+{% block title %}Monthly Periods{% endblock title %}
+{% block css %}{% include 'partials/head-css.html' %}{% endblock css %}
+{% block body_attribute %}data-menu-color="dark" data-sidebar="default"{% endblock body_attribute %}
+{% block page_content %}
+<div class="py-3 d-flex align-items-sm-center flex-sm-row flex-column">
+  <div class="flex-grow-1"><h4 class="fs-18 fw-semibold m-0">Monthly Periods</h4></div>
+  <div class="text-end"><a href="{{ url_for('periods.create_period') }}" class="btn btn-primary">Enter Monthly Result</a></div>
+</div>
+<div class="card"><div class="card-body"><div class="table-responsive">
+<table class="table table-hover mb-0">
+<thead><tr><th>Period</th><th>Total P/L</th><th>Status</th><th>Calculated</th><th>Approved</th><th></th></tr></thead>
+<tbody>
+{% for period in periods %}
+<tr>
+  <td>{{ period.period_label }}</td>
+  <td>{{ '%.2f'|format(period.total_profit_loss) }}</td>
+  <td><span class="badge {% if period.status == 'approved' %}bg-success{% elif period.status == 'review' %}bg-info{% else %}bg-warning text-dark{% endif %}">{{ period.status|replace('_', ' ')|title }}</span></td>
+  <td>{{ period.calculated_at.strftime('%Y-%m-%d %H:%M') if period.calculated_at else '-' }}</td>
+  <td>{{ period.approved_at.strftime('%Y-%m-%d %H:%M') if period.approved_at else '-' }}</td>
+  <td class="text-end"><a href="{{ url_for('periods.detail_period', period_id=period.id) }}" class="btn btn-sm btn-soft-primary">Open</a></td>
+</tr>
+{% else %}<tr><td colspan="6" class="text-center text-muted">No monthly periods yet.</td></tr>{% endfor %}
+</tbody></table></div></div></div>
+{% endblock page_content %}
+{% block extra_javascript %}{% include 'partials/vendor.html' %}{% endblock extra_javascript %}

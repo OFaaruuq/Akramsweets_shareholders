@@ -1,0 +1,54 @@
+// 
+// maintenance
+// 
+.maintenance-bg-image {
+    // background-size: cover;
+    // background-position: left center;
+    // background-color: #FCF1EC;
+}
+
+.maintenance-bg {
+    background-color: #f8f8fb;
+}
+
+.maintenance-pages {
+    align-items: center;
+    display: flex;
+    min-height: 100vh;
+    background-size: cover;
+    background-position: left center;
+    background-image: var(--#{$prefix}white);
+}
+
+.maintenance-pages {
+    .bg-overlay {
+        background-image: linear-gradient(135deg, #8A1B24, #C8924B);
+        opacity: 0.9;
+    }
+}
+
+.maintenance-img {
+    max-width: 600px;
+    margin: auto;
+}
+
+.error-page {
+    max-width: 300px;
+    margin: auto;
+}
+
+.bg-svg {
+    background-image: url(../images/svg/shape.svg);
+}
+
+.coming-soon-img {
+    max-width: 500px;
+    margin: auto;
+}
+
+@media (max-width: 767px) {
+    .error-page {
+        max-width: 300px;
+        margin: auto;
+    }
+}

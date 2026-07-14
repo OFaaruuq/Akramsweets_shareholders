@@ -1,83 +1,85 @@
 # -*- encoding: utf-8 -*-
-"""
-Copyright (c) 2019 - present AppSeed.us
-"""
 
-import os, random, string
+import os
+import random
+import string
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+def _normalize_database_url(url):
+    """Render/Heroku may provide postgres://; SQLAlchemy expects postgresql://."""
+    if url.startswith('postgres://'):
+        return url.replace('postgres://', 'postgresql+psycopg2://', 1)
+    return url
+
+
+def build_database_uri(basedir):
+    database_url = os.getenv('DATABASE_URL')
+    if database_url:
+        return _normalize_database_url(database_url)
+
+    db_engine = os.getenv('DB_ENGINE', 'sqlite').lower()
+
+    if db_engine in ('sqlite', 'sqlite3'):
+        db_file = os.getenv('SQLITE_PATH', os.path.join(basedir, 'db.sqlite3'))
+        return 'sqlite:///' + db_file
+
+    db_username = os.getenv('DB_USERNAME', 'akram_user')
+    db_pass = os.getenv('DB_PASS', 'akram_pass')
+    db_host = os.getenv('DB_HOST', '127.0.0.1')
+    db_port = os.getenv('DB_PORT', '5432')
+    db_name = os.getenv('DB_NAME', 'akram_shareholders')
+
+    auth = f'{db_username}:{db_pass}' if db_pass else db_username
+    return f'{db_engine}://{auth}@{db_host}:{db_port}/{db_name}'
+
 
 class Config(object):
 
     basedir = os.path.abspath(os.path.dirname(__file__))
 
-    # Assets Management
-    ASSETS_ROOT = os.getenv('ASSETS_ROOT', '/static/assets')  
-    
-    # Set up the App SECRET_KEY
-    SECRET_KEY  = os.getenv('SECRET_KEY', None)
+    ASSETS_ROOT = os.getenv('ASSETS_ROOT', '/static')
+
+    SECRET_KEY = os.getenv('SECRET_KEY', None)
     if not SECRET_KEY:
-        SECRET_KEY = ''.join(random.choice( string.ascii_lowercase  ) for i in range( 32 ))
+        SECRET_KEY = ''.join(random.choice(string.ascii_lowercase) for i in range(32))
 
-    # Social AUTH context
-    SOCIAL_AUTH_GITHUB  = False
+    SOCIAL_AUTH_GITHUB = False
 
-    GITHUB_ID      = os.getenv('GITHUB_ID'    , None)
-    GITHUB_SECRET  = os.getenv('GITHUB_SECRET', None)
+    GITHUB_ID = os.getenv('GITHUB_ID', None)
+    GITHUB_SECRET = os.getenv('GITHUB_SECRET', None)
 
-    # Enable/Disable Github Social Login    
     if GITHUB_ID and GITHUB_SECRET:
-         SOCIAL_AUTH_GITHUB  = True        
+        SOCIAL_AUTH_GITHUB = True
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_DATABASE_URI = build_database_uri(basedir)
+    WTF_CSRF_ENABLED = True
 
-    DB_ENGINE   = os.getenv('DB_ENGINE'   , None)
-    DB_USERNAME = os.getenv('DB_USERNAME' , None)
-    DB_PASS     = os.getenv('DB_PASS'     , None)
-    DB_HOST     = os.getenv('DB_HOST'     , None)
-    DB_PORT     = os.getenv('DB_PORT'     , None)
-    DB_NAME     = os.getenv('DB_NAME'     , None)
+    # SMTP (optional). Prefer System Settings UI; env vars are the fallback.
+    MAIL_SERVER = os.getenv('MAIL_SERVER') or None
+    MAIL_PORT = int(os.getenv('MAIL_PORT', '587'))
+    MAIL_USERNAME = os.getenv('MAIL_USERNAME') or None
+    MAIL_PASSWORD = os.getenv('MAIL_PASSWORD') or None
+    MAIL_FROM = os.getenv('MAIL_FROM') or None
 
-    USE_SQLITE  = True 
 
-    # try to set up a Relational DBMS
-    if DB_ENGINE and DB_NAME and DB_USERNAME:
-
-        try:
-            
-            # Relational DBMS: PSQL, MySql
-            SQLALCHEMY_DATABASE_URI = '{}://{}:{}@{}:{}/{}'.format(
-                DB_ENGINE,
-                DB_USERNAME,
-                DB_PASS,
-                DB_HOST,
-                DB_PORT,
-                DB_NAME
-            ) 
-
-            USE_SQLITE  = False
-
-        except Exception as e:
-
-            print('> Error: DBMS Exception: ' + str(e) )
-            print('> Fallback to SQLite ')    
-
-    if USE_SQLITE:
-
-        # This will create a file in <app> FOLDER
-        SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'db.sqlite3')
-    
 class ProductionConfig(Config):
     DEBUG = False
 
-    # Security
     SESSION_COOKIE_HTTPONLY = True
     REMEMBER_COOKIE_HTTPONLY = True
     REMEMBER_COOKIE_DURATION = 3600
 
+
 class DebugConfig(Config):
     DEBUG = True
 
-# Load all possible configurations
+
 config_dict = {
     'Production': ProductionConfig,
-    'Debug'     : DebugConfig
+    'Debug': DebugConfig
 }

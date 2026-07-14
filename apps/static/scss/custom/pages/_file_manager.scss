@@ -1,0 +1,23 @@
+
+// 
+// File Manager Menu
+// 
+
+.file-manager-menu {
+    display: flex;
+    gap: 4px;
+    flex-direction: column;
+    .file-menu-item {
+        background-color: transparent;
+        padding: 8px 12px;
+        border-radius: 5px;
+        transition: all .3s ease-in-out;
+        font-weight: 500;
+        color: var(--#{$prefix}gray-1000);
+        &.active,
+        &:hover {
+            color: var(--#{$prefix}primary);
+            background-color: var(--#{$prefix}body-bg);
+        }
+    }
+}

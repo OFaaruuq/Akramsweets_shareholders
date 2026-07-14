@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: flask-dash
+    name: akram-sweet-shareholders
     plan: starter
     env: python
     region: frankfurt  # region should be same as your database region.
@@ -11,3 +11,14 @@ services:
         generateValue: true
       - key: WEB_CONCURRENCY
         value: 4
+      - key: DB_ENGINE
+        value: postgresql+psycopg2
+      - key: DATABASE_URL
+        fromDatabase:
+          name: akram-shareholders-db
+          property: connectionString
+databases:
+  - name: akram-shareholders-db
+    databaseName: akram_shareholders
+    user: akram_user
+    plan: free

@@ -1,0 +1,33 @@
+{% extends 'layouts/vertical.html' %}
+{% block title %}My Ownership{% endblock title %}
+{% block css %}{% include 'partials/head-css.html' %}{% endblock css %}
+{% block body_attribute %}data-menu-color="dark" data-sidebar="default"{% endblock body_attribute %}
+{% block page_content %}
+<div class="py-3"><h4 class="fs-18 fw-semibold m-0">Ownership History</h4>
+<p class="text-muted mb-0">Your registered ownership percentage over time.</p></div>
+<div class="row">
+  <div class="col-md-4">
+    <div class="card"><div class="card-body">
+      <p class="text-muted mb-1">Current ownership</p>
+      <h3 class="mb-0">{{ '%.2f'|format(ownership_percent) }}%</h3>
+    </div></div>
+  </div>
+</div>
+<div class="card"><div class="card-body"><div class="table-responsive">
+<table class="table mb-0">
+  <thead><tr><th>Effective from</th><th>Effective to</th><th>Ownership %</th></tr></thead>
+  <tbody>
+    {% for record in ownership_history %}
+    <tr>
+      <td>{{ record.effective_from.strftime('%Y-%m-%d') }}</td>
+      <td>{% if record.effective_to %}{{ record.effective_to.strftime('%Y-%m-%d') }}{% else %}Present{% endif %}</td>
+      <td>{{ '%.2f'|format(record.ownership_percent) }}%</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="3" class="text-center text-muted">No ownership records found.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div></div></div>
+{% endblock page_content %}
+{% block extra_javascript %}{% include 'partials/vendor.html' %}{% endblock extra_javascript %}

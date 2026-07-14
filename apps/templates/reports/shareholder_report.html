@@ -1,0 +1,33 @@
+{% extends 'layouts/vertical.html' %}
+{% block title %}Shareholder Report{% endblock title %}
+{% block css %}{% include 'partials/head-css.html' %}{% endblock css %}
+{% block body_attribute %}data-menu-color="dark" data-sidebar="default"{% endblock body_attribute %}
+{% block page_content %}
+<div class="py-3"><h4 class="fs-18 fw-semibold m-0">Shareholder Report — {{ report.period_label }}</h4></div>
+<div class="card"><div class="card-body">
+<p class="text-muted">Generated: {{ report.generated_at.strftime('%Y-%m-%d %H:%M') if report.generated_at else 'Draft' }}</p>
+<p><strong>Shareholder:</strong> {{ report.shareholder_name }} ({{ report.shareholder_email }})</p>
+<p><strong>Company total for month:</strong> {{ '%.2f'|format(report.company_total) }}</p>
+<hr>
+<p><strong>Ownership:</strong> {{ '%.2f'|format(report.ownership_percent) }}%</p>
+<p><strong>Base share:</strong> {{ '%.2f'|format(report.base_share) }}</p>
+{% if report.arrangements_applied %}
+<p class="mb-1"><strong>Special arrangements:</strong></p>
+<ul>{% for item in report.arrangements_applied %}<li>{{ item.name }} ({{ '%.2f'|format(item.percent) }}%): {{ '%.2f'|format(item.amount) }} — {{ item.description }}</li>{% endfor %}</ul>
+{% else %}
+<p><strong>Special arrangement deduction:</strong> {{ '%.2f'|format(report.arrangement_deduction) }}</p>
+<p><strong>Special arrangement received:</strong> {{ '%.2f'|format(report.arrangement_received) }}</p>
+{% endif %}
+{% if report.adjustment_lines %}
+<p class="mb-1"><strong>Manual adjustments:</strong></p>
+<ul>{% for item in report.adjustment_lines %}<li>{{ '%.2f'|format(item.amount) }} — {{ item.reason }}</li>{% endfor %}</ul>
+{% else %}
+<p><strong>Manual adjustment:</strong> {{ '%.2f'|format(report.manual_adjustment) }}</p>
+{% endif %}
+<h4 class="text-primary mt-3">Final amount: {{ '%.2f'|format(report.final_amount) }}</h4>
+<p class="mt-3"><strong>Year-to-date total:</strong> {{ '%.2f'|format(report.ytd_total) }}</p>
+{% if report.odoo_reference %}<p class="text-muted mb-0">Odoo reference: {{ report.odoo_reference }}</p>{% endif %}
+<p class="mt-3 mb-0"><a class="btn btn-sm btn-primary" href="{{ url_for('reports.shareholder_report_pdf', period_id=period_id, shareholder_id=shareholder_id) }}">Download PDF</a></p>
+</div></div>
+{% endblock page_content %}
+{% block extra_javascript %}{% include 'partials/vendor.html' %}{% endblock extra_javascript %}

@@ -1,0 +1,413 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Todo List{% endblock title %}
+
+{% block extra_css %}
+
+<link href="{{ config.ASSETS_ROOT }}/libs/simple-datatables/style.css" rel="stylesheet" type="text/css"/>
+
+{% endblock extra_css %}
+
+{% block css %}
+
+{% include 'partials/head-css.html' %}
+
+{% endblock css %}
+
+{% block body_attribute %}data-menu-color="dark" data-sidebar="default"{% endblock body_attribute %}
+
+{% block page_content %}
+
+<div class="py-3 d-flex align-items-sm-center flex-sm-row flex-column">
+  <div class="flex-grow-1">
+    <h4 class="fs-18 fw-semibold m-0">Todo List</h4>
+  </div>
+
+  <div class="text-end">
+    <ol class="breadcrumb m-0 py-0">
+      <li class="breadcrumb-item"><a href="javascript: void(0);">Apps</a></li>
+      <li class="breadcrumb-item active">Todo List</li>
+    </ol>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table datatable" id="datatable_1">
+            <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Status</th>
+              <th>Assigned To</th>
+              <th>Deadline</th>
+              <th>Priority</th>
+              <th>Action</th>
+            </tr>
+            </thead>
+            <tbody>
+
+            <tr>
+              <td class="ps-0">
+                <img src="{{ config.ASSETS_ROOT }}/images/users/user.jpg" alt=""
+                     class="thumb-md me-2 rounded-circle avatar-border">
+                <p class="d-inline-block align-middle mb-0">
+                  <span>Create A New React app</span>
+                </p>
+              </td>
+              <td>
+                <span class="badge bg-warning-subtle text-warning">In-Progress</span>
+              </td>
+              <td>Alexander White</td>
+              <td>Due in 3 days</td>
+              <td>High</td>
+              <td class="text-end">
+                <a aria-label="anchor" class="btn btn-sm bg-primary-subtle me-1" data-bs-toggle="tooltip"
+                   data-bs-original-title="Edit">
+                  <i class="mdi mdi-pencil-outline fs-14 text-primary"></i>
+                </a>
+                <a aria-label="anchor" class="btn btn-sm bg-danger-subtle" data-bs-toggle="tooltip"
+                   data-bs-original-title="Delete">
+                  <i class="mdi mdi-delete fs-14 text-danger"></i>
+                </a>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="ps-0">
+                <img src="{{ config.ASSETS_ROOT }}/images/users/user-2.jpg" alt=""
+                     class="thumb-md me-2 rounded-circle avatar-border">
+                <p class="d-inline-block align-middle mb-0">
+                  <span>Finish project report</span>
+                </p>
+              </td>
+              <td>
+                <span class="badge bg-primary-subtle text-primary">Pending</span>
+              </td>
+              <td>Sophia Williams</td>
+              <td>15 August 2024</td>
+              <td>Medium</td>
+              <td class="text-end">
+                <a aria-label="anchor" class="btn btn-sm bg-primary-subtle me-1" data-bs-toggle="tooltip"
+                   data-bs-original-title="Edit">
+                  <i class="mdi mdi-pencil-outline fs-14 text-primary"></i>
+                </a>
+                <a aria-label="anchor" class="btn btn-sm bg-danger-subtle" data-bs-toggle="tooltip"
+                   data-bs-original-title="Delete">
+                  <i class="mdi mdi-delete fs-14 text-danger"></i>
+                </a>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="ps-0">
+                <img src="{{ config.ASSETS_ROOT }}/images/users/user-4.jpg" alt=""
+                     class="thumb-md me-2 rounded-circle avatar-border">
+                <p class="d-inline-block align-middle mb-0">
+                  <span>Implement user authentication</span>
+                </p>
+              </td>
+              <td>
+                <span class="badge bg-success-subtle text-success">Completed</span>
+              </td>
+              <td>Dale Osuna</td>
+              <td>11 August 2024</td>
+              <td>Low</td>
+              <td class="text-end">
+                <a aria-label="anchor" class="btn btn-sm bg-primary-subtle me-1" data-bs-toggle="tooltip"
+                   data-bs-original-title="Edit">
+                  <i class="mdi mdi-pencil-outline fs-14 text-primary"></i>
+                </a>
+                <a aria-label="anchor" class="btn btn-sm bg-danger-subtle" data-bs-toggle="tooltip"
+                   data-bs-original-title="Delete">
+                  <i class="mdi mdi-delete fs-14 text-danger"></i>
+                </a>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="ps-0">
+                <img src="{{ config.ASSETS_ROOT }}/images/users/user-5.jpg" alt=""
+                     class="thumb-md me-2 rounded-circle avatar-border">
+                <p class="d-inline-block align-middle mb-0">
+                  <span>Code review for feature branch</span>
+                </p>
+              </td>
+              <td>
+                <span class="badge bg-warning-subtle text-warning">In-Progress</span>
+              </td>
+              <td>Willie Makin</td>
+              <td>18 August 2024</td>
+              <td>High</td>
+              <td class="text-end">
+                <a aria-label="anchor" class="btn btn-sm bg-primary-subtle me-1" data-bs-toggle="tooltip"
+                   data-bs-original-title="Edit">
+                  <i class="mdi mdi-pencil-outline fs-14 text-primary"></i>
+                </a>
+                <a aria-label="anchor" class="btn btn-sm bg-danger-subtle" data-bs-toggle="tooltip"
+                   data-bs-original-title="Delete">
+                  <i class="mdi mdi-delete fs-14 text-danger"></i>
+                </a>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="ps-0">
+                <img src="{{ config.ASSETS_ROOT }}/images/users/user-8.jpg" alt=""
+                     class="thumb-md me-2 rounded-circle avatar-border">
+                <p class="d-inline-block align-middle mb-0">
+                  <span>Fix bug in payment processing</span>
+                </p>
+              </td>
+              <td>
+                <span class="badge bg-secondary-subtle text-secondary">Active</span>
+              </td>
+              <td>Steven Hall</td>
+              <td>21 August 2024</td>
+              <td>Medium</td>
+              <td class="text-end">
+                <a aria-label="anchor" class="btn btn-sm bg-primary-subtle me-1" data-bs-toggle="tooltip"
+                   data-bs-original-title="Edit">
+                  <i class="mdi mdi-pencil-outline fs-14 text-primary"></i>
+                </a>
+                <a aria-label="anchor" class="btn btn-sm bg-danger-subtle" data-bs-toggle="tooltip"
+                   data-bs-original-title="Delete">
+                  <i class="mdi mdi-delete fs-14 text-danger"></i>
+                </a>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="ps-0">
+                <img src="{{ config.ASSETS_ROOT }}/images/users/user-9.jpg" alt=""
+                     class="thumb-md me-2 rounded-circle avatar-border">
+                <p class="d-inline-block align-middle mb-0">
+                  <span>Write unit tests for new API</span>
+                </p>
+              </td>
+              <td>
+                <span class="badge bg-success-subtle text-success">Completed</span>
+              </td>
+              <td>John Spray</td>
+              <td>16 August 2024</td>
+              <td>High</td>
+              <td class="text-end">
+                <a aria-label="anchor" class="btn btn-sm bg-primary-subtle me-1" data-bs-toggle="tooltip"
+                   data-bs-original-title="Edit">
+                  <i class="mdi mdi-pencil-outline fs-14 text-primary"></i>
+                </a>
+                <a aria-label="anchor" class="btn btn-sm bg-danger-subtle" data-bs-toggle="tooltip"
+                   data-bs-original-title="Delete">
+                  <i class="mdi mdi-delete fs-14 text-danger"></i>
+                </a>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="ps-0">
+                <img src="{{ config.ASSETS_ROOT }}/images/users/user-4.jpg" alt=""
+                     class="thumb-md me-2 rounded-circle avatar-border">
+                <p class="d-inline-block align-middle mb-0">
+                  <span>Update documentation for REST API</span>
+                </p>
+              </td>
+              <td>
+                <span class="badge bg-warning-subtle text-warning">In-Progress</span>
+              </td>
+              <td>Guillermo Pollard</td>
+              <td>21 August 2024</td>
+              <td>Low</td>
+              <td class="text-end">
+                <a aria-label="anchor" class="btn btn-sm bg-primary-subtle me-1" data-bs-toggle="tooltip"
+                   data-bs-original-title="Edit">
+                  <i class="mdi mdi-pencil-outline fs-14 text-primary"></i>
+                </a>
+                <a aria-label="anchor" class="btn btn-sm bg-danger-subtle" data-bs-toggle="tooltip"
+                   data-bs-original-title="Delete">
+                  <i class="mdi mdi-delete fs-14 text-danger"></i>
+                </a>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="ps-0">
+                <img src="{{ config.ASSETS_ROOT }}/images/users/user-12.jpg" alt=""
+                     class="thumb-md me-2 rounded-circle avatar-border">
+                <p class="d-inline-block align-middle mb-0">
+                  <span>Deploy new release to staging</span>
+                </p>
+              </td>
+              <td>
+                <span class="badge bg-success-subtle text-success">Completed</span>
+              </td>
+              <td>Donald Hunter</td>
+              <td class="align-content-center">23 August 2024</td>
+              <td class="align-content-center">Medium</td>
+              <td class="text-end">
+                <a aria-label="anchor" class="btn btn-sm bg-primary-subtle me-1" data-bs-toggle="tooltip"
+                   data-bs-original-title="Edit">
+                  <i class="mdi mdi-pencil-outline fs-14 text-primary"></i>
+                </a>
+                <a aria-label="anchor" class="btn btn-sm bg-danger-subtle" data-bs-toggle="tooltip"
+                   data-bs-original-title="Delete">
+                  <i class="mdi mdi-delete fs-14 text-danger"></i>
+                </a>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="ps-0">
+                <img src="{{ config.ASSETS_ROOT }}/images/users/user-13.jpg" alt=""
+                     class="thumb-md me-2 rounded-circle avatar-border">
+                <p class="d-inline-block align-middle mb-0">
+                  <span>Research on database optimization</span>
+                </p>
+              </td>
+              <td class="align-content-center">
+                <span class="badge bg-info-subtle text-info">Inactive</span>
+              </td>
+              <td class="align-content-center">Thomas Hodges</td>
+              <td class="align-content-center">21 August 2024</td>
+              <td class="align-content-center">Low</td>
+              <td class="text-end">
+                <a aria-label="anchor" class="btn btn-sm bg-primary-subtle me-1" data-bs-toggle="tooltip"
+                   data-bs-original-title="Edit">
+                  <i class="mdi mdi-pencil-outline fs-14 text-primary"></i>
+                </a>
+                <a aria-label="anchor" class="btn btn-sm bg-danger-subtle" data-bs-toggle="tooltip"
+                   data-bs-original-title="Delete">
+                  <i class="mdi mdi-delete fs-14 text-danger"></i>
+                </a>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="ps-0">
+                <img src="{{ config.ASSETS_ROOT }}/images/users/user-14.jpg" alt=""
+                     class="thumb-md me-2 rounded-circle avatar-border">
+                <p class="d-inline-block align-middle mb-0">
+                  <span>Attend team meeting</span>
+                </p>
+              </td>
+              <td class="align-content-center">
+                <span class="badge bg-secondary-subtle text-secondary">Active</span>
+              </td>
+              <td class="align-content-center">Ronald Rock</td>
+              <td class="align-content-center">14 August 2024</td>
+              <td class="align-content-center">High</td>
+              <td class="text-end">
+                <a aria-label="anchor" class="btn btn-sm bg-primary-subtle me-1" data-bs-toggle="tooltip"
+                   data-bs-original-title="Edit">
+                  <i class="mdi mdi-pencil-outline fs-14 text-primary"></i>
+                </a>
+                <a aria-label="anchor" class="btn btn-sm bg-danger-subtle" data-bs-toggle="tooltip"
+                   data-bs-original-title="Delete">
+                  <i class="mdi mdi-delete fs-14 text-danger"></i>
+                </a>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="ps-0">
+                <img src="{{ config.ASSETS_ROOT }}/images/users/user-15.jpg" alt=""
+                     class="thumb-md me-2 rounded-circle avatar-border">
+                <p class="d-inline-block align-middle mb-0">
+                  <span>Refactor legacy codebase</span>
+                </p>
+              </td>
+              <td class="align-content-center">
+                <span class="badge bg-secondary-subtle text-secondary">Inactive</span>
+              </td>
+              <td class="align-content-center">Henry Hall</td>
+              <td class="align-content-center">23 August 2024</td>
+              <td class="align-content-center">Medium</td>
+              <td class="text-end">
+                <a aria-label="anchor" class="btn btn-sm bg-primary-subtle me-1" data-bs-toggle="tooltip"
+                   data-bs-original-title="Edit">
+                  <i class="mdi mdi-pencil-outline fs-14 text-primary"></i>
+                </a>
+                <a aria-label="anchor" class="btn btn-sm bg-danger-subtle" data-bs-toggle="tooltip"
+                   data-bs-original-title="Delete">
+                  <i class="mdi mdi-delete fs-14 text-danger"></i>
+                </a>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="ps-0">
+                <img src="{{ config.ASSETS_ROOT }}/images/users/user-10.jpg" alt=""
+                     class="thumb-md me-2 rounded-circle avatar-border">
+                <p class="d-inline-block align-middle mb-0">
+                  <span>Design new feature architecture</span>
+                </p>
+              </td>
+              <td class="align-content-center">
+                <span class="badge bg-warning-subtle text-warning">In-Progress</span>
+              </td>
+              <td class="align-content-center">Peter Carrick</td>
+              <td class="align-content-center">23 August 2024</td>
+              <td class="align-content-center">Low</td>
+              <td class="text-end">
+                <a aria-label="anchor" class="btn btn-sm bg-primary-subtle me-1" data-bs-toggle="tooltip"
+                   data-bs-original-title="Edit">
+                  <i class="mdi mdi-pencil-outline fs-14 text-primary"></i>
+                </a>
+                <a aria-label="anchor" class="btn btn-sm bg-danger-subtle" data-bs-toggle="tooltip"
+                   data-bs-original-title="Delete">
+                  <i class="mdi mdi-delete fs-14 text-danger"></i>
+                </a>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="ps-0">
+                <img src="{{ config.ASSETS_ROOT }}/images/users/user-3.jpg" alt=""
+                     class="thumb-md me-2 rounded-circle avatar-border">
+                <p class="d-inline-block align-middle mb-0">
+                  <span>Optimize frontend loading times</span>
+                </p>
+              </td>
+              <td class="align-content-center">
+                <span class="badge bg-success-subtle text-success">Completed</span>
+              </td>
+              <td class="align-content-center">Antonio Graham</td>
+              <td class="align-content-center">17 August 2024</td>
+              <td class="align-content-center">Medium</td>
+              <td class="text-end">
+                <a aria-label="anchor" class="btn btn-sm bg-primary-subtle me-1" data-bs-toggle="tooltip"
+                   data-bs-original-title="Edit">
+                  <i class="mdi mdi-pencil-outline fs-14 text-primary"></i>
+                </a>
+                <a aria-label="anchor" class="btn btn-sm bg-danger-subtle" data-bs-toggle="tooltip"
+                   data-bs-original-title="Delete">
+                  <i class="mdi mdi-delete fs-14 text-danger"></i>
+                </a>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock page_content %}
+
+{% block extra_javascript %}
+
+<!-- Simple Datatables JS -->
+<script src="{{ config.ASSETS_ROOT }}/libs/simple-datatables/umd/simple-datatables.js"></script>
+<!-- Simple Datatables Init JS -->
+<script src="{{ config.ASSETS_ROOT }}/js/pages/simple-datatables.init.js"></script>
+<!-- App js-->
+<script src="{{ config.ASSETS_ROOT }}/js/app.js"></script>
+
+{% endblock extra_javascript %}
+
+
+

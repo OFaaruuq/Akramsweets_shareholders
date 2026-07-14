@@ -1,0 +1,440 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Analytics{% endblock title %}
+
+{% block css %}
+{% include 'partials/head-css.html' %}
+{% endblock css %}
+
+{% block body_attribute %}data-menu-color="dark" data-sidebar="default"{% endblock body_attribute %}
+
+{% block page_content %}
+
+<div class="py-3 d-flex align-items-sm-center flex-sm-row flex-column">
+  <div class="flex-grow-1">
+    <h4 class="fs-18 fw-semibold m-0">
+      {% if is_shareholder_view %}My Share Analytics{% else %}Shareholders Analytics{% endif %}
+    </h4>
+    <p class="text-muted mb-0 fs-13">
+      {% if is_shareholder_view %}Your payout history, ownership, and approved report trends.{% else %}Profit distribution trends, period workflow, and operating figures from Odoo.{% endif %}
+    </p>
+  </div>
+  <div class="text-end d-flex flex-wrap align-items-center justify-content-end gap-2">
+    {% if available_years %}
+    <form method="get" class="d-inline-flex align-items-center gap-2">
+      <label for="analytics-year" class="text-muted fs-13 mb-0">Year</label>
+      <select id="analytics-year" name="year" class="form-select form-select-sm" style="width:auto" onchange="this.form.submit()">
+        {% for y in available_years %}
+        <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+      </select>
+    </form>
+    {% endif %}
+    <a href="{{ url_for('pages.analytics_export', year=selected_year) }}" class="btn btn-soft-success btn-sm">
+      <i class="mdi mdi-download"></i> Export CSV
+    </a>
+    {% if can_edit_dashboard %}
+    <a href="{{ url_for('app_settings.dashboard_settings') }}" class="btn btn-soft-primary btn-sm">
+      <i class="mdi mdi-pencil-outline"></i> Update Dashboard Figures
+    </a>
+    {% endif %}
+    <ol class="breadcrumb m-0 py-0">
+      <li class="breadcrumb-item"><a href="{{ url_for('pages.dashboard') }}" class="text-primary">AKRAM SWEET</a></li>
+      <li class="breadcrumb-item active">Analytics{% if selected_year %} ({{ selected_year }}){% endif %}</li>
+    </ol>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-12 col-xl-12 col-xxl-4">
+    <div class="card bg-primary overflow-hidden">
+      <div class="card-body position-relative">
+        <div class="d-flex align-content-center justify-content-between">
+          <div class="d-flex align-items-start flex-column">
+            <h3 class="text-white fw-medium fs-20 lh-base">
+              {% if is_shareholder_view %}Welcome, {{ shareholder.name }}{% else %}Akram Sweets Profit Calculation{% endif %}
+            </h3>
+            <p class="mb-3 text-white opacity-90">
+              {% if is_shareholder_view %}
+                Track your ownership percentage, monthly payouts, and year-to-date shareholder returns.
+              {% else %}
+                Monthly profit distribution, shareholder arrangements, and automated reporting for all partners.
+              {% endif %}
+            </p>
+            {% if is_shareholder_view %}
+            <a href="{{ url_for('portal.reports') }}" class="btn btn-sm btn-light mt-auto">View My Reports</a>
+            {% else %}
+            <a href="{{ url_for('periods.list_periods') }}" class="btn btn-sm btn-light mt-auto">Manage Periods</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6 col-xl-6 col-xxl-2">
+    <div class="card"><div class="card-body">
+      <div class="d-flex align-items-center mb-3">
+        <i class="ti ti-currency-dollar text-primary fs-22 me-2"></i>
+        <p class="mb-0 text-dark fs-15 fw-medium text-truncate">
+          {% if is_shareholder_view %}Latest Payout{% else %}Total Revenues{% endif %}
+        </p>
+      </div>
+      <div class="d-flex align-items-center mb-2">
+        <h3 class="text-dark fs-24 mb-0 fw-semibold me-2">
+          {% if is_shareholder_view %}${{ '%.2f'|format(latest_profit) }}{% else %}${{ '{:,.2f}'.format(manual_kpis.total_revenues) }}{% endif %}
+        </h3>
+        {% if not is_shareholder_view and profit_change_pct is not none %}
+        <span class="badge bg-{{ 'success' if profit_change_pct >= 0 else 'danger' }}-subtle text-{{ 'success' if profit_change_pct >= 0 else 'danger' }} rounded-2 fs-14">
+          {{ '%.1f'|format(profit_change_pct|abs) }}%
+        </span>
+        {% endif %}
+      </div>
+      <p class="text-muted fs-14 mb-3">{% if is_shareholder_view %}Most recent approved period{% else %}From Odoo — admin editable{% endif %}</p>
+      {% if can_edit_dashboard %}
+      <a href="{{ url_for('app_settings.dashboard_settings') }}" class="btn py-1 text-dark border bg-light fw-medium d-flex align-items-center justify-content-between rounded-3 fs-13">
+        Edit Figures <i class="mdi mdi-arrow-right fs-17"></i>
+      </a>
+      {% elif is_shareholder_view %}
+      <a href="{{ url_for('portal.reports') }}" class="btn py-1 text-dark border bg-light fw-medium d-flex align-items-center justify-content-between rounded-3 fs-13">
+        View Reports <i class="mdi mdi-arrow-right fs-17"></i>
+      </a>
+      {% else %}
+      <a href="{{ url_for('periods.list_periods') }}" class="btn py-1 text-dark border bg-light fw-medium d-flex align-items-center justify-content-between rounded-3 fs-13">
+        View Periods <i class="mdi mdi-arrow-right fs-17"></i>
+      </a>
+      {% endif %}
+    </div></div>
+  </div>
+
+  <div class="col-md-6 col-xl-6 col-xxl-2">
+    <div class="card"><div class="card-body">
+      <div class="d-flex align-items-center mb-3">
+        <i class="ti ti-chart-line text-primary fs-22 me-2"></i>
+        <p class="mb-0 text-dark fs-15 fw-medium text-truncate">
+          {% if is_shareholder_view %}Year-to-Date{% else %}Monthly Profit / Loss{% endif %}
+        </p>
+      </div>
+      <div class="d-flex align-items-center mb-2">
+        <h3 class="text-dark fs-24 mb-0 fw-semibold me-2">
+          {% if is_shareholder_view %}${{ '%.2f'|format(ytd_total) }}{% else %}${{ '%.2f'|format(latest_profit) }}{% endif %}
+        </h3>
+      </div>
+      <p class="text-muted fs-14 mb-3">{% if latest_period %}{{ latest_period.period_label }}{% else %}No period data{% endif %}</p>
+      <a href="{{ url_for('portal.reports') if is_shareholder_view else url_for('reports.history') }}" class="btn py-1 text-dark border bg-light fw-medium d-flex align-items-center justify-content-between rounded-3 fs-13">
+        View Details <i class="mdi mdi-arrow-right fs-17"></i>
+      </a>
+    </div></div>
+  </div>
+
+  <div class="col-md-6 col-xl-6 col-xxl-2">
+    <div class="card"><div class="card-body">
+      <div class="d-flex align-items-center mb-3">
+        <i class="ti ti-users text-primary fs-22 me-2"></i>
+        <p class="mb-0 text-dark fs-15 fw-medium text-truncate">
+          {% if is_shareholder_view %}Ownership %{% else %}Active Shareholders{% endif %}
+        </p>
+      </div>
+      <div class="d-flex align-items-center mb-2">
+        <h3 class="text-dark fs-24 mb-0 fw-semibold me-2">
+          {% if is_shareholder_view %}{{ '%.2f'|format(ownership_percent) }}%{% else %}{{ active_shareholders }}{% endif %}
+        </h3>
+      </div>
+      <p class="text-muted fs-14 mb-3">{% if is_shareholder_view %}Current effective share{% else %}Registered partners{% endif %}</p>
+      <a href="{{ url_for('portal.ownership') if is_shareholder_view else url_for('shareholders.list_shareholders') }}" class="btn py-1 text-dark border bg-light fw-medium d-flex align-items-center justify-content-between rounded-3 fs-13">
+        View Details <i class="mdi mdi-arrow-right fs-17"></i>
+      </a>
+    </div></div>
+  </div>
+
+  <div class="col-md-6 col-xl-6 col-xxl-2">
+    <div class="card"><div class="card-body">
+      <div class="d-flex align-items-center mb-3">
+        <i class="ti ti-report-money text-primary fs-22 me-2"></i>
+        <p class="mb-0 text-dark fs-15 fw-medium text-truncate">
+          {% if is_shareholder_view %}Lifetime Total{% else %}YTD Company Profit{% endif %}
+        </p>
+      </div>
+      <div class="d-flex align-items-center mb-2">
+        <h3 class="text-dark fs-24 mb-0 fw-semibold me-2">
+          {% if is_shareholder_view %}${{ '%.2f'|format(lifetime_total) }}{% else %}${{ '%.2f'|format(ytd_company_profit) }}{% endif %}
+        </h3>
+      </div>
+      <p class="text-muted fs-14 mb-3">
+        {% if is_shareholder_view %}{{ selected_year }} approved periods{% else %}Approved periods in {{ selected_year }}{% endif %}
+      </p>
+      <a href="{{ url_for('portal.dashboard') if is_shareholder_view else url_for('pages.dashboard') }}" class="btn py-1 text-dark border bg-light fw-medium d-flex align-items-center justify-content-between rounded-3 fs-13">
+        View Dashboard <i class="mdi mdi-arrow-right fs-17"></i>
+      </a>
+    </div></div>
+  </div>
+</div>
+
+{% if analytics_summary %}
+<div class="row">
+  <div class="col-md-6 col-xl-3">
+    <div class="card"><div class="card-body">
+      <p class="text-muted fs-13 mb-1">{% if is_shareholder_view %}Positive Payout Months{% else %}Profit Months{% endif %}</p>
+      <h4 class="text-success mb-0">{{ analytics_summary.profit_months }}</h4>
+    </div></div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="card"><div class="card-body">
+      <p class="text-muted fs-13 mb-1">{% if is_shareholder_view %}Negative Payout Months{% else %}Loss Months{% endif %}</p>
+      <h4 class="text-danger mb-0">{{ analytics_summary.loss_months }}</h4>
+    </div></div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="card"><div class="card-body">
+      <p class="text-muted fs-13 mb-1">{% if is_shareholder_view %}Average Payout{% else %}Avg Monthly P/L{% endif %}</p>
+      <h4 class="mb-0">${{ '%.2f'|format(analytics_summary.avg_monthly_profit) }}</h4>
+    </div></div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="card"><div class="card-body">
+      <p class="text-muted fs-13 mb-1">{% if is_shareholder_view %}Best Period{% else %}Total Distributed{% endif %}</p>
+      {% if is_shareholder_view and analytics_summary.best_period %}
+      <h4 class="text-success mb-0 fs-16">{{ analytics_summary.best_period.period_label }}</h4>
+      {% elif not is_shareholder_view %}
+      <h4 class="mb-0">${{ '%.2f'|format(analytics_summary.total_distributed) }}</h4>
+      {% else %}
+      <h4 class="mb-0 text-muted">—</h4>
+      {% endif %}
+    </div></div>
+  </div>
+</div>
+{% endif %}
+
+<div class="row">
+  <div class="col-md-12 col-xl-12 col-xxl-9">
+    <div class="card">
+      <div class="card-header"><h5 class="card-title text-dark mb-0">
+        {% if is_shareholder_view %}My Payout Reports{% else %}Profit &amp; Distribution Reports{% endif %}
+      </h5></div>
+      <div class="card-body"><div id="monthly-sales" class="apex-charts"></div></div>
+    </div>
+  </div>
+
+  <div class="col-md-12 col-xl-12 col-xxl-3">
+    <div class="card overflow-hidden">
+      <div class="card-header"><h5 class="card-title text-dark mb-0">
+        {% if is_shareholder_view %}My Share{% else %}Shareholder Payouts{% endif %}
+      </h5></div>
+      <div class="card-body">
+        <div class="row">
+          {% for row in chart_data.distribution_pie.rows[:6] %}
+          <div class="col-12">
+            <div class="p-2 border rounded-2 mb-2">
+              <div class="d-flex align-items-center mb-2">
+                <span class="avatar avatar-sm bg-primary-subtle text-primary fw-semibold me-2">{{ row.name[:1] }}</span>
+                <small class="text-dark fw-medium text-truncate fs-14">{{ row.name }}</small>
+              </div>
+              <div class="d-flex align-items-center justify-content-between">
+                <h6 class="mb-0 fs-14 fw-semibold text-dark">${{ '%.2f'|format(row.amount) }}</h6>
+                <small class="text-muted">{{ '%.2f'|format(row.percent) }}%</small>
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <div class="col-12"><p class="text-muted text-center mb-0">No payout data yet.</p></div>
+          {% endfor %}
+        </div>
+        {% if distribution_period and not is_shareholder_view %}
+        <p class="text-muted fs-13 mb-0 text-center">Period: {{ distribution_period.period_label }}</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if not is_shareholder_view %}
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header"><h5 class="card-title text-dark mb-0">Shareholder Payout Breakdown by Period</h5></div>
+      <div class="card-body"><div id="shareholder-breakdown" class="apex-charts"></div></div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="row">
+  <div class="col-md-12 col-xl-12 col-xxl-4">
+    <div class="card overflow-hidden">
+      <div class="card-header"><h5 class="card-title text-dark mb-0">
+        {% if is_shareholder_view %}My Summary{% else %}Period Workflow Status{% endif %}
+      </h5></div>
+      <div class="card-body mt-0 p-0">
+        <div class="table-responsive table-card">
+          <table class="table table-borderless table-centered align-middle table-nowrap table-hover mb-0">
+            <thead><tr><th>Status</th><th>Count</th><th>Share</th></tr></thead>
+            <tbody>
+            {% if is_shareholder_view %}
+            <tr><td class="ps-3">Approved reports</td><td>{{ approved_report_count }}</td><td><div class="progress progress-sm"><div class="progress-bar bg-success" style="width:100%"></div></div></td></tr>
+            <tr><td class="ps-3">Ownership</td><td>{{ '%.2f'|format(ownership_percent) }}%</td><td><div class="progress progress-sm"><div class="progress-bar bg-primary" style="width:{{ ownership_percent }}%"></div></div></td></tr>
+            <tr><td class="ps-3">YTD payout</td><td>${{ '%.2f'|format(ytd_total) }}</td><td><div class="progress progress-sm"><div class="progress-bar bg-warning" style="width:75%"></div></div></td></tr>
+            {% else %}
+            {% set total_periods = draft_periods + review_periods + approved_periods %}
+            <tr><td class="ps-3">Draft</td><td>{{ draft_periods }}</td><td><div class="progress progress-sm"><div class="progress-bar bg-warning" style="width:{{ (draft_periods * 100 / total_periods) if total_periods else 0 }}%"></div></div></td></tr>
+            <tr><td class="ps-3">In Review</td><td>{{ review_periods }}</td><td><div class="progress progress-sm"><div class="progress-bar bg-primary" style="width:{{ (review_periods * 100 / total_periods) if total_periods else 0 }}%"></div></div></td></tr>
+            <tr><td class="ps-3">Approved</td><td>{{ approved_periods }}</td><td><div class="progress progress-sm"><div class="progress-bar bg-success" style="width:{{ (approved_periods * 100 / total_periods) if total_periods else 0 }}%"></div></div></td></tr>
+            <tr><td class="ps-3">Active arrangements</td><td>{{ active_arrangements }}</td><td><div class="progress progress-sm"><div class="progress-bar bg-info" style="width:60%"></div></div></td></tr>
+            {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-12 col-xl-6 col-xxl-4">
+    <div class="card">
+      <div class="card-header"><h5 class="card-title text-dark mb-0">
+        {% if is_shareholder_view %}Payout Growth{% else %}Profit Growth Rate{% endif %}
+      </h5></div>
+      <div class="card-body"><div id="salegrowthrate" class="apex-charts mt-n3"></div></div>
+    </div>
+  </div>
+
+  <div class="col-md-12 col-xl-6 col-xxl-4">
+    <div class="card overflow-hidden">
+      <div class="card-header"><h5 class="card-title text-dark mb-0">Operating Summary</h5></div>
+      <div class="card-body">
+        <ul class="list-group list-group-flush list-group-no-gutters">
+          {% if is_shareholder_view %}
+          <li class="list-group-item px-0 d-flex justify-content-between"><span>Latest payout</span><strong>${{ '%.2f'|format(latest_profit) }}</strong></li>
+          <li class="list-group-item px-0 d-flex justify-content-between"><span>Year-to-date</span><strong>${{ '%.2f'|format(ytd_total) }}</strong></li>
+          <li class="list-group-item px-0 d-flex justify-content-between"><span>Lifetime total</span><strong>${{ '%.2f'|format(lifetime_total) }}</strong></li>
+          {% if analytics_summary and analytics_summary.worst_period %}
+          <li class="list-group-item px-0 d-flex justify-content-between"><span>Lowest payout period</span><strong class="text-danger">{{ analytics_summary.worst_period.period_label }}</strong></li>
+          {% endif %}
+          {% else %}
+          <li class="list-group-item px-0 d-flex justify-content-between"><span>Total revenues</span><strong>${{ '{:,.2f}'.format(manual_kpis.total_revenues) }}</strong></li>
+          <li class="list-group-item px-0 d-flex justify-content-between"><span>Total expenses</span><strong>${{ '{:,.2f}'.format(manual_kpis.total_expenses) }}</strong></li>
+          <li class="list-group-item px-0 d-flex justify-content-between"><span>Cost of goods</span><strong>${{ '{:,.2f}'.format(manual_kpis.cost_of_goods) }}</strong></li>
+          <li class="list-group-item px-0 d-flex justify-content-between"><span>Other income</span><strong>${{ '{:,.2f}'.format(manual_kpis.other_income) }}</strong></li>
+          <li class="list-group-item px-0 d-flex justify-content-between"><span>Net operating profit</span><strong class="{{ 'text-success' if net_operating_profit >= 0 else 'text-danger' }}">${{ '%.2f'|format(net_operating_profit) }}</strong></li>
+          <li class="list-group-item px-0 d-flex justify-content-between"><span>Latest distributed</span><strong>${{ '%.2f'|format(latest_distributed) }}</strong></li>
+          <li class="list-group-item px-0 d-flex justify-content-between"><span>Operating margin</span><strong>{% if analytics_summary and analytics_summary.operating_margin is not none %}{{ '%.1f'|format(analytics_summary.operating_margin) }}%{% else %}—{% endif %}</strong></li>
+          {% if analytics_summary and analytics_summary.best_period %}
+          <li class="list-group-item px-0 d-flex justify-content-between"><span>Best period</span><strong class="text-success">{{ analytics_summary.best_period.period_label }}</strong></li>
+          {% endif %}
+          {% if analytics_summary and analytics_summary.worst_period %}
+          <li class="list-group-item px-0 d-flex justify-content-between"><span>Worst period</span><strong class="text-danger">{{ analytics_summary.worst_period.period_label }}</strong></li>
+          {% endif %}
+          {% endif %}
+        </ul>
+        {% if not is_shareholder_view and manual_kpis.operating_notes %}
+        <p class="text-muted fs-13 mt-3 mb-0">{{ manual_kpis.operating_notes }}</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-xl-3">
+    <div class="card">
+      <div class="card-header"><h5 class="card-title text-dark mb-0">
+        {% if is_shareholder_view %}My Share{% else %}Shareholder Distribution{% endif %}
+      </h5></div>
+      <div class="card-body">
+        <div id="device-views" class="apex-charts"></div>
+        <div class="row mt-4"><div class="col">
+          {% for row in chart_data.distribution_pie.rows[:4] %}
+          <div class="d-flex justify-content-between align-items-center p-1">
+            <div><i class="mdi mdi-circle fs-12 align-middle me-1 text-primary"></i><span class="fw-semibold">{{ row.name }}</span></div>
+            <span class="text-muted">{{ '%.2f'|format(row.percent) }}%</span>
+          </div>
+          {% endfor %}
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-9">
+    <div class="card overflow-hidden">
+      <div class="card-header d-flex align-items-center">
+        <h5 class="card-title text-dark mb-0">
+          {% if is_shareholder_view %}My Report History{% else %}Shareholder Period Analytics{% endif %}
+        </h5>
+        <div class="ms-auto">
+          <a href="{{ url_for('portal.reports') if is_shareholder_view else url_for('periods.list_periods') }}" class="btn btn-sm btn-soft-primary">View All</a>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive table-centered mt-0">
+          <table class="table table-centered table-nowrap table-hover mb-0">
+            <thead>
+            <tr>
+              <th>Period</th>
+              <th>{% if is_shareholder_view %}Ownership{% else %}Company P/L{% endif %}</th>
+              <th>{% if is_shareholder_view %}My Payout{% else %}Distributed{% endif %}</th>
+              <th>Status</th>
+              {% if not is_shareholder_view %}<th>Shareholders</th>{% endif %}
+              <th>Action</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% if is_shareholder_view %}
+              {% for trend in analytics_table_rows[:8] %}
+              {% set sh = trend.shareholders[0] if trend.shareholders else {} %}
+              <tr>
+                <td class="fw-semibold text-dark">
+                  <a href="{{ url_for('portal.report_detail', period_id=trend.period_id) }}" class="text-dark">{{ trend.label }}</a>
+                </td>
+                <td>{{ '%.2f'|format(sh.get('ownership_percent', 0)) }}%</td>
+                <td class="{{ 'text-success' if sh.get('final_amount', 0) >= 0 else 'text-danger' }}">${{ '%.2f'|format(sh.get('final_amount', 0)) }}</td>
+                <td>
+                  <span class="badge bg-success-subtle text-success">Approved</span>
+                  {% if trend.reports_sent %}<span class="badge bg-info-subtle text-info ms-1">Sent</span>{% endif %}
+                </td>
+                <td>
+                  <div class="d-flex gap-1">
+                    <a href="{{ url_for('portal.report_detail', period_id=trend.period_id) }}" class="btn btn-icon btn-sm bg-primary-subtle" title="View report"><i class="mdi mdi-eye-outline text-primary fs-14"></i></a>
+                    <a href="{{ url_for('portal.report_pdf', period_id=trend.period_id) }}" class="btn btn-icon btn-sm bg-danger-subtle" title="Download PDF"><i class="mdi mdi-file-pdf-box text-danger fs-14"></i></a>
+                  </div>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5" class="text-center text-muted py-4">No approved reports for {{ selected_year }}.</td></tr>
+              {% endfor %}
+            {% else %}
+              {% for trend in analytics_table_rows[:8] %}
+              <tr>
+                <td class="fw-semibold text-dark">
+                  <a href="{{ url_for('periods.detail_period', period_id=trend.period_id) }}" class="text-dark">{{ trend.label }}</a>
+                </td>
+                <td class="{{ 'text-success' if trend.company_total >= 0 else 'text-danger' }}">${{ '%.2f'|format(trend.company_total) }}</td>
+                <td>${{ '%.2f'|format(trend.distributed_total) }}</td>
+                <td>
+                  <span class="badge bg-{{ 'success' if trend.is_profit else 'danger' }}-subtle text-{{ 'success' if trend.is_profit else 'danger' }}">{{ 'Profit' if trend.is_profit else 'Loss' }}</span>
+                  {% if trend.reports_sent %}<span class="badge bg-info-subtle text-info ms-1">Sent</span>{% endif %}
+                </td>
+                <td class="text-muted fs-13">
+                  {% for sh in trend.shareholders %}{{ sh.name }}: ${{ '%.2f'|format(sh.final_amount) }}{% if not loop.last %} · {% endif %}{% endfor %}
+                </td>
+                <td>
+                  <a href="{{ url_for('periods.detail_period', period_id=trend.period_id) }}" class="btn btn-icon btn-sm bg-primary-subtle" title="Open period"><i class="mdi mdi-eye-outline text-primary fs-14"></i></a>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="6" class="text-center text-muted py-4">No approved periods for {{ selected_year }}. Enter a monthly result to begin.</td></tr>
+              {% endfor %}
+            {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock page_content %}
+
+{% block extra_javascript %}
+<script src="{{ config.ASSETS_ROOT }}/libs/apexcharts/apexcharts.min.js"></script>
+<script>window.AKRAM_ANALYTICS = {{ chart_data_json|safe }};</script>
+<script src="{{ config.ASSETS_ROOT }}/js/pages/akram-analytics.init.js"></script>
+<script src="{{ config.ASSETS_ROOT }}/js/app.js"></script>
+{% endblock extra_javascript %}

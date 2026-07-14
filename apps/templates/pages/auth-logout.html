@@ -1,0 +1,92 @@
+{% extends 'layouts/base.html' %}
+
+
+{% block title %}Logout{% endblock title %}
+
+{% block css %}
+
+{% include 'partials/head-css.html' %}
+
+{% endblock css %}
+
+{% block content %}
+
+<div class="account-page">
+  <div class="container-fluid p-0">
+    <div class="row align-items-center g-0 px-3 py-3 vh-100">
+
+      <div class="col-xl-5">
+        <div class="row">
+          <div class="col-md-8 mx-auto">
+
+            <div class="card">
+              <div class="card-body">
+                <div class="mb-0 p-0 p-lg-3">
+                  <div class="mb-0 border-0 p-md-4 p-lg-0">
+                    <div class="mb-3 p-0 text-center">
+                      <div class="auth-brand">
+                        <a href="/index" class="logo logo-light">
+                                                            <span class="logo-lg">
+                                                                <img src="{{ config.ASSETS_ROOT }}/images/logo-light.png" alt=""
+                                                                     height="24">
+                                                            </span>
+                        </a>
+                        <a href="/index" class="logo logo-dark">
+                                                            <span class="logo-lg">
+                                                                <img src="{{ config.ASSETS_ROOT }}/images/logo-dark.png" alt=""
+                                                                     height="24">
+                                                            </span>
+                        </a>
+                      </div>
+                    </div>
+
+                    <div class="auth-title-section my-4 text-center">
+                      <h3 class="text-primary fw-semibold mb-1">You are Logged Out</h3>
+                      <p class="text-muted fs-14 mb-0">Thank you for using AKRAM SWEET Shareholders Project</p>
+                    </div>
+
+                    <div class="maintenance-img text-center">
+                      <iconify-icon icon="solar:logout-3-bold-duotone" width="120" height="120"
+                                    style="color: #7168EE"></iconify-icon>
+                    </div>
+
+                    <div class="text-center">
+                      <a href="/auth-login"
+                         class="btn btn-primary mt-3 me-1"> Log In </a>
+                    </div>
+
+
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xl-7 d-none d-xl-inline-block">
+        <div class="account-page-bg rounded-4">
+          <div class="text-center">
+            <div class="auth-image">
+              <img src="{{ config.ASSETS_ROOT }}/images/auth-images.svg" class="mx-auto img-fluid" alt="images">
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% endblock content %}
+
+{% block extra_javascript %}
+
+<!-- App js-->
+<script src="{{ config.ASSETS_ROOT }}/js/app.js"></script>
+
+{% endblock extra_javascript %}
+
+
+
+

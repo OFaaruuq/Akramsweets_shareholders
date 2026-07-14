@@ -1,0 +1,168 @@
+<!-- Topbar Start -->
+<div class="topbar-custom">
+    <div class="container-fluid">
+        <div class="d-flex justify-content-between">
+            <ul class="list-unstyled topnav-menu mb-0 d-flex align-items-center">
+                <li>
+                    <button class="button-toggle-menu nav-link">
+                        <i data-feather="menu" class="noti-icon"></i>
+                    </button>
+                </li>
+                <li class="d-none d-lg-block">
+                    <form class="app-search d-none d-md-block me-auto" method="get" action="{{ url_for('shareholders.list_shareholders') if current_user.is_authenticated and not current_user.is_shareholder() else url_for('pages.dashboard') }}">
+                        <div class="position-relative topbar-search">
+                            <input type="text" name="q" class="form-control ps-4" placeholder="Search shareholders..." value="{{ request.args.get('q', '') }}"/>
+                            <iconify-icon icon="solar:minimalistic-magnifer-outline"
+                                          class="align-middle fs-14 position-absolute text-muted top-50 translate-middle-y ms-2"></iconify-icon>
+                        </div>
+                    </form>
+                </li>
+            </ul>
+
+            <ul class="list-unstyled topnav-menu mb-0 d-flex align-items-center">
+
+                <li class="dropdown topbar-dropdown">
+                    <a class="nav-link dropdown-toggle me-0 d-flex align-items-center gap-1" data-bs-toggle="dropdown" href="#" role="button"
+                       aria-haspopup="false" aria-expanded="false" title="Shareholder countries">
+                        <img src="{{ config.ASSETS_ROOT }}/images/flags/{{ topbar_selected_country.flag }}" alt="{{ topbar_selected_country.name }}"
+                             class="rounded-2" height="20" width="20"/>
+                        <span class="d-none d-xl-inline fs-13">{{ topbar_selected_country.name }}</span>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end profile-dropdown" style="min-width: 260px;">
+                        <div class="dropdown-header noti-title">
+                            <h6 class="text-overflow m-0 fs-13">Shareholder countries</h6>
+                        </div>
+                        {% if topbar_countries %}
+                        {% for country in topbar_countries %}
+                        <a href="{{ url_for('shareholders.list_shareholders', country=country.code) if current_user.is_authenticated and not current_user.is_shareholder() else '#' }}"
+                           class="dropdown-item d-flex align-items-center justify-content-between">
+                            <span class="d-flex align-items-center">
+                                <img src="{{ config.ASSETS_ROOT }}/images/flags/{{ country.flag }}" alt="{{ country.name }}"
+                                     class="me-2 rounded" height="18" width="18">
+                                <span class="align-middle">{{ country.name }}</span>
+                            </span>
+                            <span class="badge bg-primary-subtle text-primary">{{ country.count }}</span>
+                        </a>
+                        {% endfor %}
+                        {% else %}
+                        <div class="dropdown-item text-muted fs-13">No shareholder countries yet.</div>
+                        {% endif %}
+                        {% if current_user.is_authenticated and not current_user.is_shareholder() %}
+                        <div class="dropdown-divider"></div>
+                        <a href="{{ url_for('shareholders.list_shareholders') }}" class="dropdown-item text-primary fs-13">View all shareholders</a>
+                        {% endif %}
+                    </div>
+                </li>
+
+                <li class="d-none d-sm-flex">
+                    <button type="button" class="btn nav-link" data-toggle="fullscreen">
+                        <iconify-icon icon="solar:minimize-square-outline" class="fs-24 align-middle"></iconify-icon>
+                    </button>
+                </li>
+
+                <li class="d-none d-sm-flex">
+                    <button type="button" class="btn nav-link" id="light-dark-mode">
+                        <iconify-icon icon="solar:moon-outline" class="fs-24 align-middle dark-mode"></iconify-icon>
+                        <iconify-icon icon="solar:sun-2-outline" class="fs-24 align-middle light-mode"></iconify-icon>
+                    </button>
+                </li>
+
+                <li class="dropdown notification-list topbar-dropdown">
+                    <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" role="button"
+                       aria-haspopup="false" aria-expanded="false">
+                        <iconify-icon icon="solar:bell-bing-outline"
+                                      class="fs-24 align-middle light-mode"></iconify-icon>
+                        {% if topbar_notification_count %}
+                        <span class="badge bg-danger rounded-circle noti-icon-badge">{{ topbar_notification_count if topbar_notification_count < 10 else '9+' }}</span>
+                        {% endif %}
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end dropdown-lg">
+                        <div class="dropdown-item noti-title">
+                            <h5 class="m-0 fs-16 fw-semibold">Notifications</h5>
+                        </div>
+
+                        <div class="noti-scroll" data-simplebar style="max-height: 320px;">
+                            {% for item in topbar_notifications %}
+                            <a href="{{ item.url or '#' }}" class="dropdown-item notify-item text-muted link-primary">
+                                <div class="d-flex align-items-start gap-2">
+                                    <div class="notify-icon bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center" style="width:36px;height:36px;">
+                                        <iconify-icon icon="solar:bell-bing-outline" class="fs-18"></iconify-icon>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center justify-content-between mb-1">
+                                            <p class="notify-details mb-0 text-dark">{{ item.title }}</p>
+                                            {% if item.unread %}
+                                            <iconify-icon icon="solar:record-bold"
+                                                          class="fs-12 text-primary align-middle"></iconify-icon>
+                                            {% endif %}
+                                        </div>
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <p class="text-muted mb-0 fs-12">{{ item.actor }}</p>
+                                            <p class="text-muted mb-0 fs-12">{{ item.relative }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                            {% else %}
+                            <div class="dropdown-item text-muted text-center py-4">No notifications yet.</div>
+                            {% endfor %}
+                        </div>
+
+                        {% if current_user.is_authenticated and current_user.can_view_audit_log() %}
+                        <a href="{{ url_for('app_settings.audit_log') }}"
+                           class="dropdown-item text-center text-primary notify-item notify-all fw-bold border-top border-light">View audit trail
+                            <i class="fe-arrow-right"></i>
+                        </a>
+                        {% elif current_user.is_authenticated and current_user.is_shareholder() %}
+                        <a href="{{ url_for('portal.reports') }}"
+                           class="dropdown-item text-center text-primary notify-item notify-all fw-bold border-top border-light">View my reports
+                            <i class="fe-arrow-right"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </li>
+
+                <li class="dropdown notification-list topbar-dropdown">
+                    <a class="nav-link dropdown-toggle nav-user me-0" data-bs-toggle="dropdown" href="#" role="button"
+                       aria-haspopup="false" aria-expanded="false">
+                        <img src="{{ config.ASSETS_ROOT }}/images/users/profile.jpg" alt="user-image"
+                             class="rounded-circle"/>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end profile-dropdown">
+                        <div class="dropdown-header noti-title">
+                            <h6 class="text-overflow m-0">Welcome {% if current_user.is_authenticated %}{{ current_user.full_name }}{% else %}Guest{% endif %}!</h6>
+                        </div>
+
+                        {% if current_user.is_authenticated and current_user.is_shareholder() %}
+                        <a href="{{ url_for('portal.profile') }}" class="dropdown-item notify-item rounded-2">
+                            <iconify-icon icon="solar:shield-user-outline" class="fs-18 align-middle"></iconify-icon>
+                            <span>Account settings</span>
+                        </a>
+                        <a href="{{ url_for('portal.reports') }}" class="dropdown-item notify-item rounded-2">
+                            <iconify-icon icon="solar:document-outline" class="fs-18 align-middle"></iconify-icon>
+                            <span>My reports</span>
+                        </a>
+                        {% elif current_user.is_authenticated %}
+                        <a href="{{ url_for('pages.dashboard') }}" class="dropdown-item notify-item rounded-2">
+                            <iconify-icon icon="solar:home-2-outline" class="fs-18 align-middle"></iconify-icon>
+                            <span>Dashboard</span>
+                        </a>
+                        {% if current_user.can_manage_rules() %}
+                        <a href="{{ url_for('app_settings.system_settings') }}" class="dropdown-item notify-item rounded-2">
+                            <iconify-icon icon="solar:settings-linear" class="fs-18 align-middle"></iconify-icon>
+                            <span>System settings</span>
+                        </a>
+                        {% endif %}
+                        {% endif %}
+
+                        <a href="{{ url_for('auth.logout') if current_user.is_authenticated else url_for('auth.login') }}" class="dropdown-item notify-item rounded-2">
+                            <iconify-icon icon="solar:login-3-outline" class="fs-18 align-middle"></iconify-icon>
+                            <span>Logout</span>
+                        </a>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+<!-- end Topbar -->

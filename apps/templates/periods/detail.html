@@ -1,0 +1,132 @@
+{% extends 'layouts/vertical.html' %}
+{% block title %}Period {{ period.period_label }}{% endblock title %}
+{% block css %}{% include 'partials/head-css.html' %}{% endblock css %}
+{% block body_attribute %}data-menu-color="dark" data-sidebar="default"{% endblock body_attribute %}
+{% block page_content %}
+<div class="py-3 d-flex align-items-sm-center flex-sm-row flex-column">
+  <div class="flex-grow-1"><h4 class="fs-18 fw-semibold m-0">Period {{ period.period_label }}</h4></div>
+  <div class="text-end d-flex flex-wrap gap-1 justify-content-end">
+    {% if period.is_editable %}
+    <a href="{{ url_for('periods.edit_period', period_id=period.id) }}" class="btn btn-light">Edit figures</a>
+    <form method="post" action="{{ url_for('periods.recalculate_period', period_id=period.id) }}" class="d-inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-soft-primary">Recalculate</button>
+    </form>
+    {% if period.status == 'draft' %}
+    <form method="post" action="{{ url_for('periods.submit_review', period_id=period.id) }}" class="d-inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-warning">Submit for Review</button>
+    </form>
+    {% endif %}
+    {% if period.status == 'review' and current_user.can_approve_periods() %}
+    <form method="post" action="{{ url_for('periods.approve_period_view', period_id=period.id) }}" class="d-inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-primary">Approve, Certify &amp; Email</button>
+    </form>
+    {% endif %}
+    {% endif %}
+    {% if period.is_locked and current_user.can_approve_periods() %}
+      {% if not period.reports_sent_at %}
+      <form method="post" action="{{ url_for('periods.send_reports_view', period_id=period.id) }}" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="force" value="1">
+        <button class="btn btn-primary">Send Reports Now</button>
+      </form>
+      {% else %}
+      <form method="post" action="{{ url_for('periods.send_reports_view', period_id=period.id) }}" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="force" value="1">
+        <button class="btn btn-soft-secondary">Resend Reports</button>
+      </form>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+{% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}{% endif %}{% endwith %}
+<div class="row">
+  <div class="col-xl-4"><div class="card"><div class="card-body">
+    <p class="text-muted mb-1">Company net P/L</p>
+    <h3 class="{{ 'text-success' if period.total_profit_loss >= 0 else 'text-danger' }}">${{ '%.2f'|format(period.total_profit_loss) }}</h3>
+    {% if period.uses_breakdown or period.total_revenues or period.cost_of_goods or period.total_expenses or period.other_income %}
+    <hr>
+    <ul class="list-unstyled mb-0 fs-13">
+      <li class="d-flex justify-content-between mb-1"><span>Revenues</span><strong>${{ '%.2f'|format(period.total_revenues) }}</strong></li>
+      <li class="d-flex justify-content-between mb-1"><span>COGS</span><strong>${{ '%.2f'|format(period.cost_of_goods) }}</strong></li>
+      <li class="d-flex justify-content-between mb-1"><span>Expenses</span><strong>${{ '%.2f'|format(period.total_expenses) }}</strong></li>
+      <li class="d-flex justify-content-between mb-1"><span>Other income</span><strong>${{ '%.2f'|format(period.other_income) }}</strong></li>
+      <li class="d-flex justify-content-between"><span>Entry mode</span><strong>{{ 'P&L breakdown' if period.uses_breakdown else 'Manual net' }}</strong></li>
+    </ul>
+    {% endif %}
+    <p class="text-muted mb-1 mt-3">Distributed total</p>
+    <h5 class="mb-0">${{ '%.2f'|format(distributed_total) }}</h5>
+    <p class="text-muted mb-1 mt-3">Status</p>
+    <span class="badge {% if period.status == 'approved' %}bg-success{% elif period.status == 'review' %}bg-info{% else %}bg-warning text-dark{% endif %}">{{ period.status|replace('_', ' ')|title }}</span>
+    {% if period.odoo_reference %}<p class="text-muted mb-0 mt-3">Odoo: {{ period.odoo_reference }}</p>{% endif %}
+    {% if period.reports_sent_at %}<p class="text-muted mb-0 mt-2">Reports &amp; certificates emailed: {{ period.reports_sent_at.strftime('%Y-%m-%d %H:%M') }}</p>{% endif %}
+    {% if report_delivery_day %}<p class="text-muted mb-0 mt-2">Scheduled report day: {{ report_delivery_day }}</p>{% endif %}
+  </div></div></div>
+  <div class="col-xl-8"><div class="card"><div class="card-body"><div class="table-responsive">
+  <table class="table table-hover mb-0">
+  <thead><tr><th>Shareholder</th><th>Ownership</th><th>Base</th><th>Deduction</th><th>Received</th><th>Adjustment</th><th>Final</th><th>Certificate</th><th></th></tr></thead>
+  <tbody>
+  {% for calc in calculations %}
+  {% set cert = certificates.get(calc.shareholder_id) if certificates else none %}
+  <tr>
+    <td>{{ calc.shareholder.name }}</td>
+    <td>{{ '%.2f'|format(calc.ownership_percent) }}%</td>
+    <td>{{ '%.2f'|format(calc.base_share) }}</td>
+    <td>{{ '%.2f'|format(calc.arrangement_deduction) }}</td>
+    <td>{{ '%.2f'|format(calc.arrangement_received) }}</td>
+    <td>{{ '%.2f'|format(calc.manual_adjustment) }}</td>
+    <td class="fw-semibold">{{ '%.2f'|format(calc.final_amount) }}</td>
+    <td>
+      {% if cert %}
+      <div class="fs-12">{{ cert.certificate_number }}</div>
+      {% if cert.email_status == 'sent' %}
+      <span class="badge bg-success-subtle text-success">Emailed</span>
+      {% elif cert.email_status == 'logged' %}
+      <span class="badge bg-secondary-subtle text-secondary">Logged</span>
+      {% else %}
+      <span class="badge bg-warning-subtle text-warning">Pending email</span>
+      {% endif %}
+      {% else %}
+      <span class="text-muted">—</span>
+      {% endif %}
+    </td>
+    <td><a href="{{ url_for('reports.shareholder_report', period_id=period.id, shareholder_id=calc.shareholder_id) }}" class="btn btn-sm btn-soft-secondary">Report</a>
+    <a href="{{ url_for('reports.shareholder_report_pdf', period_id=period.id, shareholder_id=calc.shareholder_id) }}" class="btn btn-sm btn-soft-primary">PDF</a>
+    <a href="{{ url_for('reports.shareholder_certificate_pdf', period_id=period.id, shareholder_id=calc.shareholder_id) }}" class="btn btn-sm btn-soft-danger">Certificate</a></td>
+  </tr>
+  {% endfor %}
+  </tbody></table></div></div></div></div>
+</div>
+{% if adjustments %}
+<div class="card mt-3"><div class="card-header"><h5 class="card-title mb-0">Manual Adjustments</h5></div><div class="card-body"><div class="table-responsive">
+<table class="table mb-0"><thead><tr><th>Shareholder</th><th>Amount</th><th>Reason</th><th>Added by</th><th>Date</th></tr></thead>
+<tbody>{% for row in adjustments %}
+<tr><td>{{ row.shareholder.name }}</td><td>{{ '%.2f'|format(row.amount) }}</td><td>{{ row.reason }}</td><td>{{ row.created_by.full_name if row.created_by else '-' }}</td><td>{{ row.created_at.strftime('%Y-%m-%d %H:%M') }}</td></tr>
+{% endfor %}</tbody></table></div></div></div>
+{% endif %}
+{% if period.is_editable and current_user.can_enter_financials() %}
+<div class="card mt-3"><div class="card-body"><h5 class="mb-3">Add Manual Adjustment</h5>
+<form method="post" action="{{ url_for('periods.add_adjustment', period_id=period.id) }}">
+  {{ adjustment_form.hidden_tag() }}
+  <div class="row">
+    <div class="col-md-4 mb-3"><label class="form-label">Shareholder</label>{{ adjustment_form.shareholder_id(class='form-select') }}</div>
+    <div class="col-md-3 mb-3"><label class="form-label">Amount</label>{{ adjustment_form.amount(class='form-control') }}</div>
+    <div class="col-md-5 mb-3"><label class="form-label">Reason (required)</label>{{ adjustment_form.reason(class='form-control', placeholder='Explain this adjustment') }}</div>
+  </div>
+  {{ adjustment_form.submit(class='btn btn-primary') }}
+</form></div></div>
+{% endif %}
+{% if period.is_locked and current_user.can_approve_periods() %}
+<div class="card mt-3 border-warning"><div class="card-header bg-warning-subtle"><h5 class="card-title mb-0">Logged Correction</h5></div><div class="card-body">
+<p class="text-muted">Reopen this approved period to make corrections. A reason is required and will be stored in the audit trail.</p>
+<form method="post" action="{{ url_for('periods.reopen_correction', period_id=period.id) }}">
+  {{ correction_form.hidden_tag() }}
+  <div class="mb-3">{{ correction_form.reason(class='form-control', rows='3', placeholder='Explain why this approved period must be corrected') }}</div>
+  {{ correction_form.submit(class='btn btn-warning') }}
+</form></div></div>
+{% endif %}
+{% endblock page_content %}
+{% block extra_javascript %}{% include 'partials/vendor.html' %}{% endblock extra_javascript %}

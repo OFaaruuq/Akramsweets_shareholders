@@ -1,0 +1,27 @@
+{% if shareholder_trends %}
+<div class="row mb-3">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header"><h5 class="card-title mb-0">Shareholder Profit Trends (Approved Periods)</h5></div>
+      <div class="card-body"><div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead><tr><th>Period</th><th>Company P/L</th><th>Shareholder Payouts</th></tr></thead>
+          <tbody>
+          {% for row in shareholder_trends %}
+          <tr>
+            <td>{{ row.label }}</td>
+            <td>{{ '%.2f'|format(row.company_total) }}</td>
+            <td>
+              {% for sh in row.shareholders %}
+              {{ sh.name }}: {{ '%.2f'|format(sh.final_amount) }}{% if not loop.last %} · {% endif %}
+              {% else %}-{% endfor %}
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div></div>
+    </div>
+  </div>
+</div>
+{% endif %}

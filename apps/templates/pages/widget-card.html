@@ -1,0 +1,1735 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Widgets{% endblock title %}
+
+{% block css %}
+
+{% include 'partials/head-css.html' %}
+
+{% endblock css %}
+
+{% block body_attribute %}data-menu-color="dark" data-sidebar="default"{% endblock body_attribute %}
+
+{% block page_content %}
+
+<div class="py-3 d-flex align-items-sm-center flex-sm-row flex-column">
+  <div class="flex-grow-1">
+    <h4 class="fs-18 fw-semibold m-0">Widgets</h4>
+  </div>
+
+  <div class="text-end">
+    <ol class="breadcrumb m-0 py-0">
+      <li class="breadcrumb-item"><a href="javascript: void(0);">General</a></li>
+      <li class="breadcrumb-item active">Widgets</li>
+    </ol>
+  </div>
+</div>
+
+<!-- start row -->
+<div class="row">
+  <!-- Start Upcoming Event -->
+  <div class="col-md-6 col-xl-3">
+    <div class="card">
+      <div class="card-header">
+        <div class="d-flex align-items-center">
+          <h5 class="card-title text-dark mb-0">Next Upcoming Event</h5>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="justify-content-center">
+          <div class="event-images bg-primary-subtle rounded-3">
+            <img class="card-img-top blog-img2 img-fluid" src="{{ config.ASSETS_ROOT }}/images/widget/ecommerce.svg"
+                 alt="ecommerce">
+          </div>
+
+          <ul class="list-unstyled mb-0 mt-2">
+            <li class="mb-2">
+              <div class="align-items-center d-flex rounded-2 p-2">
+                <div class="rounded-circle overflow-hidden me-3 shadow-lg">
+                  <img src="{{ config.ASSETS_ROOT }}/images/widget/event.jpg" alt="user-images" width="40" height="40">
+                </div>
+                <div class="gap-1">
+                  <h6 class="m-0 fw-semibold text-dark fs-15">Flutter community event worldwide</h6>
+                  <p class="mb-0 text-muted mt-1">19-22 December 2024 | 19:05</p>
+                </div>
+              </div>
+            </li>
+            <li>
+              <div class="align-items-center d-flex rounded-2 p-2">
+                <div class="rounded-circle overflow-hidden me-3 shadow-lg">
+                  <img src="{{ config.ASSETS_ROOT }}/images/widget/event-1.jpg" alt="user-images" width="40" height="40">
+                </div>
+                <div class="gap-1">
+                  <h6 class="m-0 fw-semibold text-dark fs-15">Free shipping worldwide</h6>
+                  <p class="mb-0 text-muted mt-1">12-14 December 2024 | 20.25</p>
+                </div>
+              </div>
+            </li>
+          </ul>
+
+          <div class="col-12">
+            <a
+              class="btn text-dark border fw-normal d-flex align-items-center justify-content-center text-capitalize rounded-3 mt-3 fw-semibold">View
+              event calendar <i class="mdi mdi-arrow-top-right ms-2 fs-17"></i></a>
+          </div>
+        </div>
+      </div>
+    </div> <!-- end card -->
+  </div> <!-- end sales -->
+  <!-- End Upcoming Event -->
+
+  <!-- Start Recent Messages -->
+  <div class="col-md-6 col-xl-3">
+    <div class="card">
+      <div class="card-header">
+        <div class="d-flex align-items-center">
+          <h5 class="card-title text-dark mb-0">Recent Messages</h5>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="justify-content-center">
+
+          <ul class="list-group list-group-flush list-group-no-gutters">
+            <!-- List Item -->
+            <li class="list-group-item px-0 pt-0">
+              <a href="#" class="d-flex align-items-center gap-3">
+
+                <div class="flex-shrink-0">
+                  <!-- Avatar -->
+                  <div class="align-content-center text-center border border-dashed rounded-circle p-1">
+                    <img src="{{ config.ASSETS_ROOT }}/images/users/user-19.jpg" class="avatar avatar-sm rounded-circle">
+                    <span class="profile-status rounded-circle online"></span>
+                  </div>
+                  <!-- End Avatar -->
+                </div>
+
+                <div class="align-content-center">
+                  <h6 class="mb-0 text-dark fs-15">Roger Harris</h6>
+                  <div class="d-flex align-items-center">
+                    <span class="fs-14 text-muted fw-medium">rogerEHarris@armyspy.com</span>
+                  </div>
+                </div>
+              </a>
+            </li>
+            <!-- End List Item -->
+
+            <!-- List Item -->
+            <li class="list-group-item px-0">
+              <a href="#" class="d-flex align-items-center gap-3">
+
+                <div class="flex-shrink-0">
+                  <!-- Avatar -->
+                  <div class="align-content-center text-center border border-dashed rounded-circle p-1">
+                    <img src="{{ config.ASSETS_ROOT }}/images/users/user-20.jpg" class="avatar avatar-sm rounded-circle">
+                    <span class="profile-status rounded-circle busy"></span>
+                  </div>
+                  <!-- End Avatar -->
+                </div>
+
+                <div class="align-content-center">
+                  <h6 class="mb-0 text-dark fs-15">Michael Frates</h6>
+                  <div class="d-flex align-items-center">
+                    <span class="fs-14 text-muted fw-medium">michaelfrates@rhyta.com</span>
+                  </div>
+                </div>
+              </a>
+            </li>
+            <!-- End List Item -->
+
+            <!-- List Item -->
+            <li class="list-group-item px-0">
+              <a href="#" class="d-flex align-items-center gap-3">
+                <div class="flex-shrink-0">
+                  <!-- Avatar -->
+                  <div class="align-content-center text-center border border-dashed rounded-circle p-1">
+                    <img src="{{ config.ASSETS_ROOT }}/images/users/user-21.jpg" class="avatar avatar-sm rounded-circle">
+                    <span class="profile-status rounded-circle away"></span>
+                  </div>
+                  <!-- End Avatar -->
+                </div>
+
+                <div class="align-content-center">
+                  <h6 class="mb-0 text-dark fs-15">Shoshana Harp</h6>
+                  <div class="d-flex align-items-center">
+                    <span class="fs-14 text-muted fw-medium">shoshanaharp@dayrep.com</span>
+                  </div>
+                </div>
+              </a>
+            </li>
+            <!-- End List Item -->
+
+            <!-- List Item -->
+            <li class="list-group-item px-0">
+              <a href="#" class="d-flex align-items-center gap-3">
+                <div class="flex-shrink-0">
+                  <!-- Avatar -->
+                  <div class="align-content-center text-center border border-dashed rounded-circle p-1">
+                    <img src="{{ config.ASSETS_ROOT }}/images/users/user-22.jpg" class="avatar avatar-sm rounded-circle">
+                    <span class="profile-status rounded-circle offline"></span>
+                  </div>
+                  <!-- End Avatar -->
+                </div>
+
+                <div class="align-content-center">
+                  <h6 class="mb-0 text-dark fs-15">Mitzi Stamm</h6>
+                  <div class="d-flex align-items-center">
+                    <span class="fs-14 text-muted fw-medium">mitzistamm@jourrapide.com</span>
+                  </div>
+                </div>
+              </a>
+            </li>
+            <!-- End List Item -->
+
+            <!-- List Item -->
+            <li class="list-group-item px-0">
+              <a href="#" class="d-flex align-items-center gap-3">
+                <div class="flex-shrink-0">
+                  <!-- Avatar -->
+                  <div class="align-content-center text-center border border-dashed rounded-circle p-1">
+                    <img src="{{ config.ASSETS_ROOT }}/images/users/user-23.jpg" class="avatar avatar-sm rounded-circle">
+                    <span class="profile-status rounded-circle busy"></span>
+                  </div>
+                  <!-- End Avatar -->
+                </div>
+
+                <div class="align-content-center">
+                  <h6 class="mb-0 text-dark fs-15">John Obrien</h6>
+                  <div class="d-flex align-items-center">
+                    <span class="fs-14 text-muted fw-medium">johnobrien@jourrapide.com</span>
+                  </div>
+                </div>
+              </a>
+            </li>
+            <!-- End List Item -->
+
+            <!-- List Item -->
+            <li class="list-group-item px-0">
+              <a href="#" class="d-flex align-items-center gap-3">
+                <div class="flex-shrink-0">
+                  <!-- Avatar -->
+                  <div class="align-content-center text-center border border-dashed rounded-circle p-1">
+                    <img src="{{ config.ASSETS_ROOT }}/images/users/user-19.jpg" class="avatar avatar-sm rounded-circle">
+                    <span class="profile-status rounded-circle online"></span>
+                  </div>
+                  <!-- End Avatar -->
+                </div>
+
+                <div class="align-content-center">
+                  <h6 class="mb-0 text-dark fs-15">Donna Young</h6>
+                  <div class="d-flex align-items-center">
+                    <span class="fs-14 text-muted fw-medium">mitzistamm@jourrapide.com</span>
+                  </div>
+                </div>
+              </a>
+            </li>
+
+            <!-- List Item -->
+            <li class="list-group-item px-0 pb-0">
+              <a href="#" class="d-flex align-items-center gap-3">
+                <div class="flex-shrink-0">
+                  <!-- Avatar -->
+                  <div class="align-content-center text-center border border-dashed rounded-circle p-1">
+                    <img src="{{ config.ASSETS_ROOT }}/images/users/user-21.jpg" class="avatar avatar-sm rounded-circle">
+                    <span class="profile-status rounded-circle online"></span>
+                  </div>
+                  <!-- End Avatar -->
+                </div>
+
+                <div class="align-content-center">
+                  <h6 class="mb-0 text-dark fs-15">Michael Drake</h6>
+                  <div class="d-flex align-items-center">
+                    <span class="fs-14 text-muted fw-medium">michaelgrake@jourrapide.com</span>
+                  </div>
+                </div>
+              </a>
+            </li>
+
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- End Recent Messages -->
+
+  <!-- Start Revenue -->
+  <div class="col-md-12 col-xl-6">
+    <div class="row">
+      <div class="col-md-6 col-xl-6">
+        <div class="card">
+          <div class="card-body">
+            <div class="widget-first">
+
+              <div class="d-flex align-items-center mb-1">
+                                                        <span
+                                                          class="avatar-sm rounded-circle bg-gray d-flex justify-content-center align-items-center me-2">
+                                                            <i class="mdi mdi-currency-usd fs-18 text-dark"></i>
+                                                        </span>
+                <p class="mb-0 text-dark fs-19 fw-medium">Total Revenue</p>
+              </div>
+
+              <div class="d-flex align-items-center mb-2">
+                <p class="mb-0 text-muted">Total profil over the last 6 month</p>
+              </div>
+
+              <div class="d-flex align-items-center mt-3">
+                <h3 class="mb-0 fs-22 text-dark me-3">$604,784</h3>
+                <p class="text-muted mb-0 fs-13 d-flex flex-column">
+                  <span class="text-primary px-2 py-1 bg-primary-subtle rounded-4 me-2">+12.5%</span>
+                </p>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-xl-6">
+        <div class="card">
+          <div class="card-body">
+            <div class="widget-first">
+
+              <div class="d-flex align-items-center mb-1">
+                                                        <span
+                                                          class="avatar-sm rounded-circle bg-gray d-flex justify-content-center align-items-center me-2">
+                                                            <i class="mdi mdi-account-group fs-18 text-dark"></i>
+                                                        </span>
+                <p class="mb-0 text-dark fs-19 fw-medium">Total Customer</p>
+              </div>
+
+              <div class="d-flex align-items-center mb-2">
+                <p class="mb-0 text-muted">Total customer over the last 6 month</p>
+              </div>
+
+              <div class="d-flex align-items-center mt-3">
+                <h3 class="mb-0 fs-22 text-dark me-3">457,800</h3>
+                <p class="text-muted mb-0 fs-13 d-flex flex-column">
+                  <span class="text-primary px-2 py-1 bg-primary-subtle rounded-4 me-2">+12.5%</span>
+                </p>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-xl-6">
+        <div class="card">
+          <div class="card-body">
+            <div class="widget-first">
+
+              <div class="d-flex align-items-center mb-1">
+                                                        <span
+                                                          class="avatar-sm rounded-circle bg-gray d-flex justify-content-center align-items-center me-2">
+                                                            <i class="mdi mdi-wallet fs-18 text-dark"></i>
+                                                        </span>
+                <p class="mb-0 text-dark fs-19 fw-medium">Total Transaction</p>
+              </div>
+
+              <div class="d-flex align-items-center mb-2">
+                <p class="mb-0 text-muted">Total transaction over the last 6 month</p>
+              </div>
+
+              <div class="d-flex align-items-center mt-3">
+                <h3 class="mb-0 fs-22 text-dark me-3">637,254</h3>
+                <p class="text-muted mb-0 fs-13 d-flex flex-column">
+                  <span class="text-primary px-2 py-1 bg-primary-subtle rounded-4 me-2">+12.5%</span>
+                </p>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-xl-6">
+        <div class="card">
+          <div class="card-body">
+            <div class="widget-first">
+
+              <div class="d-flex align-items-center mb-1">
+                                                        <span
+                                                          class="avatar-sm rounded-circle bg-gray d-flex justify-content-center align-items-center me-2">
+                                                            <i class="mdi mdi-treasure-chest fs-18 text-dark"></i>
+                                                        </span>
+                <p class="mb-0 text-dark fs-19 fw-medium">Total Product</p>
+              </div>
+
+              <div class="d-flex align-items-center mb-2">
+                <p class="mb-0 text-muted">Total product over the last 6 month</p>
+              </div>
+
+              <div class="d-flex align-items-center mt-3">
+                <h3 class="mb-0 fs-22 text-dark me-3">256, 600</h3>
+                <p class="text-muted mb-0 fs-13 d-flex flex-column">
+                  <span class="text-primary px-2 py-1 bg-primary-subtle rounded-4 me-2">+12.5%</span>
+                </p>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-12 col-xl-12">
+        <div class="card bg-discover-img overflow-hidden">
+          <div class="card-body position-relative">
+            <div class="row">
+
+              <div class="col-md-6 col-xl-6">
+                <h3 class="text-white fw-semibold fs-24 lh-base">Discover New Features</h3>
+                <p class="text-white fs-14 lh-base">Explore the latest enhancements and functionalities in our
+                  platform.</p>
+                <a href="#" class="btn btn-light mb-1">Upgarde Now</a>
+              </div>
+
+              <div class="col-md-6 col-xl-6">
+                <div class="text-end position-absolute">
+                  <img src="{{ config.ASSETS_ROOT }}/images/svg/work-vector.svg" alt="modernize-img" class="img-fluid">
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <!-- End Revenue -->
+
+</div>
+<!-- end row -->
+
+<!-- start row -->
+<div class="row">
+  <div class="col-md-12 col-xl-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title text-dark mb-0">On boarding Campaign</h5>
+      </div>
+
+      <div class="card-body">
+        <div class="justify-content-center">
+          <div class="row g-3">
+
+            <div class="col-md-12 col-xl-12">
+              <div class="border rounded-2 bg-light p-2 d-flex align-items-center">
+                <i class="mdi mdi-star-four-points fs-19 text-primary me-2"></i>
+                <p class="fs-16 mb-0">Help new customer understand the value they'll receive from your product.</p>
+              </div>
+            </div>
+
+            <div class="col-md-6 col-xl-6">
+              <div class="border rounded-3 px-2 py-3">
+                <span class="mb-2 text-primary bg-primary-subtle rounded-2 py-1 px-2 align-content-center"><i
+                  class="mdi mdi-circle-medium dot-primary mt-2"></i>Delivered</span>
+                <div class="d-flex align-content-center justify-content-between">
+                  <div>
+                    <h3 class="m-0 mb-2 fs-22 text-dark mt-3">12.50%</h3>
+                    <p class="text-muted mb-0 fs-14">Last 24 hours</p>
+                  </div>
+                  <div id="chart-boarding-delivered" class="apex-charts align-self-end"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6 col-xl-6">
+              <div class="border rounded-3 px-2 py-3">
+                <span class="mb-2 text-primary bg-primary-subtle rounded-2 py-1 px-2 align-content-center"><i
+                  class="mdi mdi-circle-medium dot-primary mt-2"></i>Opened</span>
+                <div class="d-flex align-content-center justify-content-between">
+                  <div>
+                    <h3 class="m-0 mb-2 fs-22 text-dark mt-3">40.3%</h3>
+                    <p class="text-muted mb-0 fs-14">Last 30 hours</p>
+                  </div>
+                  <div id="chart-boarding-opened" class="apex-charts align-self-end"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6 col-xl-6">
+              <div class="border rounded-3 px-2 py-3">
+                <span class="mb-2 text-primary bg-primary-subtle rounded-2 py-1 px-2 align-content-center"><i
+                  class="mdi mdi-circle-medium dot-primary mt-2"></i>Clicked</span>
+                <div class="d-flex align-content-center justify-content-between">
+                  <div>
+                    <h3 class="m-0 mb-2 fs-22 text-dark mt-3">38.7%</h3>
+                    <p class="text-muted mb-0 fs-14">Last 30 hours</p>
+                  </div>
+                  <div id="chart-boarding-clicked" class="apex-charts align-self-end"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6 col-xl-6">
+              <a href="#">
+                <div class="border rounded-3 px-2 py-3">
+                  <span class="mb-2 text-primary bg-primary-subtle rounded-2 py-1 px-2 align-content-center"><i
+                    class="mdi mdi-circle-medium dot-primary mt-2"></i>Converted</span>
+                  <div class="d-flex align-content-center justify-content-between">
+                    <div>
+                      <h3 class="m-0 mb-2 fs-22 text-dark mt-3">12.3%</h3>
+                      <p class="text-muted mb-0 fs-14">Last 30 hours</p>
+                    </div>
+                    <div id="chart-boarding-converted" class="apex-charts align-self-end"></div>
+                  </div>
+                </div>
+              </a>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div> <!-- end card -->
+  </div> <!-- end sales -->
+
+  <div class="col-md-12 col-xl-8">
+    <div class="card  overflow-hidden">
+      <div class="card-header">
+        <div class="d-flex align-items-center">
+          <h5 class="card-title text-dark mb-0">Latest Transaction</h5>
+          <div class="ms-auto">
+            <button class="btn btn-sm bg-primary-subtle border dropdown-toggle fw-medium text-primary" type="button"
+                    data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i
+              class="mdi mdi-calendar-blank-outline me-1 fs-14"></i>Monthly<i
+              class="mdi mdi-chevron-down ms-1 fs-14"></i></button>
+            <div class="dropdown-menu">
+              <a class="dropdown-item" href="#">Monthly</a>
+              <a class="dropdown-item" href="#">Yearly</a>
+              <a class="dropdown-item" href="#">Date Wise</a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-traffic mb-0">
+
+            <thead>
+            <tr class="">
+              <th>Transaction type</th>
+              <th>Person</th>
+              <th>Date</th>
+              <th>Amount</th>
+              <th>Status</th>
+            </tr>
+            </thead>
+
+            <tr>
+              <td>
+                <div class="d-flex align-items-center">
+                  <div class="rounded-circle border d-flex align-items-center justify-content-center me-2"
+                       style="height: 35px; width: 35px;">
+                    <i class="mdi mdi-credit-card-outline fs-17"></i>
+                  </div>
+                  <a href="#" class="text-reset">Salary payment</a>
+                </div>
+              </td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <img src="{{ config.ASSETS_ROOT }}/images/users/user-12.jpg" class="avatar avatar-sm rounded-circle me-2">
+                  <p class="mb-0">Jenny wilson</p>
+                </div>
+              </td>
+              <td class="text-nowrap text-reset">
+                February 14, 2024
+              </td>
+              <td>
+                <a href="#" class="text-reset">
+                  $449.51
+                </a>
+              </td>
+              <td class="text-nowrap text-reset ">
+                <div class="d-flex align-items-center">
+                  <i data-feather="check-circle" style="height: 16px; width: 16px;" class="text-primary me-2"></i>
+                  <p class="mb-0">Completed</p>
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <div class="d-flex align-items-center">
+                  <div class="rounded-circle border d-flex align-items-center justify-content-center me-2"
+                       style="height: 35px; width: 35px;">
+                    <i class="mdi mdi-cash fs-17"></i>
+                  </div>
+                  <a href="#" class="text-reset">Office Manage</a>
+                </div>
+              </td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <img src="{{ config.ASSETS_ROOT }}/images/users/user-15.jpg" class="avatar avatar-sm rounded-circle me-2">
+                  <p class="mb-0">Jenny wilson</p>
+                </div>
+              </td>
+              <td class="text-nowrap text-reset">
+                January 25, 2024
+              </td>
+              <td>
+                <a href="#" class="text-reset">
+                  $870.95
+                </a>
+              </td>
+              <td class="text-nowrap text-reset ">
+                <div class="d-flex align-items-center">
+                  <i data-feather="check-circle" style="height: 16px; width: 16px;" class="text-primary me-2"></i>
+                  <p class="mb-0">Completed</p>
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <div class="d-flex align-items-center">
+                  <div class="rounded-circle border d-flex align-items-center justify-content-center me-2"
+                       style="height: 35px; width: 35px;">
+                    <i class="mdi mdi-account-outline fs-17"></i>
+                  </div>
+                  <a href="#" class="text-reset">Client payment</a>
+                </div>
+              </td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <img src="{{ config.ASSETS_ROOT }}/images/users/user-13.jpg" class="avatar avatar-sm rounded-circle me-2">
+                  <p class="mb-0">Cameron Williamson</p>
+                </div>
+              </td>
+              <td class="text-nowrap text-reset">
+                March 16, 2024
+              </td>
+              <td>
+                <a href="#" class="text-reset">
+                  $687.85
+                </a>
+              </td>
+              <td class="text-nowrap text-reset ">
+                <div class="d-flex align-items-center">
+                  <i data-feather="loader" style="height: 16px; width: 16px;" class="text-warning me-2"></i>
+                  <p class="mb-0">On progress</p>
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <div class="d-flex align-items-center">
+                  <div class="rounded-circle border d-flex align-items-center justify-content-center me-2"
+                       style="height: 35px; width: 35px;">
+                    <i class="mdi mdi-hand-coin-outline fs-17"></i>
+                  </div>
+                  <a href="#" class="text-reset">Investment</a>
+                </div>
+              </td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <img src="{{ config.ASSETS_ROOT }}/images/users/user-11.jpg" class="avatar avatar-sm rounded-circle me-2">
+                  <p class="mb-0">Jenny wilson</p>
+                </div>
+              </td>
+              <td class="text-nowrap text-reset">
+                June 20, 2024
+              </td>
+              <td>
+                <a href="#" class="text-reset">
+                  $528.18
+                </a>
+              </td>
+              <td class="text-nowrap text-reset ">
+                <div class="d-flex align-items-center">
+                  <i data-feather="loader" style="height: 16px; width: 16px;" class="text-warning me-2"></i>
+                  <p class="mb-0">On progress</p>
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <div class="d-flex align-items-center">
+                  <div class="rounded-circle border d-flex align-items-center justify-content-center me-2"
+                       style="height: 35px; width: 35px;">
+                    <i class="mdi mdi-chart-box-plus-outline fs-17"></i>
+                  </div>
+                  <a href="#" class="text-reset">Marketing</a>
+                </div>
+              </td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <img src="{{ config.ASSETS_ROOT }}/images/users/user-14.jpg" class="avatar avatar-sm rounded-circle me-2">
+                  <p class="mb-0">Esther Howard</p>
+                </div>
+              </td>
+              <td class="text-nowrap text-reset">
+                July 16, 2024
+              </td>
+              <td>
+                <a href="#" class="text-reset">
+                  $449.51
+                </a>
+              </td>
+              <td class="text-nowrap text-reset ">
+                <div class="d-flex align-items-center">
+                  <i data-feather="check-circle" style="height: 16px; width: 16px;" class="text-primary me-2"></i>
+                  <p class="mb-0">Completed</p>
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <div class="d-flex align-items-center">
+                  <div class="rounded-circle border d-flex align-items-center justify-content-center me-2"
+                       style="height: 35px; width: 35px;">
+                    <i class="mdi mdi-credit-card-outline fs-17"></i>
+                  </div>
+                  <a href="#" class="text-reset">Salary payment</a>
+                </div>
+              </td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <img src="{{ config.ASSETS_ROOT }}/images/users/user-3.jpg" class="avatar avatar-sm rounded-circle me-2">
+                  <p class="mb-0">Darlene Robertson</p>
+                </div>
+              </td>
+              <td class="text-nowrap text-reset">
+                May 27, 2024
+              </td>
+              <td>
+                <a href="#" class="text-reset">
+                  $478.51
+                </a>
+              </td>
+              <td class="text-nowrap text-reset ">
+                <div class="d-flex align-items-center">
+                  <i data-feather="check-circle" style="height: 16px; width: 16px;" class="text-primary me-2"></i>
+                  <p class="mb-0">Completed</p>
+                </div>
+              </td>
+            </tr>
+
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<!-- end row -->
+
+<!-- Average revenue -->
+<div class="row">
+
+  <div class="col-md-12 col-xl-4">
+    <div class="card overflow-hidden">
+      <div class="card-header">
+        <div class="d-flex align-items-center">
+          <h5 class="card-title text-dark mb-0">Earnings Reports</h5>
+        </div>
+      </div>
+
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-traffic mb-0">
+            <thead>
+            <tr>
+              <th class="border-top-0 fw-semibold text-dark">Date</th>
+              <th class="border-top-0 fw-semibold text-dark">Item Count</th>
+              <th class="border-top-0 fw-semibold text-dark">Text</th>
+              <th class="border-top-0 fw-semibold text-dark">Earnings</th>
+            </tr>
+            </thead>
+
+            <tr>
+              <td>
+                <a href="#" class="text-reset">01 January</a>
+              </td>
+              <td>
+                45
+              </td>
+              <td class="text-success">
+                +$70
+              </td>
+              <td>
+                $78,000
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <a href="#" class="text-reset">05 February</a>
+              </td>
+              <td>
+                35
+              </td>
+              <td class="text-danger">
+                -$48
+              </td>
+              <td>
+                $18,000
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <a href="#" class="text-reset">15 March</a>
+              </td>
+              <td>
+                28
+              </td>
+              <td class="text-danger">
+                -$31
+              </td>
+              <td>
+                $15,000
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <a href="#" class="text-reset">06 April</a>
+              </td>
+              <td>
+                38
+              </td>
+              <td class="text-success">
+                +$58
+              </td>
+              <td>
+                $125,000
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <a href="#" class="text-reset">08 May</a>
+              </td>
+              <td>
+                42
+              </td>
+              <td class="text-success">
+                +$65
+              </td>
+              <td>
+                $80,000
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <a href="#" class="text-reset">25 December</a>
+              </td>
+              <td>
+                39
+              </td>
+              <td class="text-danger">
+                -$41
+              </td>
+              <td>
+                $73,000
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <a href="#" class="text-reset">18 January</a>
+              </td>
+              <td>
+                45
+              </td>
+              <td class="text-success">
+                +$74
+              </td>
+              <td>
+                $72,500
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <a href="#" class="text-reset">09 September</a>
+              </td>
+              <td>
+                29
+              </td>
+              <td class="text-danger">
+                -$25
+              </td>
+              <td>
+                $23,000
+              </td>
+            </tr>
+
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6 col-xl-4">
+    <div class="card">
+      <div class="card-header">
+        <div class="d-flex align-items-center">
+          <h5 class="card-title text-dark mb-0">Upcoming Events</h5>
+        </div>
+      </div>
+
+      <!-- start card body -->
+      <div class="card-body">
+        <ul class="list-unstyled mb-0 upcoming-events-list">
+          <li>
+            <div class="align-items-center d-flex justify-content-between border rounded-2 p-2 events-before">
+              <div class="product-list">
+                <div class="product-body align-self-center">
+                  <h6 class="m-0 fw-semibold">Meeting with client</h6>
+                  <p class="mb-0 mt-1 text-muted">Zoom Conference</p>
+                </div>
+              </div>
+
+              <div>
+                <span class="text-muted"><i
+                  class="ri-time-line align-middle me-1 inline-block "></i>9:00am - 10:00am</span>
+              </div>
+            </div>
+          </li>
+
+          <li>
+            <div class="align-items-center d-flex justify-content-between border rounded-2 p-2">
+              <div class="product-list">
+                <div class="product-body align-self-center">
+                  <h6 class="m-0 fw-semibold">Event for music concert</h6>
+                  <p class="mb-0 mt-1 text-muted">Tomorrowland belgium</p>
+                </div>
+              </div>
+
+              <div>
+                <span class="text-muted"><i
+                  class="ri-time-line align-middle me-1 inline-block "></i>11:00am - 1:00pm</span>
+              </div>
+            </div>
+
+          </li>
+
+          <li>
+            <div class="align-items-center d-flex justify-content-between border rounded-2 p-2">
+              <div class="product-list">
+                <div class="product-body align-self-center">
+                  <h6 class="m-0 fw-semibold">General Team Meeting</h6>
+                  <p class="mb-0 mt-1 text-muted">Agenda for team growth</p>
+                </div>
+              </div>
+
+              <div>
+                <span class="text-muted"><i
+                  class="ri-time-line align-middle me-1 inline-block "></i>2:00pm - 4:00pm</span>
+              </div>
+            </div>
+          </li>
+
+          <li>
+            <div class="align-items-center d-flex justify-content-between border rounded-2 p-2">
+              <div class="product-list">
+                <div class="product-body align-self-center">
+                  <h6 class="m-0 fw-semibold">Project Manager Meeting</h6>
+                  <p class="mb-0 mt-1 text-muted">Project sprint and remaining work</p>
+                </div>
+              </div>
+
+              <div>
+                <span class="text-muted"><i
+                  class="ri-time-line align-middle me-1 inline-block "></i>10:05am - 12:05pm</span>
+              </div>
+            </div>
+          </li>
+
+          <li class="mb-0">
+            <div class="align-items-center d-flex justify-content-between border rounded-2 p-2">
+              <div class="product-list">
+                <div class="product-body align-self-center">
+                  <h6 class="m-0 fw-semibold">Project Manager Meeting</h6>
+                  <p class="mb-0 mt-1 text-muted">Project sprint and remaining work</p>
+                </div>
+              </div>
+
+              <div>
+                <span class="text-muted"><i
+                  class="ri-time-line align-middle me-1 inline-block "></i>10:05am - 12:05pm</span>
+              </div>
+            </div>
+          </li>
+
+        </ul>
+      </div>
+      <!-- end card body -->
+    </div>
+  </div>
+
+  <div class="col-md-6 col-xl-4">
+    <div class="card">
+      <div class="card-header">
+        <div class="d-flex align-items-center">
+          <h5 class="card-title text-dark mb-0">Weekly Meeting</h5>
+        </div>
+      </div>
+
+      <!-- start card body -->
+      <div class="card-body">
+
+        <div class="border rounded-3 py-2 px-2 mb-3 bg-light">
+          <div class="d-flex align-items-center gap-2">
+            <iconify-icon icon="tabler:users" class="fs-20"></iconify-icon>
+            <span class="text-dark mb-0">22 Participations</span>
+          </div>
+        </div>
+
+
+        <ul class="p-0 m-0">
+          <li class="d-flex align-items-center mb-3">
+            <div class="avatar avatar-sm flex-shrink-0 me-3 d-flex align-items-center justify-content-center">
+              <img src="{{ config.ASSETS_ROOT }}/images/users/user-17.jpg" class="avatar avatar-sm rounded-circle">
+            </div>
+            <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
+              <div class="me-2">
+                <div class="d-flex align-items-center">
+                  <h6 class="mb-0 me-1 fs-14 fw-semibold text-dark">Ashlynn Calzoni</h6>
+                </div>
+                <small class="text-muted fw-semibold">Founder</small>
+              </div>
+              <div class="user-progress">
+                <p class="text-primary mb-0 d-flex align-items-center gap-1">
+                  <iconify-icon icon="mage:microphone-mute-fill" class="fs-24"></iconify-icon>
+                  <iconify-icon icon="mynaui:video-solid" class="fs-24 text-warning"></iconify-icon>
+                </p>
+              </div>
+            </div>
+          </li>
+
+          <li class="d-flex align-items-center mb-3">
+            <div class="avatar avatar-sm flex-shrink-0 me-3 d-flex align-items-center justify-content-center">
+              <img src="{{ config.ASSETS_ROOT }}/images/users/user-18.jpg" class="avatar avatar-sm rounded-circle">
+            </div>
+            <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
+              <div class="me-2">
+                <div class="d-flex align-items-center">
+                  <h6 class="mb-0 me-1 fs-14 fw-semibold text-dark">Rafael Jackson</h6>
+                </div>
+                <small class="text-muted fw-semibold">Project Manager</small>
+              </div>
+              <div class="user-progress">
+                <p class="text-primary mb-0 d-flex align-items-center gap-1">
+                  <iconify-icon icon="mage:microphone-mute-fill" class="fs-24"></iconify-icon>
+                  <iconify-icon icon="mynaui:video-solid" class="fs-24 text-warning"></iconify-icon>
+                </p>
+              </div>
+            </div>
+          </li>
+
+          <li class="d-flex align-items-center mb-3">
+            <div class="avatar avatar-sm flex-shrink-0 me-3 d-flex align-items-center justify-content-center">
+              <img src="{{ config.ASSETS_ROOT }}/images/users/user-14.jpg" class="avatar avatar-sm rounded-circle">
+            </div>
+            <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
+              <div class="me-2">
+                <div class="d-flex align-items-center">
+                  <h6 class="mb-0 me-1 fs-14 fw-semibold text-dark">Kaylynn Workman</h6>
+                </div>
+                <small class="text-muted fw-semibold">Project Manager</small>
+              </div>
+              <div class="user-progress">
+                <p class="text-primary mb-0 d-flex align-items-center gap-1">
+                  <iconify-icon icon="mage:microphone-mute-fill" class="fs-24"></iconify-icon>
+                  <iconify-icon icon="mynaui:video-solid" class="fs-24 text-warning"></iconify-icon>
+                </p>
+              </div>
+            </div>
+          </li>
+
+          <li class="d-flex align-items-center mb-3">
+            <div class="avatar avatar-sm flex-shrink-0 me-3 d-flex align-items-center justify-content-center">
+              <img src="{{ config.ASSETS_ROOT }}/images/users/user-13.jpg" class="avatar avatar-sm rounded-circle">
+            </div>
+            <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
+              <div class="me-2">
+                <div class="d-flex align-items-center">
+                  <h6 class="mb-0 me-1 fs-14 fw-semibold text-dark">Erin Culhane</h6>
+                </div>
+                <small class="text-muted fw-semibold">Design Lead</small>
+              </div>
+              <div class="user-progress">
+                <p class="text-primary mb-0 d-flex align-items-center gap-1">
+                  <iconify-icon icon="mage:microphone-mute-fill" class="fs-24"></iconify-icon>
+                  <iconify-icon icon="mynaui:video-solid" class="fs-24 text-warning"></iconify-icon>
+                </p>
+              </div>
+            </div>
+          </li>
+
+          <li class="d-flex align-items-center mb-3">
+            <div class="avatar avatar-sm flex-shrink-0 me-3 d-flex align-items-center justify-content-center">
+              <img src="{{ config.ASSETS_ROOT }}/images/users/user-12.jpg" class="avatar avatar-sm rounded-circle">
+            </div>
+            <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
+              <div class="me-2">
+                <div class="d-flex align-items-center">
+                  <h6 class="mb-0 me-1 fs-14 fw-semibold text-dark">Emery Dorwart</h6>
+                </div>
+                <small class="text-muted fw-semibold">Software Lead</small>
+              </div>
+              <div class="user-progress">
+                <p class="text-primary mb-0 d-flex align-items-center gap-1">
+                  <iconify-icon icon="mage:microphone-mute-fill" class="fs-24"></iconify-icon>
+                  <iconify-icon icon="mynaui:video-solid" class="fs-24 text-warning"></iconify-icon>
+                </p>
+              </div>
+            </div>
+          </li>
+        </ul>
+
+        <a
+          class="btn bg-primary-subtle text-primary border border-dashed border-primary fw-semibold d-flex align-items-center justify-content-center text-capitalize rounded-3 mt-3 py-2">Add
+          Participations</a>
+
+      </div>
+      <!-- end card body -->
+    </div>
+  </div>
+</div>
+
+<!-- Start Payments -->
+<div class="row">
+
+  <div class="col-md-6 col-xl-3">
+    <div class="card">
+      <div class="card-header">
+        <div class="d-flex align-items-center">
+          <h5 class="card-title text-dark mb-0">Next payments</h5>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="justify-content-center mb-2">
+          <ul class="list-group list-group-flush list-group-no-gutters">
+
+            <!-- List Item -->
+            <li class="list-group-item px-0 pt-0 border-bottom-0">
+              <div class="d-flex align-items-center gap-3">
+
+                <div class="align-content-center">
+                  <h6 class="mb-1 text-dark fw-semibold fs-17">$145,258.12</h6>
+                  <span class="fs-14 text-muted fw-medium">August 5th, 2024</span>
+                </div>
+
+                <div class="ms-auto align-content-center">
+                                                            <span class="badge px-2 py-1 bg-dark-subtle rounded-2">
+                                                                <a href="javascript:void(0);"
+                                                                   class="text-muted text-decoration-none fw-medium">
+                                                                    <span class="fs-13"> Draw 4</span>
+                                                                </a>
+                                                            </span>
+                </div>
+
+              </div>
+            </li>
+            <!-- End List Item -->
+
+            <!-- List Item -->
+            <li class="list-group-item px-0 border-bottom-0">
+              <div class="d-flex align-items-center gap-3">
+
+                <div class="align-content-center">
+                  <h6 class="mb-1 text-dark fw-semibold fs-17">$524,784.14</h6>
+                  <span class="fs-14 text-muted fw-medium">October 25th, 2024</span>
+                </div>
+
+                <div class="ms-auto align-content-center">
+                                                            <span class="badge px-2 py-1 bg-dark-subtle rounded-2">
+                                                                <a href="javascript:void(0);"
+                                                                   class="text-muted text-decoration-none fw-medium">
+                                                                    <span class="fs-13"> Draw 5</span>
+                                                                </a>
+                                                            </span>
+                </div>
+
+              </div>
+            </li>
+            <!-- End List Item -->
+
+            <!-- List Item -->
+            <li class="list-group-item px-0 border-bottom-0">
+              <div class="d-flex align-items-center gap-3">
+
+                <div class="align-content-center">
+                  <h6 class="mb-1 text-dark fw-semibold fs-17">$224,784.65</h6>
+                  <span class="fs-14 text-muted fw-medium">September 15th, 2024</span>
+                </div>
+
+                <div class="ms-auto align-content-center">
+                                                            <span class="badge px-2 py-1 bg-dark-subtle rounded-2">
+                                                                <a href="javascript:void(0);"
+                                                                   class="text-muted text-decoration-none fw-medium">
+                                                                    <span class="fs-13"> Draw 6</span>
+                                                                </a>
+                                                            </span>
+                </div>
+
+              </div>
+            </li>
+            <!-- End List Item -->
+
+            <!-- List Item -->
+            <li class="list-group-item px-0 border-bottom-0">
+              <div class="d-flex align-items-center gap-3">
+
+                <div class="align-content-center">
+                  <h6 class="mb-1 text-dark fw-semibold fs-17">$658,784.45</h6>
+                  <span class="fs-14 text-muted fw-medium">November 12th, 2024</span>
+                </div>
+
+                <div class="ms-auto align-content-center">
+                                                            <span class="badge px-2 py-1 bg-dark-subtle rounded-2">
+                                                                <a href="javascript:void(0);"
+                                                                   class="text-muted text-decoration-none fw-medium">
+                                                                    <span class="fs-13"> Draw 7</span>
+                                                                </a>
+                                                            </span>
+                </div>
+
+              </div>
+            </li>
+            <!-- End List Item -->
+
+            <!-- List Item -->
+            <li class="list-group-item px-0 border-bottom-0">
+              <div class="d-flex align-items-center gap-3">
+
+                <div class="align-content-center">
+                  <h6 class="mb-1 text-dark fw-semibold fs-17">$489,526.95</h6>
+                  <span class="fs-14 text-muted fw-medium">November 19th, 2024</span>
+                </div>
+
+                <div class="ms-auto align-content-center">
+                                                            <span class="badge px-2 py-1 bg-dark-subtle rounded-2">
+                                                                <a href="javascript:void(0);"
+                                                                   class="text-muted text-decoration-none fw-medium">
+                                                                    <span class="fs-13"> Draw 8</span>
+                                                                </a>
+                                                            </span>
+                </div>
+
+              </div>
+            </li>
+            <!-- End List Item -->
+
+            <!-- List Item -->
+            <li class="list-group-item px-0 border-bottom-0">
+              <div class="d-flex align-items-center gap-3">
+
+                <div class="align-content-center">
+                  <h6 class="mb-1 text-dark fw-semibold fs-17">$587,526.95</h6>
+                  <span class="fs-14 text-muted fw-medium">December 24th, 2024</span>
+                </div>
+
+                <div class="ms-auto align-content-center">
+                                                            <span class="badge px-2 py-1 bg-dark-subtle rounded-2">
+                                                                <a href="javascript:void(0);"
+                                                                   class="text-muted text-decoration-none fw-medium">
+                                                                    <span class="fs-13"> Draw 9</span>
+                                                                </a>
+                                                            </span>
+                </div>
+
+              </div>
+            </li>
+            <!-- End List Item -->
+
+          </ul>
+        </div>
+
+
+        <div class="row">
+          <div class="col-12">
+            <a
+              class="btn text-dark border bg-light fw-normal d-flex align-items-center justify-content-center text-capitalize rounded-3 mt-2 fw-semibold">View
+              all upcoming payments <i class="mdi mdi-arrow-right ms-2 fs-17"></i></a>
+          </div>
+        </div>
+
+      </div>
+
+    </div> <!-- end card -->
+  </div> <!-- end sales -->
+
+  <div class="col-md-6 col-xl-3">
+    <div class="card">
+      <div class="card-header">
+        <div class="d-flex align-items-center">
+          <h5 class="card-title text-dark mb-0">Browser Status</h5>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="justify-content-center">
+          <table class="table table-borderless table-card align-middle mb-0">
+            <tbody>
+            <tr>
+              <td class="pt-0">
+                <img src="{{ config.ASSETS_ROOT }}/images/browser/chrome-logo.png" alt="logo">
+              </td>
+              <td class="w-100 pt-0">Google Chrome</td>
+              <td class="text-end pt-0">
+                <span class="badge bg-primary-subtle text-primary fw-semibold rounded-pill">58%</span>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <img src="{{ config.ASSETS_ROOT }}/images/browser/firefox-logo.png" alt="logo">
+              </td>
+              <td class="w-100">Mozila Firefox</td>
+              <td class="ps-0 text-end">
+                <span class="badge bg-primary-subtle text-primary fw-semibold rounded-pill">45%</span>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <img src="{{ config.ASSETS_ROOT }}/images/browser/safari-logo.png" alt="logo">
+              </td>
+              <td class="w-100">Apple Safari</td>
+              <td class="ps-0 text-end">
+                <span class="badge bg-primary-subtle text-primary fw-semibold rounded-pill">40%</span>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <img src="{{ config.ASSETS_ROOT }}/images/browser/edge-logo.png" alt="logo" class="rounded-circle">
+              </td>
+              <td class="w-100">Microsoft edge</td>
+              <td class="ps-0 text-end">
+                <span class="badge bg-primary-subtle text-primary fw-semibold rounded-pill">38%</span>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <img src="{{ config.ASSETS_ROOT }}/images/browser/opera-logo-1.png" alt="logo">
+              </td>
+              <td class="w-100">Opera mini</td>
+              <td class="ps-0 text-end">
+                <span class="badge bg-primary-subtle text-primary fw-semibold rounded-pill">23%</span>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <img src="{{ config.ASSETS_ROOT }}/images/browser/brave-logo.png" alt="logo">
+              </td>
+              <td class="w-100">Brave</td>
+              <td class="ps-0 text-end">
+                <span class="badge bg-primary-subtle text-primary fw-semibold rounded-pill">19%</span>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <img src="{{ config.ASSETS_ROOT }}/images/browser/operaGX-logo.png" alt="logo">
+              </td>
+              <td class="w-100">Opera GX</td>
+              <td class="ps-0 text-end">
+                <span class="badge bg-primary-subtle text-primary fw-semibold rounded-pill">8%</span>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <img src="{{ config.ASSETS_ROOT }}/images/browser/uc-browser.png" alt="logo">
+              </td>
+              <td class="w-100">UC Browser</td>
+              <td class="ps-0 text-end">
+                <span class="badge bg-primary-subtle text-primary fw-semibold rounded-pill">8%</span>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div> <!-- end card -->
+  </div> <!-- end sales -->
+
+
+  <div class="col-md-12 col-xl-6">
+    <div class="card">
+      <div class="card-header">
+        <div class="d-flex align-items-center">
+          <h5 class="card-title text-dark mb-0">Traffic Source</h5>
+        </div>
+      </div>
+
+      <div class="card-body mt-0">
+        <div class="table-responsive table-card">
+          <table class="table table-borderless table-centered align-middle table-nowrap mb-0">
+            <thead class="text-muted table-light">
+            <tr>
+              <th>Campaign</th>
+              <th>Starting Date</th>
+              <th>Open Rate</th>
+              <th>Click Rate</th>
+              <th>Amount</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+              <td>
+                <div class="d-flex align-items-center">
+                  <img src="{{ config.ASSETS_ROOT }}/images/social/facebook.png" alt="logo" class="img-fluid me-2">
+                  <p class="mb-0 fs-14">Facebook</p>
+                </div>
+              </td>
+              <td class="text-muted fs-14">20 September 2024</td>
+              <td class="text-muted fs-14">47%</td>
+              <td class="text-muted fs-14">71%</td>
+              <td>
+                                                            <span class="badge px-2 py-1 bg-primary rounded-2">
+                                                                <a href="javascript:void(0);"
+                                                                   class="text-white text-decoration-none fw-medium">
+                                                                    <span class="fs-13">$2,580</span>
+                                                                </a>
+                                                            </span>
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <div class="d-flex align-items-center">
+                  <img src="{{ config.ASSETS_ROOT }}/images/social/google.png" alt="logo" class="img-fluid me-2">
+                  <p class="mb-0 fs-14">Instagram</p>
+                </div>
+              </td>
+              <td class="text-muted fs-14">18th October 2024</td>
+              <td class="text-muted fs-14">32%</td>
+              <td class="text-muted fs-14">80%</td>
+              <td>
+                                                            <span class="badge px-2 py-1 bg-primary rounded-2">
+                                                                <a href="javascript:void(0);"
+                                                                   class="text-white text-decoration-none fw-medium">
+                                                                    <span class="fs-13">$1,880</span>
+                                                                </a>
+                                                            </span>
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <div class="d-flex align-items-center">
+                  <img src="{{ config.ASSETS_ROOT }}/images/social/instagram.png" alt="logo" class="img-fluid me-2">
+                  <p class="mb-0 fs-14">Google Ads</p>
+                </div>
+              </td>
+              <td class="text-muted fs-14">19th November 2024</td>
+              <td class="text-muted fs-14">47%</td>
+              <td class="text-muted fs-14">71%</td>
+              <td>
+                                                            <span class="badge px-2 py-1 bg-primary rounded-2">
+                                                                <a href="javascript:void(0);"
+                                                                   class="text-white text-decoration-none fw-medium">
+                                                                    <span class="fs-13">$2,580</span>
+                                                                </a>
+                                                            </span>
+              </td>
+
+            </tr>
+
+            <tr>
+              <td>
+                <div class="d-flex align-items-center">
+                  <img src="{{ config.ASSETS_ROOT }}/images/social/tiktok.png" alt="logo" class="img-fluid me-2">
+                  <p class="mb-0 fs-14">TikTok</p>
+                </div>
+              </td>
+              <td class="text-muted fs-14">08th December 2024</td>
+              <td class="text-muted fs-14">51%</td>
+              <td class="text-muted fs-14">58%</td>
+              <td>
+                                                            <span class="badge px-2 py-1 bg-primary rounded-2">
+                                                                <a href="javascript:void(0);"
+                                                                   class="text-white text-decoration-none fw-medium">
+                                                                    <span class="fs-13">$3,780</span>
+                                                                </a>
+                                                            </span>
+              </td>
+            </tr>
+
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div> <!-- end card -->
+
+    <div class="col-md-12 col-xl-12">
+      <div class="card bg-primary-subtle overflow-hidden">
+        <div class="card-body position-relative">
+          <div class="row">
+
+            <div class="col-md-6 col-xl-6">
+              <div class="d-flex align-items-start flex-column h-100">
+                <h3 class="text-dark fw-medium fs-24 mb-auto mb-3">Denim Jacket with white Feathers</h3>
+                <a href="#" class="btn btn-sm btn-primary mb-0">Item sold out</a>
+              </div>
+            </div>
+
+            <div class="col-md-6 col-xl-6 justify-content-center">
+              <div class="text-center">
+                <img src="{{ config.ASSETS_ROOT }}/images/svg/ecommerce-2.svg" alt="modernize-img" class="img-fluid">
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div> <!-- end sales -->
+</div>
+<!-- Start Payments -->
+
+<!-- Task table -->
+<div class="row">
+  <div class="col-md-12">
+    <div class="card overflow-hidden">
+      <div class="card-header">
+        <div class="d-flex align-items-center">
+          <h5 class="card-title text-dark mb-0">Tasks</h5>
+        </div>
+      </div>
+
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-traffic mb-0">
+
+            <thead>
+            <tr>
+              <th>No</th>
+              <th>Task Name</th>
+              <th>Created Date</th>
+              <th>Number of Task</th>
+              <th>Deadline</th>
+              <th>Project</th>
+              <th>Assignee</th>
+            </tr>
+            </thead>
+
+            <tr>
+              <td>
+                <input type="checkbox" class="form-check-input m-0 align-middle" aria-label="Select task" checked>
+              </td>
+              <td>
+                <a href="#" class="text-reset">Create user interface designs.</a>
+              </td>
+              <td class="text-nowrap text-reset">
+                <i data-feather="calendar" style="height: 18px; width: 18px;" class="me-1"></i>
+                June 01, 2024
+              </td>
+              <td>
+                <a href="#" class="text-reset">
+                  <i data-feather="check" style="height: 18px; width: 18px;" class="me-1"></i>
+                  4/8
+                </a>
+              </td>
+              <td class="text-nowrap text-reset">
+                <i data-feather="calendar" style="height: 18px; width: 18px;" class="me-1"></i>
+                June 10, 2024
+              </td>
+              <td>
+                <a href="#" class="text-reset">
+                  <i data-feather="folder" style="height: 18px; width: 18px;" class="me-1"></i>
+                  2
+                </a>
+              </td>
+              <td>
+                <img src="{{ config.ASSETS_ROOT }}/images/users/user-11.jpg" class="avatar avatar-sm rounded-2"/>
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <input type="checkbox" class="form-check-input m-0 align-middle" aria-label="Select task">
+              </td>
+              <td>
+                <a href="#" class="text-reset">Test new features and updates.</a>
+              </td>
+              <td class="text-nowrap text-reset">
+                <i data-feather="calendar" style="height: 18px; width: 18px;" class="me-1"></i>
+                July 15, 2023
+              </td>
+              <td class="text-nowrap">
+                <a href="#" class="text-reset">
+                  <i data-feather="check" style="height: 18px; width: 18px;" class="me-1"></i>
+                  1/5
+                </a>
+              </td>
+              <td class="text-nowrap text-reset">
+                <i data-feather="calendar" style="height: 18px; width: 18px;" class="me-1"></i>
+                September 10, 2023
+              </td>
+              <td class="text-nowrap">
+                <a href="#" class="text-reset">
+                  <i data-feather="folder" style="height: 18px; width: 18px;" class="me-1"></i>
+                  4
+                </a>
+              </td>
+              <td>
+                <img src="{{ config.ASSETS_ROOT }}/images/users/user-12.jpg" class="avatar avatar-sm rounded-2"/>
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <input type="checkbox" class="form-check-input m-0 align-middle" aria-label="Select task">
+              </td>
+              <td>
+                <a href="#" class="text-reset">Optimize database queries</a>
+              </td>
+              <td class="text-nowrap text-reset">
+                <i data-feather="calendar" style="height: 18px; width: 18px;" class="me-1"></i>
+                August 12, 2023
+              </td>
+              <td class="text-nowrap">
+                <a href="#" class="text-reset">
+                  <i data-feather="check" style="height: 18px; width: 18px;" class="me-1"></i>
+                  0/4
+                </a>
+              </td>
+              <td class="text-nowrap text-reset">
+                <i data-feather="calendar" style="height: 18px; width: 18px;" class="me-1"></i>
+                December 08, 2023
+              </td>
+              <td class="text-nowrap">
+                <a href="#" class="text-reset">
+                  <i data-feather="folder" style="height: 18px; width: 18px;" class="me-1"></i>
+                  1
+                </a>
+              </td>
+              <td>
+                <img src="{{ config.ASSETS_ROOT }}/images/users/user-13.jpg" class="avatar avatar-sm img-fluid rounded-2"/>
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <input type="checkbox" class="form-check-input m-0 align-middle" aria-label="Select task">
+              </td>
+              <td>
+                <a href="#" class="text-reset">Develop API endpoints.</a>
+              </td>
+              <td class="text-nowrap text-reset">
+                <i data-feather="calendar" style="height: 18px; width: 18px;" class="me-1"></i>
+                September 5, 2023
+              </td>
+              <td class="text-nowrap">
+                <a href="#" class="text-reset">
+                  <i data-feather="check" style="height: 18px; width: 18px;" class="me-1"></i>
+                  2/6
+                </a>
+              </td>
+              <td class="text-nowrap text-reset">
+                <i data-feather="calendar" style="height: 18px; width: 18px;" class="me-1"></i>
+                Fabruary 25, 2024
+              </td>
+              <td class="text-nowrap">
+                <a href="#" class="text-reset">
+                  <i data-feather="folder" style="height: 18px; width: 18px;" class="me-1"></i>
+                  5
+                </a>
+              </td>
+              <td>
+                <img src="{{ config.ASSETS_ROOT }}/images/users/user-14.jpg" class="avatar avatar-sm img-fluid rounded-2"/>
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <input type="checkbox" class="form-check-input m-0 align-middle" aria-label="Select task" checked>
+              </td>
+              <td>
+                <a href="#" class="text-reset">Conduct user feedback surveys</a>
+              </td>
+              <td class="text-nowrap text-reset">
+                <i data-feather="calendar" style="height: 18px; width: 18px;" class="me-1"></i>
+                October 1, 2023
+              </td>
+              <td class="text-nowrap">
+                <a href="#" class="text-reset">
+                  <i data-feather="check" style="height: 18px; width: 18px;" class="me-1"></i>
+                  4/10
+                </a>
+              </td>
+              <td class="text-nowrap text-reset">
+                <i data-feather="calendar" style="height: 18px; width: 18px;" class="me-1"></i>
+                November 29, 2023
+              </td>
+              <td class="text-nowrap">
+                <a href="#" class="text-reset">
+                  <i data-feather="folder" style="height: 18px; width: 18px;" class="me-1"></i>
+                  3
+                </a>
+              </td>
+              <td>
+                <img src="{{ config.ASSETS_ROOT }}/images/users/user-15.jpg" class="avatar avatar-sm img-fluid rounded-2"/>
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <input type="checkbox" class="form-check-input m-0 align-middle" aria-label="Select task" checked>
+              </td>
+              <td>
+                <a href="#" class="text-reset">Review codebase for security vulnerabilities</a>
+              </td>
+              <td class="text-nowrap text-reset">
+                <i data-feather="calendar" style="height: 18px; width: 18px;" class="me-1"></i>
+                May 15, 2023
+              </td>
+              <td class="text-nowrap">
+                <a href="#" class="text-reset">
+                  <i data-feather="check" style="height: 18px; width: 18px;" class="me-1"></i>
+                  5/8
+                </a>
+              </td>
+              <td class="text-nowrap text-reset">
+                <i data-feather="calendar" style="height: 18px; width: 18px;" class="me-1"></i>
+                December 08, 2023
+              </td>
+              <td class="text-nowrap">
+                <a href="#" class="text-reset">
+                  <i data-feather="folder" style="height: 18px; width: 18px;" class="me-1"></i>
+                  6
+                </a>
+              </td>
+              <td>
+                <img src="{{ config.ASSETS_ROOT }}/images/users/user-10.jpg" class="avatar avatar-sm img-fluid rounded-2"/>
+              </td>
+            </tr>
+
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock page_content %}
+
+{% block extra_javascript %}
+
+<!-- Apexcharts JS -->
+<script src="{{ config.ASSETS_ROOT }}/libs/apexcharts/apexcharts.min.js"></script>
+<!-- for basic area chart -->
+<script src="https://apexcharts.com/samples/assets/stock-prices.js"></script>
+<!-- Widgets Init Js -->
+<script src="{{ config.ASSETS_ROOT }}/js/pages/widgets-card.init.js"></script>
+<!-- App js-->
+<script src="{{ config.ASSETS_ROOT }}/js/app.js"></script>
+
+{% endblock extra_javascript %}
+
+
+

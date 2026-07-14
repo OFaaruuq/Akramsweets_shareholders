@@ -1,0 +1,29 @@
+{% extends 'layouts/vertical.html' %}
+{% block title %}Account Settings{% endblock title %}
+{% block css %}{% include 'partials/head-css.html' %}{% endblock css %}
+{% block body_attribute %}data-menu-color="dark" data-sidebar="default"{% endblock body_attribute %}
+{% block page_content %}
+<div class="py-3"><h4 class="fs-18 fw-semibold m-0">Account Settings</h4>
+<p class="text-muted mb-0">Manage your portal login and password.</p></div>
+<div class="row">
+  <div class="col-lg-6">
+    <div class="card"><div class="card-header"><h5 class="card-title mb-0">Account details</h5></div><div class="card-body">
+      <p class="mb-2"><strong>Name:</strong> {{ shareholder.name }}</p>
+      <p class="mb-2"><strong>Shareholder email:</strong> {{ shareholder.email }}</p>
+      <p class="mb-0"><strong>Login email:</strong> {{ current_user.email }}</p>
+    </div></div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card"><div class="card-header"><h5 class="card-title mb-0">Change password</h5></div><div class="card-body">
+      <form method="post">
+        {{ form.hidden_tag() }}
+        <div class="mb-3"><label class="form-label">Current password</label>{{ form.current_password(class='form-control') }}</div>
+        <div class="mb-3"><label class="form-label">New password</label>{{ form.new_password(class='form-control') }}</div>
+        <div class="mb-3"><label class="form-label">Confirm new password</label>{{ form.confirm_password(class='form-control') }}</div>
+        {{ form.submit(class='btn btn-primary') }}
+      </form>
+    </div></div>
+  </div>
+</div>
+{% endblock page_content %}
+{% block extra_javascript %}{% include 'partials/vendor.html' %}{% endblock extra_javascript %}

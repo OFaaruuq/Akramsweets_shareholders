@@ -1,0 +1,41 @@
+{% extends 'layouts/base.html' %}
+
+{% block html_attribute %}{% endblock html_attribute %}
+
+{% block title %}{% endblock title %}
+
+{% block extra_css %}{% endblock extra_css %}
+
+{% block body_attribute %}{% endblock body_attribute %}
+
+{% block content %}
+
+{% block preloader %}{% endblock preloader %}
+
+<div id="app-layout">
+
+  {% include 'partials/menu.html' %}
+
+  <div class="content-page">
+
+    <div class="content">
+
+      <div class="container-fluid">
+
+        {% block page_content %}{% endblock page_content %}
+
+      </div>
+
+    </div>
+
+    {% include 'partials/footer.html' %}
+
+    {% block modal %}{% endblock modal %}
+
+  </div>
+
+</div>
+
+{% endblock content %}
+
+{% block extra_javascript %}{% endblock extra_javascript %}

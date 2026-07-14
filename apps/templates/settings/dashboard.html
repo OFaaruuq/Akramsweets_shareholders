@@ -1,0 +1,51 @@
+{% extends 'layouts/vertical.html' %}
+{% block title %}Dashboard Settings{% endblock title %}
+{% block css %}{% include 'partials/head-css.html' %}{% endblock css %}
+{% block body_attribute %}data-menu-color="dark" data-sidebar="default"{% endblock body_attribute %}
+{% block page_content %}
+<div class="py-3 d-flex align-items-sm-center flex-sm-row flex-column">
+  <div class="flex-grow-1">
+    <h4 class="fs-18 fw-semibold m-0">Dashboard KPI Settings</h4>
+    <p class="text-muted mb-0 fs-14">Manually update operating figures from Odoo for the main dashboard display.</p>
+  </div>
+  <div class="text-end">
+    <a href="{{ url_for('pages.dashboard') }}" class="btn btn-soft-primary btn-sm">View Dashboard</a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <form method="post">
+      {{ form.hidden_tag() }}
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Total Revenues (from Odoo)</label>
+          {{ form.total_revenues(class='form-control', step='0.01') }}
+          <div class="form-text">Shown as <strong>Total Revenues</strong> on the dashboard.</div>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Total Expenses (from Odoo)</label>
+          {{ form.total_expenses(class='form-control', step='0.01') }}
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Cost of Goods Sold</label>
+          {{ form.cost_of_goods(class='form-control', step='0.01') }}
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Other Income</label>
+          {{ form.other_income(class='form-control', step='0.01') }}
+        </div>
+        <div class="col-12 mb-3">
+          <label class="form-label">Operating notes</label>
+          {{ form.operating_notes(class='form-control', rows='3', placeholder='Optional notes shown on the dashboard revenue panel.') }}
+        </div>
+      </div>
+      <div class="alert alert-info py-2 fs-13 mb-3">
+        Monthly profit/loss, shareholder distribution, and period workflow figures are calculated automatically from entered monthly periods.
+      </div>
+      {{ form.submit(class='btn btn-primary') }}
+    </form>
+  </div>
+</div>
+{% endblock page_content %}
+{% block extra_javascript %}{% include 'partials/vendor.html' %}{% endblock extra_javascript %}

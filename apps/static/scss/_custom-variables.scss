@@ -1,0 +1,39 @@
+//
+// custom-variables.scss
+//
+
+
+//sidebar
+$sidebar-bg:                                        #ffffff;
+$sidebar-bg-dark:                                   #131133; // 102234 001b2f 131133
+$sidebar-width:                                     260px;
+$sidebar-width-sm:                                  70px;
+$sidebar-item:                                       #949EA9; // adb5bd 2f384f  e2eeff
+$sidebar-item-hover:                                 var(--#{$prefix}primary);
+$sidebar-item-active:                                var(--#{$prefix}primary);
+$sidebar-item-active-bg:                             #2f3a5f; //7168EE1a 7168EE1a
+$sidebar-item-size:                                  0.938rem;
+$sidebar-sub-item-size:                              0.875rem;
+
+$sidebar-item-padding-y:                             8px;
+$sidebar-item-padding-x:                             20px;
+
+$sidebar-item-icon-size:                             1.125rem;
+
+//dark sidebar menu color
+$sidebar-item-color-dark:                            #7d8099;
+$sidebar-item-hover-color-dark:                      #ffffff;
+$sidebar-item-hover-color-dark-bg:                   #1c1c21;
+$sidebar-item-active-color-dark:                     #ffffff;
+
+
+//Topbar
+$topbar-height:                                     70px;
+$topbar-bg-light:                                 #ffffff;
+$topbar-bg-dark:                                  var(--#{$variable-prefix}topbar-bg-dark);
+// $topbar-search-bg:                                var(--#{$variable-prefix}topbar-search-bg);
+$topbar-search-bg-dark:                           var(--#{$variable-prefix}topbar-search-bg-dark);
+
+
+// Footer
+$footer-bg:                                       transparent;

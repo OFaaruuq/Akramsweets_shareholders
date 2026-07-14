@@ -1,0 +1,35 @@
+{% extends 'layouts/vertical.html' %}
+{% block title %}My Reports{% endblock title %}
+{% block css %}{% include 'partials/head-css.html' %}{% endblock css %}
+{% block body_attribute %}data-menu-color="dark" data-sidebar="default"{% endblock body_attribute %}
+{% block page_content %}
+<div class="py-3"><h4 class="fs-18 fw-semibold m-0">My Shareholder Reports</h4>
+<p class="text-muted mb-0">
+  Monthly certificates and reports for
+  <strong>{{ shareholder.name if shareholder else current_user.full_name }}</strong>.
+</p></div>
+<div class="card"><div class="card-body"><div class="table-responsive">
+<table class="table mb-0">
+  <thead><tr><th>Period</th><th>Company P/L</th><th>Ownership</th><th>Base share</th><th>Adjustments</th><th>Final amount</th><th></th></tr></thead>
+  <tbody>
+    {% for row in report_rows %}
+    <tr>
+      <td>{{ row.period.period_label }}</td>
+      <td>{{ '%.2f'|format(row.period.total_profit_loss) }}</td>
+      <td>{{ '%.2f'|format(row.calculation.ownership_percent) }}%</td>
+      <td>{{ '%.2f'|format(row.calculation.base_share) }}</td>
+      <td>{{ '%.2f'|format(row.calculation.manual_adjustment) }}</td>
+      <td class="fw-semibold">{{ '%.2f'|format(row.calculation.final_amount) }}</td>
+      <td>
+        <a class="btn btn-sm btn-soft-primary" href="{{ url_for('portal.report_detail', period_id=row.period.id) }}">View</a>
+        <a class="btn btn-sm btn-soft-danger" href="{{ url_for('portal.report_certificate_pdf', period_id=row.period.id) }}">Certificate</a>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7" class="text-center text-muted">No approved reports yet. Reports appear here after management approves a monthly period.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div></div></div>
+{% endblock page_content %}
+{% block extra_javascript %}{% include 'partials/vendor.html' %}{% endblock extra_javascript %}

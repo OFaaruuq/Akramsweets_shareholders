@@ -1,0 +1,78 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Error 500{% endblock title %}
+
+{% block css %}
+
+{% include 'partials/head-css.html' %}
+
+{% endblock css %}
+
+{% block body_attribute %}class="maintenance-bg-image"{% endblock body_attribute %}
+
+{% block content %}
+
+<div class="maintenance-pages">
+  <div class="bg-overlay"></div>
+  <div class="container-fluid p-0">
+    <div class="row">
+
+      <div class="col-xl-12 align-self-center">
+        <div class="row">
+          <div class="col-md-4 mx-auto">
+
+            <div class="card overflow-hidden text-center">
+              <div class="card-body">
+
+                <div class="mb-4 p-0 text-center">
+                  <div class="auth-brand">
+                    <a href="/index" class="logo logo-light">
+                                                    <span class="logo-lg">
+                                                        <img src="{{ config.ASSETS_ROOT }}/images/logo-light.png" alt=""
+                                                             height="24">
+                                                    </span>
+                    </a>
+                    <a href="/index" class="logo logo-dark">
+                                                    <span class="logo-lg">
+                                                        <img src="{{ config.ASSETS_ROOT }}/images/logo-dark.png" alt=""
+                                                             height="24">
+                                                    </span>
+                    </a>
+                  </div>
+                </div>
+
+                <div class="text-center">
+                  <h3 class="fw-semibold text-primary lh-base">Internal Server Error</h3>
+                  <h4 class="fw-semibold mt-2 text-dark lh-base fs-18">Something's Missing.....! Internal Server
+                    Error</h4>
+                  <p class="text-muted text-center mb-0">Our internal server has gone on a uninformed vacation</p>
+
+                  <div class="error-page my-4">
+                    <img src="{{ config.ASSETS_ROOT }}/images/svg/500-error.png" class="img-fluid" alt="coming-soon">
+                  </div>
+
+                  <a class="btn btn-primary mt-0" href="/index">Back to
+                    Home</a>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% endblock content %}
+
+{% block extra_javascript %}
+
+<!-- App js-->
+<script src="{{ config.ASSETS_ROOT }}/js/app.js"></script>
+
+{% endblock extra_javascript %}
+
+
+

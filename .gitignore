@@ -1,36 +1,56 @@
 # byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
+*$py.class
 
 # tests and coverage
+.pytest_cache/
 *.pytest_cache
 .coverage
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
 
 # database & logs
 *.db
 *.sqlite3
 *.log
 
-# venv
-env
-venv
+# virtual environments
+.env
+.env.*
+!.env.example
+env/
+venv/
+.venv/
 
-# other
+# OS / IDE
 .DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
 
-# sphinx docs 
+# sphinx docs
 _build
 _static
 _templates
 
-# javascript
+# javascript / frontend tooling
+node_modules/
 package-lock.json
 .vscode/symbols.json
 
-apps/static/assets/node_modules
-apps/static/assets/yarn.lock
-apps/static/assets/.temp
+apps/static/node_modules/
+apps/static/yarn.lock
+apps/static/.temp
 
+# user-uploaded brand assets (keep folder + default logo)
+apps/static/uploads/brand/*
+!apps/static/uploads/brand/.gitkeep
+!apps/static/uploads/brand/logo-default.png
 
-migrations
-
+# Flask migrations local state (recreate via flask db)
+migrations/

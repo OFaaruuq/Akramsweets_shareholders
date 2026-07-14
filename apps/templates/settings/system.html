@@ -1,0 +1,102 @@
+{% extends 'layouts/vertical.html' %}
+{% block title %}System Settings{% endblock title %}
+{% block css %}{% include 'partials/head-css.html' %}{% endblock css %}
+{% block body_attribute %}data-menu-color="dark" data-sidebar="default"{% endblock body_attribute %}
+{% block page_content %}
+<div class="py-3"><h4 class="fs-18 fw-semibold m-0">System Settings</h4>
+<p class="text-muted mb-0 fs-13">Configure brand identity for certificates, automatic emails, and SMTP delivery.</p></div>
+{% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}
+<div class="alert alert-{{ category }}">{{ message }}</div>
+{% endfor %}{% endif %}{% endwith %}
+
+<form method="post" enctype="multipart/form-data">{{ form.hidden_tag() }}
+
+<div class="card mb-3">
+  <div class="card-header"><h5 class="card-title mb-0">Brand identity (certificates)</h5></div>
+  <div class="card-body">
+    <p class="text-muted fs-13">Certificates and reports use these brand colors and logo. Defaults match Akram Sweets maroon and gold.</p>
+    <div class="row align-items-start">
+      <div class="col-md-4 mb-3">
+        <label class="form-label">{{ form.brand_company_name.label.text }}</label>
+        {{ form.brand_company_name(class='form-control') }}
+      </div>
+      <div class="col-md-2 mb-3">
+        <label class="form-label">{{ form.brand_primary_color.label.text }}</label>
+        <div class="input-group">
+          <input type="color" class="form-control form-control-color" value="{{ brand.primary_color }}" oninput="document.getElementById('brand_primary_color').value=this.value">
+          {{ form.brand_primary_color(class='form-control', id='brand_primary_color') }}
+        </div>
+        {% for err in form.brand_primary_color.errors %}<div class="text-danger fs-12">{{ err }}</div>{% endfor %}
+      </div>
+      <div class="col-md-2 mb-3">
+        <label class="form-label">{{ form.brand_secondary_color.label.text }}</label>
+        <div class="input-group">
+          <input type="color" class="form-control form-control-color" value="{{ brand.secondary_color }}" oninput="document.getElementById('brand_secondary_color').value=this.value">
+          {{ form.brand_secondary_color(class='form-control', id='brand_secondary_color') }}
+        </div>
+        {% for err in form.brand_secondary_color.errors %}<div class="text-danger fs-12">{{ err }}</div>{% endfor %}
+      </div>
+      <div class="col-md-2 mb-3">
+        <label class="form-label">{{ form.brand_accent_color.label.text }}</label>
+        <div class="input-group">
+          <input type="color" class="form-control form-control-color" value="{{ brand.accent_color }}" oninput="document.getElementById('brand_accent_color').value=this.value">
+          {{ form.brand_accent_color(class='form-control', id='brand_accent_color') }}
+        </div>
+        {% for err in form.brand_accent_color.errors %}<div class="text-danger fs-12">{{ err }}</div>{% endfor %}
+      </div>
+      <div class="col-md-4 mb-3">
+        <label class="form-label">{{ form.brand_logo.label.text }}</label>
+        {{ form.brand_logo(class='form-control') }}
+        <div class="form-text">PNG or JPG recommended. Shown on certificates and reports.</div>
+        {% if brand.logo_url %}
+        <div class="mt-3 p-3 border rounded d-inline-block" style="background: {{ brand.accent_color }};">
+          <img src="{{ brand.logo_url }}?v={{ brand.logo_path }}" alt="Brand logo" style="max-height: 72px; max-width: 180px;">
+        </div>
+        <div class="form-check mt-2">
+          {{ form.remove_brand_logo(class='form-check-input', id='remove-logo') }}
+          <label class="form-check-label" for="remove-logo">{{ form.remove_brand_logo.label.text }}</label>
+        </div>
+        {% endif %}
+      </div>
+      <div class="col-md-8 mb-3">
+        <label class="form-label d-block">Certificate preview colors</label>
+        <div class="d-flex gap-2 flex-wrap mb-3">
+          <span class="badge px-3 py-2" style="background: {{ brand.primary_color }};">Primary {{ brand.primary_color }}</span>
+          <span class="badge px-3 py-2 text-dark" style="background: {{ brand.secondary_color }};">Secondary {{ brand.secondary_color }}</span>
+          <span class="badge px-3 py-2 text-dark border" style="background: {{ brand.accent_color }};">Accent {{ brand.accent_color }}</span>
+        </div>
+        <a href="{{ url_for('app_settings.preview_certificate') }}" class="btn btn-soft-danger">
+          Download sample certificate PDF
+        </a>
+        <div class="form-text">Uses the current saved logo and brand colors.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header"><h5 class="card-title mb-0">Email &amp; delivery</h5></div>
+  <div class="card-body">
+    <div class="mb-3 form-check">
+      {{ form.auto_email_on_approval(class='form-check-input', id='auto-email') }}
+      <label class="form-check-label" for="auto-email">{{ form.auto_email_on_approval.label.text }}</label>
+    </div>
+    <div class="alert alert-info py-2 fs-13">
+      <strong>Certificates</strong> always use your brand colors and logo when a period is approved.
+      Enable email delivery below so each shareholder receives the branded certificate PDF automatically.
+    </div>
+    <div class="row">
+      <div class="col-md-4 mb-3"><label class="form-label">Report delivery day</label>{{ form.report_delivery_day(class='form-control') }}</div>
+      <div class="col-md-4 mb-3"><label class="form-label">From email</label>{{ form.mail_from(class='form-control') }}</div>
+      <div class="col-md-4 mb-3"><label class="form-label">SMTP server</label>{{ form.mail_server(class='form-control') }}</div>
+      <div class="col-md-4 mb-3"><label class="form-label">SMTP port</label>{{ form.mail_port(class='form-control') }}</div>
+      <div class="col-md-4 mb-3"><label class="form-label">SMTP username</label>{{ form.mail_username(class='form-control') }}</div>
+      <div class="col-md-4 mb-3"><label class="form-label">SMTP password</label>{{ form.mail_password(class='form-control') }}</div>
+    </div>
+  </div>
+</div>
+
+{{ form.submit(class='btn btn-primary') }}
+</form>
+{% endblock page_content %}
+{% block extra_javascript %}{% include 'partials/vendor.html' %}{% endblock extra_javascript %}

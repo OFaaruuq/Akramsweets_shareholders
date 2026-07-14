@@ -1,0 +1,359 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Invoice{% endblock title %}
+
+{% block css %}
+
+{% include 'partials/head-css.html' %}
+
+{% endblock css %}
+
+{% block body_attribute %}data-menu-color="dark" data-sidebar="default"{% endblock body_attribute %}
+
+{% block page_content %}
+
+<div class="py-3 d-flex align-items-sm-center flex-sm-row flex-column">
+  <div class="flex-grow-1">
+    <h4 class="fs-18 fw-semibold m-0">Invoice</h4>
+  </div>
+
+  <div class="text-end">
+    <ol class="breadcrumb m-0 py-0">
+      <li class="breadcrumb-item"><a href="javascript: void(0);">Pages</a></li>
+      <li class="breadcrumb-item active">Invoice</li>
+    </ol>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-9">
+    <div class="card">
+      <div class="card-body">
+        <div class="panel-body">
+          <div class="clearfix">
+            <div class="float-start">
+              <h4 class="fs-18 text-dark fw-semibold">Invoice #1234587<br>
+                <strong class="fs-13 fw-normal text-muted">Issue Date: 11 December, 2024</strong>
+              </h4>
+            </div>
+          </div>
+          <hr>
+          <div class="row">
+            <div class="col-md-12 rounded-2 mb-0">
+              <div class="float-start mt-3 text-dark">
+                <address>
+                  <strong>Bill From:</strong><br>
+                  815 Parker Mews, West Shay<br>
+                  San Francisco, CA 36100<br>
+                  <abbr title="Phone">P:</abbr> 818-705-3746
+                </address>
+              </div>
+              <div class="float-end mt-3 text-dark">
+                <address>
+                  <strong>Bill To:</strong><br>
+                  <table>
+                    <tbody>
+                    <tr>
+                      <td class="pe-4">Total Due:</td>
+                      <td class="fw-medium">$12,110.55</td>
+                    </tr>
+                    <tr>
+                      <td class="pe-4">Bank name:</td>
+                      <td>Swiss Bank</td>
+                    </tr>
+                    <tr>
+                      <td class="pe-4">Country:</td>
+                      <td>Switzerland</td>
+                    </tr>
+                    <tr>
+                      <td class="pe-4">BCODE:</td>
+                      <td>LAPE149879564874</td>
+                    </tr>
+                    <tr>
+                      <td class="pe-4">SWIFT code:</td>
+                      <td>RTP03234</td>
+                    </tr>
+                    </tbody>
+                  </table>
+                </address>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-12">
+              <div class="table-responsive rounded-2">
+                <table class="table table-stock mt-4 mb-4 table-centered border">
+                  <thead class="rounded-2">
+                  <tr>
+                    <th>#</th>
+                    <th>Item</th>
+                    <th>Description</th>
+                    <th>Quantity</th>
+                    <th>Unit Cost</th>
+                    <th>Total</th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td>PH Monitor</td>
+                    <td>HP offers monitors with high refresh rates.</td>
+                    <td>1</td>
+                    <td>$180</td>
+                    <td>$180</td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td>Mobile</td>
+                    <td>DisplayPort, USB-C, and sometimes.</td>
+                    <td>5</td>
+                    <td>$150</td>
+                    <td>$2750</td>
+                  </tr>
+                  <tr>
+                    <td>3</td>
+                    <td>Keyboard</td>
+                    <td>These monitors often boast features such as factory calibration.</td>
+                    <td>2</td>
+                    <td>$80</td>
+                    <td>$160</td>
+                  </tr>
+                  <tr>
+                    <td>4</td>
+                    <td>Mouse Master</td>
+                    <td>Balance of performance, features, and design to meet the demands.</td>
+                    <td>3</td>
+                    <td>$300</td>
+                    <td>$900</td>
+                  </tr>
+                  <tr>
+                    <td>5</td>
+                    <td>IMac</td>
+                    <td>Eco-friendly features such as low power consumption.</td>
+                    <td>5</td>
+                    <td>$1520</td>
+                    <td>$7600</td>
+                  </tr>
+                  <tr>
+                    <td colspan="4"></td>
+                    <td colspan="2">
+                      <table class="table table-sm text-nowrap mb-0 table-borderless">
+                        <tbody>
+                        <tr>
+                          <td>
+                            <p class="mb-0 text-dark">Sub Total</p>
+                          </td>
+                          <td>
+                            <p class="mb-0 fw-medium fs-15">$1,1590</p>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td scope="row">
+                            <p class="mb-0 text-dark">Vat Tax</p>
+                          </td>
+                          <td>
+                            <p class="mb-0 fw-medium fs-15">$472.80</p>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td scope="row">
+                            <p class="mb-0 text-dark">Grand Total</p>
+                          </td>
+                          <td>
+                            <p class="mb-0 fw-medium fs-16 text-success">$2,032.82</p>
+                          </td>
+                        </tr>
+                        </tbody>
+                      </table>
+                    </td>
+                  </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-print-none">
+            <div class="float-end">
+              <a href="javascript:window.print()" class="btn btn-light border-0 me-1"><i
+                class="mdi mdi-printer me-1"></i>Print</a>
+              <a href="#" class="btn btn-primary">Submit</a>
+            </div>
+            <div class="clearfix"></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card">
+      <div class="card-body">
+        <div class="panel-body">
+          <div class="clearfix">
+            <h4 class="fs-18 text-dark fw-semibold">Payment Method</h4>
+          </div>
+
+          <div class="row">
+            <div class="col-md-12">
+
+              <div class="">
+                <ul class="list-group list-group-flush list-group-no-gutters gap-3">
+
+                  <li class="list-group-item border rounded-2 py-2">
+                    <div class="d-flex align-items-center gap-3">
+
+                      <div class="flex-shrink-0">
+                        <div class="align-content-center text-center rounded-3">
+                                                                    <span
+                                                                      class="d-flex justify-content-center align-items-center">
+                                                                        <iconify-icon icon="logos:paypal"
+                                                                                      class="text-dark fs-22"></iconify-icon>
+                                                                    </span>
+                        </div>
+                      </div>
+
+                      <div class="align-content-center">
+                        <h6 class="mb-0 text-dark fs-14">Paypal</h6>
+                      </div>
+
+                      <div class="ms-auto align-content-center">
+                                                                <span
+                                                                  class="d-flex justify-content-center align-items-center">
+                                                                    <iconify-icon icon="solar:check-circle-bold"
+                                                                                  class="text-warning fs-22"></iconify-icon>
+                                                                </span>
+                      </div>
+
+                    </div>
+                  </li>
+
+                  <li class="list-group-item border rounded-2 py-2">
+                    <div class="d-flex align-items-center gap-3">
+
+                      <div class="flex-shrink-0">
+                        <div class="align-content-center text-center rounded-3">
+                                                                    <span
+                                                                      class="d-flex justify-content-center align-items-center">
+                                                                        <iconify-icon icon="flat-color-icons:google"
+                                                                                      class="text-dark fs-22"></iconify-icon>
+                                                                    </span>
+                        </div>
+                      </div>
+
+                      <div class="align-content-center">
+                        <h6 class="mb-0 text-dark fs-14">Google Pay</h6>
+                      </div>
+
+                      <div class="ms-auto align-content-center">
+                                                                <span
+                                                                  class="d-flex justify-content-center align-items-center">
+                                                                    <iconify-icon icon="solar:check-circle-bold"
+                                                                                  class="text-warning fs-22"></iconify-icon>
+                                                                </span>
+                      </div>
+
+                    </div>
+                  </li>
+
+                  <li class="list-group-item border rounded-2 py-2">
+                    <div class="d-flex align-items-center gap-3">
+
+                      <div class="flex-shrink-0">
+                        <div class="align-content-center text-center rounded-3">
+                                                                    <span
+                                                                      class="d-flex justify-content-center align-items-center">
+                                                                        <iconify-icon
+                                                                          icon="lets-icons:credit-card-duotone"
+                                                                          class="text-dark fs-28"></iconify-icon>
+                                                                    </span>
+                        </div>
+                      </div>
+
+                      <div class="align-content-center">
+                        <h6 class="mb-0 text-dark fs-14">ICICI Bank Ltd.</h6>
+                      </div>
+
+                      <div class="ms-auto align-content-center">
+                                                                <span
+                                                                  class="d-flex justify-content-center align-items-center">
+                                                                    <iconify-icon icon="solar:check-circle-bold"
+                                                                                  class="text-warning fs-22"></iconify-icon>
+                                                                </span>
+                      </div>
+
+                    </div>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="my-4">
+                <p class="fs-14 fw-semibold text-dark">Summary</p>
+                <div class="mt-3">
+                  <div class="d-flex align-items-center justify-content-between mb-2">
+                    <p class="text-muted fs-15 fw-semibold mb-0">Sub Total</p>
+                    <p class="text-dark fs-15 fw-semibold mb-0">$1,1590</p>
+                  </div>
+                  <div class="d-flex align-items-center justify-content-between">
+                    <p class="text-muted fs-15 fw-semibold mb-0">Payment Method Fee:</p>
+                    <p class="text-dark fs-15 fw-semibold mb-0">0</p>
+                  </div>
+                  <hr>
+                  <div class="d-flex align-items-center justify-content-between">
+                    <p class="text-muted fs-15 fw-semibold mb-0">Total Payment</p>
+                    <p class="text-dark fs-15 fw-semibold mb-0">$1,1590</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Do Not Remove -->
+
+              <div class="">
+                <!-- <ul class="list-group list-group-flush list-group-no-gutters gap-3">
+
+                    <li class="list-group-item border border-2 border-warning bg-warning-subtle rounded-2 py-2">
+                        <div class="d-flex align-items-center gap-3">
+
+                            <div class="flex-shrink-0">
+                                <div class="align-content-center text-center rounded-3">
+                                    <span class="d-flex justify-content-center align-items-center">
+                                        <iconify-icon icon="solar:shield-check-bold" class="text-warning" width="35" height="35"></iconify-icon>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="align-content-center">
+                                <p class="mb-0 text-dark">100% Cashback Guarantee</p>
+                                <p class="mb-0 text-muted fw-semibold">We protect your money</p>
+                            </div>
+
+                        </div>
+                    </li>
+                </ul> -->
+
+                <div class="mt-4">
+                  <a href="#" class="btn btn-primary w-100 fw-semibold">Pay Now $5,587</a>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock page_content %}
+
+{% block extra_javascript %}
+
+<!-- App js-->
+<script src="{{ config.ASSETS_ROOT }}/js/app.js"></script>
+
+{% endblock extra_javascript %}
+
+

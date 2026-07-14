@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; color: #222; line-height: 1.5;">
+  {% set primary = certificate.brand_primary_color if certificate and certificate.brand_primary_color else '#8A1B24' %}
+  {% set accent = certificate.brand_accent_color if certificate and certificate.brand_accent_color else '#F5E8D4' %}
+  {% set company = certificate.company_name if certificate and certificate.company_name else 'Akram Sweets' %}
+  <div style="max-width: 640px; margin: 0 auto; border: 1px solid #eee; border-radius: 8px; overflow: hidden;">
+    <div style="background: {{ primary }}; color: #fff; padding: 20px 24px;">
+      <h1 style="margin: 0; font-size: 22px;">{{ company }}</h1>
+      <p style="margin: 8px 0 0; opacity: 0.9;">Shareholder Update — {{ report.period_label }}</p>
+    </div>
+    <div style="padding: 24px;">
+      <p>Dear <strong>{{ report.shareholder_name }}</strong>,</p>
+      <p>
+        Your monthly shareholder distribution has been <strong>approved</strong>.
+        Your official <strong>Shareholder Distribution Certificate</strong>
+        (<code>{{ certificate.certificate_number }}</code>) has been generated automatically and is attached to this email.
+      </p>
+
+      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+        <tr><td style="padding: 8px 0; color: #666;">Ownership</td><td style="padding: 8px 0; text-align: right;"><strong>{{ '%.2f'|format(report.ownership_percent) }}%</strong></td></tr>
+        <tr><td style="padding: 8px 0; color: #666;">Company P/L</td><td style="padding: 8px 0; text-align: right;"><strong>${{ '%.2f'|format(report.company_total) }}</strong></td></tr>
+        <tr><td style="padding: 8px 0; color: #666;">Base share</td><td style="padding: 8px 0; text-align: right;"><strong>${{ '%.2f'|format(report.base_share) }}</strong></td></tr>
+        <tr style="background: {{ accent }};">
+          <td style="padding: 12px 8px; color: {{ primary }}; font-weight: bold;">Final amount</td>
+          <td style="padding: 12px 8px; text-align: right; color: {{ primary }}; font-size: 18px; font-weight: bold;">${{ '%.2f'|format(report.final_amount) }}</td>
+        </tr>
+        <tr><td style="padding: 8px 0; color: #666;">Year-to-date</td><td style="padding: 8px 0; text-align: right;"><strong>${{ '%.2f'|format(report.ytd_total) }}</strong></td></tr>
+      </table>
+
+      <p style="margin-top: 24px;"><strong>Attached PDFs:</strong></p>
+      <ul>
+        <li>Shareholder Profit Report</li>
+        <li>Shareholder Distribution Certificate</li>
+      </ul>
+
+      {% if certificate.approved_at %}
+      <p style="color: #666; font-size: 13px;">
+        Approved {{ certificate.approved_at.strftime('%Y-%m-%d %H:%M') }} by {{ certificate.approved_by }}.
+      </p>
+      {% endif %}
+
+      <p style="color: #666; font-size: 12px; margin-top: 24px;">
+        This email was sent automatically by the {{ company }} Shareholders Profit Calculation System.
+      </p>
+    </div>
+  </div>
+</body>
+</html>
