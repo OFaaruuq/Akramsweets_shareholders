@@ -311,22 +311,41 @@ def approve_period_view(period_id):
             results = auto_send_period_reports(period)
             if results:
                 failed = [r for r in results if not r.get('ok', True)]
+                smtp_sent = [r for r in results if (r.get('email') or {}).get('sent')]
+                logged_only = [
+                    r for r in results
+                    if (r.get('email') or {}).get('mode') == 'log'
+                ]
                 log_action('send_reports', 'monthly_period', period.id, period.period_label)
                 if failed:
                     names = ', '.join(r['shareholder'] for r in failed)
                     flash(
-                        'Period approved and certificates generated. '
+                        'Period approved and branded certificates generated. '
                         f'Some shareholder emails failed ({names}). Use Send Reports Now to retry.',
+                        'warning',
+                    )
+                elif smtp_sent:
+                    flash(
+                        f'Period approved. Branded certificates generated and '
+                        f'{len(smtp_sent)} shareholder email notification(s) sent.',
+                        'success',
+                    )
+                elif logged_only:
+                    flash(
+                        'Period approved and branded certificates generated. '
+                        'Emails were logged only — configure SMTP under Settings → System '
+                        'so shareholders can receive notifications, then use Send Reports Now.',
                         'warning',
                     )
                 else:
                     flash(
-                        'Period approved. Certificates generated and shareholder email updates sent automatically.',
-                        'success',
+                        'Period approved and branded certificates generated. '
+                        'No shareholder emails were delivered.',
+                        'warning',
                     )
             else:
                 flash(
-                    'Period approved and certificates generated automatically. '
+                    'Period approved and branded certificates generated automatically. '
                     'Email delivery is disabled in system settings — enable it under Settings → System, '
                     'or use Send Reports Now.',
                     'success',
@@ -348,9 +367,27 @@ def send_reports_view(period_id):
     period = MonthlyPeriod.query.get_or_404(period_id)
     force = request.form.get('force') == '1'
     try:
-        send_period_reports(period, force=force)
+        results = send_period_reports(period, force=force)
         log_action('send_reports', 'monthly_period', period.id, period.period_label)
-        flash('Shareholder reports sent.', 'success')
+        smtp_sent = [r for r in (results or []) if (r.get('email') or {}).get('sent')]
+        logged_only = [r for r in (results or []) if (r.get('email') or {}).get('mode') == 'log']
+        failed = [r for r in (results or []) if not r.get('ok', True)]
+        if failed:
+            names = ', '.join(r['shareholder'] for r in failed)
+            flash(f'Some notifications failed ({names}). Check SMTP settings and shareholder emails.', 'warning')
+        elif smtp_sent:
+            flash(
+                f'{len(smtp_sent)} shareholder notification(s) emailed with branded report & certificate PDFs.',
+                'success',
+            )
+        elif logged_only:
+            flash(
+                'Certificates are ready, but SMTP is not configured — emails were logged only. '
+                'Add SMTP under Settings → System, then click Send Reports Now again.',
+                'warning',
+            )
+        else:
+            flash('Shareholder reports processed.', 'success')
     except ValueError as exc:
         flash(str(exc), 'danger')
     return redirect(url_for('periods.detail_period', period_id=period.id))

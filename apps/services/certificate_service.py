@@ -81,8 +81,9 @@ def build_certificate_payload(period, calculation, certificate):
     approved_by = period.approved_by.full_name if period.approved_by else 'Akram Sweets Management'
     roster = _period_shareholder_roster(period)
 
-    from apps.services.brand_service import get_brand_settings
+    from apps.services.brand_service import ensure_default_logo, get_brand_settings
 
+    ensure_default_logo()
     brand = get_brand_settings()
 
     return {

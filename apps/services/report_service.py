@@ -50,8 +50,9 @@ def build_shareholder_report(period, calculation):
         .all()
     )
 
-    from apps.services.brand_service import get_brand_settings
+    from apps.services.brand_service import ensure_default_logo, get_brand_settings
 
+    ensure_default_logo()
     brand = get_brand_settings()
 
     return {

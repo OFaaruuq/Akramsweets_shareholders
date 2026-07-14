@@ -13,12 +13,28 @@ def send_sms_notification(phone, message):
 
 
 def notify_shareholder(report_data, email_result, sms_enabled):
+    """Record / fan-out notifications after a shareholder email attempt."""
     results = {'email': email_result}
+
+    company = report_data.get('company_name') or 'Akram Sweets'
     if sms_enabled and report_data.get('shareholder_phone'):
         sms_body = (
-            f'Akram Sweets report {report_data["period_label"]}: '
+            f'{company} report {report_data["period_label"]}: '
             f'final amount {float(report_data["final_amount"]):,.2f}. '
-            f'Full details sent by email.'
+            f'Certificate & full details sent by email.'
         )
         results['sms'] = send_sms_notification(report_data.get('shareholder_phone'), sms_body)
+
+    if email_result.get('sent'):
+        logger.info(
+            'Shareholder %s notified by email (%s)',
+            report_data.get('shareholder_name'),
+            email_result.get('recipient'),
+        )
+    elif email_result.get('mode') == 'log':
+        logger.info(
+            'Shareholder %s notification logged only — configure SMTP in Settings → System',
+            report_data.get('shareholder_name'),
+        )
+
     return results

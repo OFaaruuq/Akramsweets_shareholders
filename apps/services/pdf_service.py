@@ -1,4 +1,6 @@
+import logging
 from io import BytesIO
+from pathlib import Path
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -11,13 +13,17 @@ from apps.services.brand_service import (
     DEFAULT_COMPANY_NAME,
     DEFAULT_PRIMARY,
     DEFAULT_SECONDARY,
+    ensure_default_logo,
     get_brand_settings,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _brand_palette(report=None):
     report = report or {}
     try:
+        ensure_default_logo()
         brand = get_brand_settings()
     except RuntimeError:
         brand = {
@@ -34,6 +40,13 @@ def _brand_palette(report=None):
     company = report.get('company_name') or brand['company_name']
     logo_path = report.get('brand_logo_path') or brand.get('logo_filesystem_path')
 
+    if logo_path and not Path(str(logo_path)).is_file():
+        logger.warning('Brand logo file missing at %s — regenerating default', logo_path)
+        try:
+            logo_path = ensure_default_logo()
+        except Exception:
+            logo_path = None
+
     return {
         'company_name': company,
         'primary': colors.HexColor(primary),
@@ -46,11 +59,21 @@ def _brand_palette(report=None):
     }
 
 
-def _draw_brand_logo(pdf, logo_path, center_x, top_y, max_width=3.5 * cm, max_height=2.2 * cm):
+def _brand_slug(company_name):
+    safe = ''.join(ch for ch in (company_name or DEFAULT_COMPANY_NAME) if ch.isalnum() or ch in (' ', '-', '_'))
+    return safe.strip().replace(' ', '_') or 'Company'
+
+
+def _draw_brand_logo(pdf, logo_path, center_x, top_y, max_width=4.2 * cm, max_height=2.6 * cm):
+    """Draw the company logo centered; returns drawn height (0 if unavailable)."""
     if not logo_path:
         return 0
+    path = Path(str(logo_path))
+    if not path.is_file():
+        logger.warning('Cannot draw brand logo — file not found: %s', logo_path)
+        return 0
     try:
-        image = ImageReader(logo_path)
+        image = ImageReader(str(path))
         img_w, img_h = image.getSize()
         if not img_w or not img_h:
             return 0
@@ -69,6 +92,7 @@ def _draw_brand_logo(pdf, logo_path, center_x, top_y, max_width=3.5 * cm, max_he
         )
         return draw_h
     except Exception:
+        logger.exception('Failed to draw brand logo from %s', logo_path)
         return 0
 
 
@@ -160,16 +184,18 @@ def generate_shareholder_report_pdf(report):
 
 
 def report_pdf_filename(report):
+    brand = _brand_palette(report)
     safe_name = ''.join(ch for ch in report['shareholder_name'] if ch.isalnum() or ch in (' ', '-', '_')).strip()
     safe_name = safe_name.replace(' ', '_') or 'shareholder'
-    return f"Akram_Sweets_Report_{report['period_label']}_{safe_name}.pdf"
+    return f"{_brand_slug(brand['company_name'])}_Report_{report['period_label']}_{safe_name}.pdf"
 
 
 def certificate_pdf_filename(report):
+    brand = _brand_palette(report)
     safe_name = ''.join(ch for ch in report['shareholder_name'] if ch.isalnum() or ch in (' ', '-', '_')).strip()
     safe_name = safe_name.replace(' ', '_') or 'shareholder'
     cert_no = report.get('certificate_number', 'certificate').replace('/', '-')
-    return f"Akram_Sweets_Certificate_{cert_no}_{safe_name}.pdf"
+    return f"{_brand_slug(brand['company_name'])}_Certificate_{cert_no}_{safe_name}.pdf"
 
 
 def generate_shareholder_certificate_pdf(report):
@@ -205,18 +231,22 @@ def generate_shareholder_certificate_pdf(report):
         pdf.line(x, y, x + dx * corner, y)
         pdf.line(x, y, x, y + dy * corner)
 
-    y = height - 2.6 * cm
-    logo_h = _draw_brand_logo(pdf, brand['logo_path'], width / 2, y)
+    y = height - 2.5 * cm
+    # Company brand mark — logo is required identity on every certificate
+    logo_h = _draw_brand_logo(pdf, brand['logo_path'], width / 2, y, max_width=4.8 * cm, max_height=3.0 * cm)
     if logo_h:
-        y -= logo_h + 0.45 * cm
+        y -= logo_h + 0.4 * cm
     else:
-        y -= 0.2 * cm
+        y -= 0.15 * cm
 
     pdf.setFillColor(brand['primary'])
     pdf.setFont('Helvetica-Bold', 22)
     pdf.drawCentredString(width / 2, y, brand['company_name'])
-    y -= 0.75 * cm
+    y -= 0.55 * cm
     pdf.setFillColor(brand['secondary'])
+    pdf.setFont('Helvetica', 9)
+    pdf.drawCentredString(width / 2, y, 'Official Company Brand Certificate')
+    y -= 0.55 * cm
     pdf.setFont('Helvetica-Bold', 15)
     pdf.drawCentredString(width / 2, y, 'Monthly Shareholder Certificate')
     y -= 0.5 * cm

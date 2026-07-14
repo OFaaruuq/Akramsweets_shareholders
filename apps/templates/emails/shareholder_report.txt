@@ -1,10 +1,10 @@
-{{ certificate.company_name if certificate.company_name else 'Akram Sweets' }} Shareholder Update
+{{ company_name or (certificate.company_name if certificate.company_name else 'Akram Sweets') }} Shareholder Update
 Period: {{ report.period_label }}
 Certificate: {{ certificate.certificate_number }}
 
 Dear {{ report.shareholder_name }},
 
-Your monthly shareholder distribution has been approved and your official Shareholder Certificate has been generated automatically.
+Your monthly shareholder distribution has been approved and your official Shareholder Certificate has been generated automatically with the company brand and logo.
 
 Company total profit/loss for the month: {{ '%.2f'|format(report.company_total) }}
 {% if report.odoo_reference %}Odoo reference: {{ report.odoo_reference }}{% endif %}
@@ -29,10 +29,10 @@ Manual adjustments:
 FINAL AMOUNT FOR THIS MONTH: {{ '%.2f'|format(report.final_amount) }}
 Year-to-date total: {{ '%.2f'|format(report.ytd_total) }}
 
-Attached documents:
+Attached documents (branded with company logo):
 1. Shareholder Profit Report (PDF)
 2. Shareholder Distribution Certificate (PDF) — {{ certificate.certificate_number }}
 
 {% if certificate.approved_at %}Approved on {{ certificate.approved_at.strftime('%Y-%m-%d %H:%M') }} by {{ certificate.approved_by }}.{% endif %}
 
-This notification was sent automatically by the {{ certificate.company_name if certificate.company_name else 'Akram Sweets' }} Shareholders Profit Calculation System.
+This notification was sent automatically by the {{ company_name or (certificate.company_name if certificate.company_name else 'Akram Sweets') }} Shareholders Profit Calculation System.

@@ -181,10 +181,17 @@ def reopen_for_correction(period: MonthlyPeriod, reason: str):
     if period.status != MonthlyPeriod.STATUS_APPROVED:
         raise ValueError('Only approved periods can be reopened for correction.')
 
+    from apps.models.certificate import ShareholderCertificate
+
     period.status = MonthlyPeriod.STATUS_REVIEW
     period.approved_at = None
     period.approved_by_id = None
     period.reports_sent_at = None
+
+    ShareholderCertificate.query.filter_by(period_id=period.id).update(
+        {ShareholderCertificate.email_status: 'pending', ShareholderCertificate.emailed_at: None},
+        synchronize_session=False,
+    )
     db.session.commit()
     return period, reason.strip()
 
