@@ -1,0 +1,243 @@
+{% extends 'layouts/vertical.html' %}
+{% block title %}Contacts{% endblock title %}
+{% block css %}{% include 'partials/head-css.html' %}{% endblock css %}
+{% block body_attribute %}data-menu-color="dark" data-sidebar="default"{% endblock body_attribute %}
+{% block page_content %}
+
+<div class="py-3 d-flex align-items-sm-center flex-sm-row flex-column gap-2">
+  <div class="flex-grow-1">
+    <h4 class="fs-18 fw-semibold m-0">Contacts Directory</h4>
+    <p class="text-muted mb-0 fs-13">
+      Shareholders and internal staff for {{ brand.company_name if brand else 'Akram Sweets' }}.
+      {% if country_filter %}
+      <span class="badge bg-primary-subtle text-primary ms-1">Country: {{ country_filter|upper }}</span>
+      <a href="{{ url_for('contacts.list_contacts', q=q, status=status_filter) }}" class="ms-1 fs-12">Clear</a>
+      {% endif %}
+    </p>
+  </div>
+  <div class="text-end d-flex flex-wrap gap-1 justify-content-end">
+    {% if can_edit_shareholders %}
+    <a href="{{ url_for('shareholders.create_shareholder') }}" class="btn btn-primary">Add Shareholder</a>
+    {% endif %}
+    {% if can_manage_users %}
+    <a href="{{ url_for('users.create_user') }}" class="btn btn-soft-primary">Add Staff User</a>
+    {% endif %}
+    <a href="{{ url_for('shareholders.list_shareholders') }}" class="btn btn-soft-danger">Shareholders table</a>
+  </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+  {% for category, message in messages %}
+  <div class="alert alert-{{ category }}">{{ message }}</div>
+  {% endfor %}
+{% endif %}
+{% endwith %}
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3">
+    <div class="card mb-0">
+      <div class="card-body py-3">
+        <div class="text-muted fs-12">Shareholders</div>
+        <div class="fs-22 fw-semibold">{{ stats.shareholders }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card mb-0">
+      <div class="card-body py-3">
+        <div class="text-muted fs-12">Countries</div>
+        <div class="fs-22 fw-semibold">{{ stats.countries }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card mb-0">
+      <div class="card-body py-3">
+        <div class="text-muted fs-12">Portal accounts</div>
+        <div class="fs-22 fw-semibold">{{ stats.portal_accounts }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card mb-0">
+      <div class="card-body py-3">
+        <div class="text-muted fs-12">Staff users</div>
+        <div class="fs-22 fw-semibold">{{ stats.staff }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <form method="get" action="{{ url_for('contacts.list_contacts') }}" class="row g-2 align-items-end">
+      <div class="col-md-5">
+        <label class="form-label mb-1">Search</label>
+        <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Name, email, phone, country...">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label mb-1">Country</label>
+        <select name="country" class="form-select">
+          <option value="">All countries</option>
+          {% for code, label in country_choices %}
+          <option value="{{ code }}" {% if country_filter == code %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label mb-1">Status</label>
+        <select name="status" class="form-select">
+          <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+          <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+          <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Filter</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="d-flex align-items-center justify-content-between mb-2">
+  <h5 class="fs-16 fw-semibold mb-0">Shareholders</h5>
+  <span class="text-muted fs-12">{{ shareholder_rows|length }} contact{{ 's' if shareholder_rows|length != 1 else '' }}</span>
+</div>
+
+<div class="row">
+  {% for row in shareholder_rows %}
+  <div class="col-xl-3 col-lg-4 col-md-6">
+    <div class="card">
+      <div class="card-body text-center">
+        <div class="dropdown float-end">
+          <a href="#" class="dropdown-toggle arrow-none card-drop" data-bs-toggle="dropdown" aria-expanded="false">
+            <iconify-icon icon="solar:menu-dots-bold" class="fs-18 text-muted"></iconify-icon>
+          </a>
+          <div class="dropdown-menu dropdown-menu-end">
+            {% if can_edit_shareholders %}
+            <a class="dropdown-item" href="{{ url_for('shareholders.edit_shareholder', shareholder_id=row.id) }}">Edit contact</a>
+            {% endif %}
+            <a class="dropdown-item" href="mailto:{{ row.email }}">Send email</a>
+            {% if row.phone %}
+            <a class="dropdown-item" href="tel:{{ row.phone }}">Call</a>
+            {% endif %}
+            <a class="dropdown-item" href="{{ url_for('shareholders.list_shareholders', country=row.country_code) if row.country_code else url_for('shareholders.list_shareholders') }}">View in shareholders</a>
+          </div>
+        </div>
+
+        <div class="mx-auto mb-3 rounded-circle d-flex align-items-center justify-content-center"
+             style="width:72px;height:72px;background:color-mix(in srgb, var(--bs-primary) 12%, white);color:var(--bs-primary);font-weight:700;font-size:1.25rem;">
+          {{ row.initials }}
+        </div>
+
+        <h5 class="mb-1 fs-16">
+          {% if can_edit_shareholders %}
+          <a href="{{ url_for('shareholders.edit_shareholder', shareholder_id=row.id) }}" class="text-dark">{{ row.name }}</a>
+          {% else %}
+          {{ row.name }}
+          {% endif %}
+        </h5>
+
+        <p class="text-muted mb-2 fs-13">
+          <a href="mailto:{{ row.email }}" class="text-muted">{{ row.email }}</a>
+        </p>
+
+        {% if row.phone %}
+        <p class="text-muted mb-2 fs-13">
+          <a href="tel:{{ row.phone }}" class="text-muted">{{ row.phone }}</a>
+        </p>
+        {% endif %}
+
+        <div class="d-flex justify-content-center align-items-center gap-2 mb-2">
+          {% if row.country_code %}
+          <span class="d-inline-flex align-items-center gap-1 fs-12 text-muted">
+            <img src="{{ config.ASSETS_ROOT }}/images/flags/{{ row.flag }}" alt="" height="14" width="14" class="rounded">
+            {{ row.country }}
+          </span>
+          {% endif %}
+        </div>
+
+        <div class="d-flex flex-wrap justify-content-center gap-1 mb-2">
+          <span class="badge {{ row.badge_class }}">{{ row.badge }}</span>
+          {% if row.is_active %}
+          <span class="badge bg-success">Active</span>
+          {% else %}
+          <span class="badge bg-secondary">Inactive</span>
+          {% endif %}
+          {% if row.has_portal %}
+          <span class="badge bg-info">Portal</span>
+          {% endif %}
+        </div>
+
+        <div class="fs-12 text-muted">Ownership: <strong class="text-dark">{{ '%.2f'|format(row.ownership_percent) }}%</strong></div>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body text-center text-muted py-5">
+        {% if country_filter or q %}
+        No shareholder contacts match your filters.
+        {% else %}
+        No shareholder contacts yet. {% if can_edit_shareholders %}<a href="{{ url_for('shareholders.create_shareholder') }}">Add the first shareholder</a>.{% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% if can_manage_users %}
+<div class="d-flex align-items-center justify-content-between mb-2 mt-2">
+  <h5 class="fs-16 fw-semibold mb-0">Internal staff</h5>
+  <span class="text-muted fs-12">{{ staff_rows|length }} user{{ 's' if staff_rows|length != 1 else '' }}</span>
+</div>
+<div class="card">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in staff_rows %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="rounded-circle d-flex align-items-center justify-content-center"
+                     style="width:36px;height:36px;background:color-mix(in srgb, var(--bs-primary) 12%, white);color:var(--bs-primary);font-weight:700;font-size:0.75rem;">
+                  {{ row.initials }}
+                </div>
+                <div class="fw-semibold">{{ row.name }}</div>
+              </div>
+            </td>
+            <td><a href="mailto:{{ row.email }}" class="text-muted">{{ row.email }}</a></td>
+            <td><span class="badge {{ row.badge_class }}">{{ row.role_label }}</span></td>
+            <td>
+              {% if row.is_active %}<span class="badge bg-success">Active</span>
+              {% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}
+            </td>
+            <td class="text-end">
+              <a href="{{ url_for('users.edit_user', user_id=row.id) }}" class="btn btn-sm btn-soft-primary">Edit</a>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="text-center text-muted">No staff users match your search.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock page_content %}
+{% block extra_javascript %}{% include 'partials/vendor.html' %}{% endblock extra_javascript %}

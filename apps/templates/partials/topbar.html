@@ -9,9 +9,9 @@
                     </button>
                 </li>
                 <li class="d-none d-lg-block">
-                    <form class="app-search d-none d-md-block me-auto" method="get" action="{{ url_for('shareholders.list_shareholders') if current_user.is_authenticated and not current_user.is_shareholder() else url_for('pages.dashboard') }}">
+                    <form class="app-search d-none d-md-block me-auto" method="get" action="{{ url_for('contacts.list_contacts') if current_user.is_authenticated and not current_user.is_shareholder() else url_for('pages.dashboard') }}">
                         <div class="position-relative topbar-search">
-                            <input type="text" name="q" class="form-control ps-4" placeholder="Search shareholders..." value="{{ request.args.get('q', '') }}"/>
+                            <input type="text" name="q" class="form-control ps-4" placeholder="Search contacts..." value="{{ request.args.get('q', '') }}"/>
                             <iconify-icon icon="solar:minimalistic-magnifer-outline"
                                           class="align-middle fs-14 position-absolute text-muted top-50 translate-middle-y ms-2"></iconify-icon>
                         </div>
@@ -34,7 +34,7 @@
                         </div>
                         {% if topbar_countries %}
                         {% for country in topbar_countries %}
-                        <a href="{{ url_for('shareholders.list_shareholders', country=country.code) if current_user.is_authenticated and not current_user.is_shareholder() else '#' }}"
+                        <a href="{{ url_for('contacts.list_contacts', country=country.code) if current_user.is_authenticated and not current_user.is_shareholder() else '#' }}"
                            class="dropdown-item d-flex align-items-center justify-content-between">
                             <span class="d-flex align-items-center">
                                 <img src="{{ config.ASSETS_ROOT }}/images/flags/{{ country.flag }}" alt="{{ country.name }}"
@@ -49,7 +49,7 @@
                         {% endif %}
                         {% if current_user.is_authenticated and not current_user.is_shareholder() %}
                         <div class="dropdown-divider"></div>
-                        <a href="{{ url_for('shareholders.list_shareholders') }}" class="dropdown-item text-primary fs-13">View all shareholders</a>
+                        <a href="{{ url_for('contacts.list_contacts') }}" class="dropdown-item text-primary fs-13">View all contacts</a>
                         {% endif %}
                     </div>
                 </li>

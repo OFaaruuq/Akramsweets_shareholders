@@ -9,7 +9,10 @@ from apps.services.shareholder_service import get_ownership_percent
 
 
 def certificate_number_for(period, shareholder_id):
-    return f'AS-CERT-{period.year}-{period.month:02d}-{shareholder_id:04d}-{period.id:05d}'
+    from apps.services.certificate_settings_service import get_certificate_settings
+
+    prefix = get_certificate_settings()['number_prefix'].strip() or 'AS-CERT'
+    return f'{prefix}-{period.year}-{period.month:02d}-{shareholder_id:04d}-{period.id:05d}'
 
 
 def issue_shareholder_certificate(period, calculation):
@@ -78,13 +81,20 @@ def _period_shareholder_roster(period):
 def build_certificate_payload(period, calculation, certificate):
     report = build_shareholder_report(period, calculation)
     shareholder = calculation.shareholder
-    approved_by = period.approved_by.full_name if period.approved_by else 'Akram Sweets Management'
-    roster = _period_shareholder_roster(period)
 
     from apps.services.brand_service import ensure_default_logo, get_brand_settings
+    from apps.services.certificate_settings_service import (
+        ensure_default_certificate_settings,
+        format_certificate_text,
+        get_certificate_settings,
+    )
 
     ensure_default_logo()
+    ensure_default_certificate_settings()
     brand = get_brand_settings()
+    cert = get_certificate_settings()
+    approved_by = period.approved_by.full_name if period.approved_by else cert['approver_fallback']
+    roster = _period_shareholder_roster(period) if cert['show_roster'] else []
 
     return {
         **report,
@@ -105,6 +115,34 @@ def build_certificate_payload(period, calculation, certificate):
         'brand_accent_color': brand['accent_color'],
         'brand_logo_path': brand['logo_filesystem_path'],
         'current_shareholders': roster,
+        'cert_subtitle': cert['subtitle'],
+        'cert_title': cert['title'],
+        'cert_intro_text': cert['intro_text'],
+        'cert_allocation_text': format_certificate_text(
+            cert['allocation_text'],
+            period_label=report.get('period_label', ''),
+            company_name=brand['company_name'],
+        ),
+        'cert_profit_label': cert['profit_label'],
+        'cert_loss_label': cert['loss_label'],
+        'cert_currency_symbol': cert['currency_symbol'],
+        'cert_owner_label': cert['owner_label'],
+        'cert_roster_title': cert['roster_title'],
+        'cert_label_company_pl': cert['label_company_pl'],
+        'cert_label_base_share': cert['label_base_share'],
+        'cert_label_ytd': cert['label_ytd'],
+        'cert_label_odoo': cert['label_odoo'],
+        'cert_footer_disclaimer': cert['footer_disclaimer'],
+        'cert_footer_confidential': format_certificate_text(
+            cert['footer_confidential'],
+            company_name=brand['company_name'],
+            period_label=report.get('period_label', ''),
+        ),
+        'cert_legal_text': cert['legal_text'],
+        'cert_show_odoo_reference': cert['show_odoo_reference'],
+        'cert_signature_name': cert['signature_name'],
+        'cert_signature_title': cert['signature_title'],
+        'cert_signature_image_path': cert['signature_filesystem_path'],
     }
 
 

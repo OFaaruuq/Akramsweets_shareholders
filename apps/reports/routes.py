@@ -13,6 +13,7 @@ from apps.services.certificate_service import (
     issue_period_certificates,
     issue_shareholder_certificate,
 )
+from apps.services.shareholder_service import country_flag_filename, country_label
 from apps.services.pdf_service import (
     certificate_pdf_filename,
     generate_shareholder_certificate_pdf,
@@ -40,9 +41,12 @@ def history():
 @finance_or_management_required
 def certificates_register():
     """Monthly register of current shareholders and their certificates."""
+    from flask import flash
+
     period_id = request.args.get('period_id', type=int)
     period = MonthlyPeriod.query.get(period_id) if period_id else None
     if period and period.status != MonthlyPeriod.STATUS_APPROVED:
+        flash('Only approved periods have certificates. Showing the latest approved month.', 'warning')
         period = None
 
     register = get_monthly_certificate_register(period)
@@ -54,13 +58,37 @@ def certificates_register():
         if missing:
             issue_period_certificates(period)
             register = get_monthly_certificate_register(period)
+            flash('Missing certificates were generated for this month.', 'success')
+
+    rows = []
+    for row in register['rows']:
+        shareholder = row['shareholder']
+        rows.append({
+            **row,
+            'flag': country_flag_filename(shareholder.country_code),
+            'country_name': shareholder.country or country_label(shareholder.country_code),
+        })
+
+    issued = sum(1 for row in rows if row.get('certificate'))
+    emailed = sum(1 for row in rows if row.get('certificate') and row['certificate'].email_status == 'sent')
+    pending = sum(
+        1 for row in rows
+        if row.get('certificate') and row['certificate'].email_status not in ('sent', 'skipped')
+    )
+    stats = {
+        'total': len(rows),
+        'issued': issued,
+        'emailed': emailed,
+        'pending': pending,
+    }
 
     return render_template(
         'reports/certificates.html',
         period=register['period'],
         periods=register['periods'],
-        rows=register['rows'],
+        rows=rows,
         as_of=register['as_of'],
+        stats=stats,
         segment='certificates',
     )
 

@@ -5,52 +5,63 @@ Flask web app for **Akram Sweets** shareholder management: profit periods, share
 ## Features
 
 - Admin dashboard for shareholders, users, and reporting periods
+- Contacts directory (shareholders + staff, searchable by country)
 - Shareholder portal for viewing personal statements
 - Brand settings (logo, company details)
+- Dynamic certificate content settings
+- Selective special arrangements (all others or chosen sources)
+- Login email OTP verification (requires SMTP)
+- Alembic database migrations (`flask db upgrade`)
 - Scheduled email report delivery
-- Docker Compose stack (PostgreSQL, app, nginx, report scheduler)
+- Local **PostgreSQL** database
 
 ## Requirements
 
 - Python 3.9+
-- Node.js 18+ (for frontend asset build via Gulp)
-- Docker & Docker Compose (recommended)
+- PostgreSQL 14+ (local install)
+- Node.js 18+ (optional, for frontend asset build via Gulp)
 
-## Quick start (Docker)
-
-```bash
-cp env.sample .env
-docker compose up --build -d
-```
-
-App (via nginx): [http://localhost:5085](http://localhost:5085)
-
-## Local development
+## Local setup
 
 ```bash
 # 1. Python deps
-python -m venv venv
-# Windows
-venv\Scripts\activate
-# macOS / Linux
-# source venv/bin/activate
-
+python3 -m venv venv
+source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
 # 2. Environment
 cp env.sample .env
+# Edit .env if your Postgres host/port/user differ
 
-# 3. Frontend assets (optional if static CSS already built)
+# 3. Create database + role (needs postgres superuser once)
+sudo -u postgres psql -f scripts/init_postgres.sql
+# or: sudo -u postgres python scripts/setup_database.py
+
+# 4. Frontend assets (optional if static CSS already built)
 yarn install
 # or: npm install --legacy-peer-deps
 
-# 4. Run
+# 5. Run
 flask --app run.py run --debug
-# or
-python run.py
+# or: python run.py
 ```
 
-Default local DB is SQLite (see `env.sample`). For PostgreSQL, uncomment the DB settings in `.env` or use Docker Compose.
+App URL: [http://127.0.0.1:5000](http://127.0.0.1:5000)
+
+Default seed logins (after first start):
+
+| Email | Password |
+|-------|----------|
+| `admin@akramsweets.com` | `admin123` |
+| `finance@akramsweets.com` | `finance123` |
+
+### Create a super admin
+
+```bash
+python scripts/create_super_admin.py
+# or non-interactive:
+python scripts/create_super_admin.py --email you@company.com --name "Your Name" --password 'StrongPass123!' --force
+```
 
 ## Project layout
 
@@ -66,8 +77,6 @@ apps/
   static/         CSS, JS, images
   templates/      Jinja templates
 scripts/          DB setup & scheduled reports
-nginx/            Reverse proxy config
-docker-compose.yml
 ```
 
 ## Environment
@@ -78,15 +87,34 @@ Copy `env.sample` to `.env` and adjust. Never commit `.env` — it is gitignored
 |----------|---------|
 | `DEBUG` | `True` for development |
 | `SECRET_KEY` | Flask secret (set in production) |
-| `DB_*` / `DATABASE_URL` | Database connection |
+| `DB_*` / `DATABASE_URL` | Local PostgreSQL connection |
 | `MAIL_*` | Optional SMTP (also configurable in Settings → System) |
 
 ## Production notes
 
 - Set `DEBUG=False` and a strong `SECRET_KEY`
-- Use PostgreSQL (Docker Compose included)
-- Change default DB passwords in `docker-compose.yml` before deploying
-- Expose only nginx (port 5085), not the app container directly
+- Use PostgreSQL with a strong `DB_PASS`
+- Keep PostgreSQL bound to localhost or behind a firewall
+- Configure SMTP (`MAIL_*`) before enabling login OTP (`LOGIN_OTP_ENABLED=true`)
+- Apply schema changes with Alembic: `flask --app run.py db upgrade`
+- Run the report scheduler separately: `python scripts/send_scheduled_reports.py` (cron/systemd)
+
+### Database migrations
+
+```bash
+# Apply pending revisions
+flask --app run.py db upgrade
+
+# After model changes (creates a new revision)
+flask --app run.py db migrate -m "describe change"
+flask --app run.py db upgrade
+```
+
+Destructive local rebuild (DEBUG only, wipes data):
+
+```bash
+ALLOW_SCHEMA_RESET=true flask --app run.py run
+```
 
 ## License
 

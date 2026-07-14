@@ -200,6 +200,7 @@ def certificate_pdf_filename(report):
 
 def generate_shareholder_certificate_pdf(report):
     brand = _brand_palette(report)
+    currency = report.get('cert_currency_symbol') or '$'
     buffer = BytesIO()
     pdf = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
@@ -245,10 +246,10 @@ def generate_shareholder_certificate_pdf(report):
     y -= 0.55 * cm
     pdf.setFillColor(brand['secondary'])
     pdf.setFont('Helvetica', 9)
-    pdf.drawCentredString(width / 2, y, 'Official Company Brand Certificate')
+    pdf.drawCentredString(width / 2, y, report.get('cert_subtitle') or 'Official Company Brand Certificate')
     y -= 0.55 * cm
     pdf.setFont('Helvetica-Bold', 15)
-    pdf.drawCentredString(width / 2, y, 'Monthly Shareholder Certificate')
+    pdf.drawCentredString(width / 2, y, report.get('cert_title') or 'Monthly Shareholder Certificate')
     y -= 0.5 * cm
     pdf.setFont('Helvetica', 10)
     pdf.setFillColor(colors.HexColor('#5A5A5A'))
@@ -264,7 +265,7 @@ def generate_shareholder_certificate_pdf(report):
 
     pdf.setFillColor(colors.black)
     pdf.setFont('Helvetica', 11)
-    pdf.drawCentredString(width / 2, y, 'This certifies the current shareholder')
+    pdf.drawCentredString(width / 2, y, report.get('cert_intro_text') or 'This certifies the current shareholder')
     y -= 0.8 * cm
     pdf.setFont('Helvetica-Bold', 20)
     pdf.setFillColor(brand['primary'])
@@ -281,7 +282,7 @@ def generate_shareholder_certificate_pdf(report):
 
     role_bits = [f"{float(report['ownership_percent']):,.2f}% ownership"]
     if report.get('shareholder_is_owner'):
-        role_bits.append('Company Owner')
+        role_bits.append(report.get('cert_owner_label') or 'Company Owner')
     pdf.setFont('Helvetica-Bold', 11)
     pdf.setFillColor(brand['primary'])
     pdf.drawCentredString(width / 2, y, ' · '.join(role_bits))
@@ -289,30 +290,33 @@ def generate_shareholder_certificate_pdf(report):
 
     pdf.setFont('Helvetica', 11)
     pdf.setFillColor(colors.black)
-    pdf.drawCentredString(
-        width / 2,
-        y,
-        f"and has been allocated the following amount for {report['period_label']}:",
+    allocation = report.get('cert_allocation_text') or (
+        f"and has been allocated the following amount for {report['period_label']}:"
     )
+    pdf.drawCentredString(width / 2, y, allocation)
     y -= 0.85 * cm
 
     amount = float(report['final_amount'])
     pdf.setFont('Helvetica-Bold', 24)
     pdf.setFillColor(colors.HexColor('#46B277') if amount >= 0 else colors.HexColor('#E7366B'))
-    pdf.drawCentredString(width / 2, y, f"${abs(amount):,.2f}")
+    pdf.drawCentredString(width / 2, y, f"{currency}{abs(amount):,.2f}")
     y -= 0.55 * cm
     pdf.setFont('Helvetica', 11)
     pdf.setFillColor(colors.black)
-    pdf.drawCentredString(width / 2, y, 'Profit share' if amount >= 0 else 'Loss allocation')
+    if amount >= 0:
+        amount_label = report.get('cert_profit_label') or 'Profit share'
+    else:
+        amount_label = report.get('cert_loss_label') or 'Loss allocation'
+    pdf.drawCentredString(width / 2, y, amount_label)
     y -= 0.95 * cm
 
     details = [
-        ('Company net P/L for month', f"${float(report['company_total']):,.2f}"),
-        ('Base ownership share', f"${float(report['base_share']):,.2f}"),
-        ('Year-to-date total', f"${float(report['ytd_total']):,.2f}"),
+        (report.get('cert_label_company_pl') or 'Company net P/L for month', f"{currency}{float(report['company_total']):,.2f}"),
+        (report.get('cert_label_base_share') or 'Base ownership share', f"{currency}{float(report['base_share']):,.2f}"),
+        (report.get('cert_label_ytd') or 'Year-to-date total', f"{currency}{float(report['ytd_total']):,.2f}"),
     ]
-    if report.get('odoo_reference'):
-        details.append(('Odoo reference', report['odoo_reference']))
+    if report.get('odoo_reference') and report.get('cert_show_odoo_reference', True):
+        details.append((report.get('cert_label_odoo') or 'Odoo reference', report['odoo_reference']))
 
     left_x = inner_margin + 1 * cm
     for label, value in details:
@@ -333,9 +337,10 @@ def generate_shareholder_certificate_pdf(report):
         y -= 0.5 * cm
         pdf.setFillColor(brand['primary'])
         pdf.setFont('Helvetica-Bold', 10)
-        pdf.drawString(left_x, y, 'Current shareholders this month')
+        pdf.drawString(left_x, y, report.get('cert_roster_title') or 'Current shareholders this month')
         y -= 0.42 * cm
         pdf.setFillColor(colors.black)
+        owner_tag_label = report.get('cert_owner_label') or 'Owner'
         for peer in current_shareholders:
             if y < 3.8 * cm:
                 pdf.setFont('Helvetica-Oblique', 8)
@@ -343,7 +348,7 @@ def generate_shareholder_certificate_pdf(report):
                 pdf.drawString(left_x, y, '…')
                 break
             marker = '★ ' if peer.get('id') == report.get('shareholder_id') else '  '
-            owner_tag = ' (Owner)' if peer.get('is_owner') else ''
+            owner_tag = f' ({owner_tag_label})' if peer.get('is_owner') else ''
             pdf.setFont('Helvetica', 9)
             pdf.setFillColor(brand['primary'] if peer.get('id') == report.get('shareholder_id') else colors.black)
             pdf.drawString(left_x, y, f"{marker}{peer['name']}{owner_tag}")
@@ -371,6 +376,68 @@ def generate_shareholder_certificate_pdf(report):
         )
         y -= 0.55 * cm
 
+    legal_text = (report.get('cert_legal_text') or '').strip()
+    if legal_text and y > 4.2 * cm:
+        pdf.setFont('Helvetica', 8)
+        pdf.setFillColor(colors.HexColor('#5A5A5A'))
+        # Wrap legal text roughly to ~90 chars per line
+        words = legal_text.split()
+        line = ''
+        for word in words:
+            candidate = f'{line} {word}'.strip()
+            if len(candidate) > 95:
+                pdf.drawCentredString(width / 2, y, line)
+                y -= 0.32 * cm
+                line = word
+                if y < 3.6 * cm:
+                    break
+            else:
+                line = candidate
+        if line and y >= 3.6 * cm:
+            pdf.drawCentredString(width / 2, y, line)
+            y -= 0.45 * cm
+
+    sig_name = (report.get('cert_signature_name') or '').strip()
+    sig_title = (report.get('cert_signature_title') or '').strip()
+    sig_path = report.get('cert_signature_image_path')
+    if (sig_name or sig_title or sig_path) and y > 3.2 * cm:
+        sig_x = width - inner_margin - 1 * cm
+        if sig_path:
+            try:
+                from reportlab.lib.utils import ImageReader
+
+                img = ImageReader(sig_path)
+                iw, ih = img.getSize()
+                max_w, max_h = 4.2 * cm, 1.6 * cm
+                scale = min(max_w / float(iw), max_h / float(ih), 1.0)
+                draw_w, draw_h = iw * scale, ih * scale
+                pdf.drawImage(
+                    img,
+                    sig_x - draw_w,
+                    y - draw_h + 0.2 * cm,
+                    width=draw_w,
+                    height=draw_h,
+                    mask='auto',
+                    preserveAspectRatio=True,
+                )
+                y -= draw_h + 0.15 * cm
+            except Exception:
+                pass
+        pdf.setStrokeColor(brand['secondary'])
+        pdf.setLineWidth(1)
+        pdf.line(sig_x - 4.5 * cm, y, sig_x, y)
+        y -= 0.35 * cm
+        pdf.setFillColor(brand['primary'])
+        pdf.setFont('Helvetica-Bold', 9)
+        if sig_name:
+            pdf.drawRightString(sig_x, y, sig_name)
+            y -= 0.3 * cm
+        if sig_title:
+            pdf.setFont('Helvetica', 8)
+            pdf.setFillColor(colors.HexColor('#5A5A5A'))
+            pdf.drawRightString(sig_x, y, sig_title)
+            y -= 0.4 * cm
+
     pdf.setStrokeColor(brand['secondary'])
     pdf.line(left_x, y, width - inner_margin - 1 * cm, y)
     y -= 0.65 * cm
@@ -379,14 +446,14 @@ def generate_shareholder_certificate_pdf(report):
     pdf.drawCentredString(
         width / 2,
         y,
-        'Generated automatically each month for the current shareholder upon period approval.',
+        report.get('cert_footer_disclaimer')
+        or 'Generated automatically each month for the current shareholder upon period approval.',
+    )
+    confidential = report.get('cert_footer_confidential') or (
+        f"{brand['company_name']} Shareholders Profit Calculation System — confidential"
     )
     pdf.setFillColor(brand['primary'])
-    pdf.drawCentredString(
-        width / 2,
-        1.2 * cm,
-        f"{brand['company_name']} Shareholders Profit Calculation System — confidential",
-    )
+    pdf.drawCentredString(width / 2, 1.2 * cm, confidential)
 
     pdf.save()
     buffer.seek(0)

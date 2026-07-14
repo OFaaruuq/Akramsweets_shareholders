@@ -1,6 +1,18 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField
-from wtforms import BooleanField, DateField, DecimalField, IntegerField, PasswordField, SelectField, StringField, SubmitField, TextAreaField
+from wtforms import (
+    BooleanField,
+    DateField,
+    DecimalField,
+    IntegerField,
+    PasswordField,
+    SelectField,
+    SelectMultipleField,
+    StringField,
+    SubmitField,
+    TextAreaField,
+    widgets,
+)
 from wtforms.validators import DataRequired, Email, Length, NumberRange, Optional, Regexp
 
 from apps.services.period_service import MONTH_CHOICES, compute_net_from_breakdown
@@ -105,17 +117,50 @@ class AdjustmentForm(FlaskForm):
     submit = SubmitField('Add Adjustment')
 
 
+class MultiCheckboxField(SelectMultipleField):
+    widget = widgets.ListWidget(prefix_label=False)
+    option_widget = widgets.CheckboxInput()
+
+
 class ArrangementForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired(), Length(max=120)])
     recipient_shareholder_id = SelectField('Recipient', coerce=int, validators=[DataRequired()])
     bonus_percent = DecimalField('Bonus %', places=4, validators=[DataRequired(), NumberRange(min=0, max=100)])
     applies_to_all_others = BooleanField('Apply to all other shareholders', default=True)
+    source_shareholder_ids = MultiCheckboxField(
+        'Source shareholders',
+        coerce=int,
+        validators=[Optional()],
+    )
     apply_on_profit = BooleanField('Apply on profit', default=True)
     apply_on_loss = BooleanField('Apply on loss', default=True)
     effective_from = DateField('Effective from', validators=[DataRequired()], format='%Y-%m-%d')
     effective_to = DateField('Effective to', validators=[Optional()], format='%Y-%m-%d')
     notes = TextAreaField('Notes', validators=[Optional()])
     submit = SubmitField('Save Arrangement')
+
+    def validate(self, extra_validators=None):
+        if not super().validate(extra_validators=extra_validators):
+            return False
+
+        if not self.applies_to_all_others.data:
+            sources = list(self.source_shareholder_ids.data or [])
+            if not sources:
+                self.source_shareholder_ids.errors.append(
+                    'Select at least one source shareholder, or enable “Apply to all other shareholders”.',
+                )
+                return False
+            if self.recipient_shareholder_id.data in sources:
+                self.source_shareholder_ids.errors.append(
+                    'The recipient cannot also be listed as a source shareholder.',
+                )
+                return False
+
+        if not self.apply_on_profit.data and not self.apply_on_loss.data:
+            self.apply_on_profit.errors.append('Choose profit, loss, or both.')
+            return False
+
+        return True
 
 
 class SystemSettingsForm(FlaskForm):
@@ -151,6 +196,50 @@ class SystemSettingsForm(FlaskForm):
         validators=[Optional(), FileAllowed(['png', 'jpg', 'jpeg', 'webp', 'gif'], 'Images only!')],
     )
     remove_brand_logo = BooleanField('Remove current logo')
+
+    cert_subtitle = StringField('Certificate subtitle', validators=[DataRequired(), Length(max=200)])
+    cert_title = StringField('Certificate title', validators=[DataRequired(), Length(max=200)])
+    cert_intro_text = StringField('Intro line', validators=[DataRequired(), Length(max=300)])
+    cert_allocation_text = StringField(
+        'Allocation line',
+        validators=[DataRequired(), Length(max=400)],
+        description='Use {period_label} for the month label.',
+    )
+    cert_profit_label = StringField('Profit amount label', validators=[DataRequired(), Length(max=80)])
+    cert_loss_label = StringField('Loss amount label', validators=[DataRequired(), Length(max=80)])
+    cert_currency_symbol = StringField('Currency symbol', validators=[DataRequired(), Length(max=8)])
+    cert_number_prefix = StringField('Certificate number prefix', validators=[DataRequired(), Length(max=40)])
+    cert_approver_fallback = StringField(
+        'Approver name fallback',
+        validators=[DataRequired(), Length(max=120)],
+    )
+    cert_owner_label = StringField('Owner badge label', validators=[DataRequired(), Length(max=80)])
+    cert_roster_title = StringField('Shareholder roster title', validators=[DataRequired(), Length(max=160)])
+    cert_label_company_pl = StringField('Company P/L label', validators=[DataRequired(), Length(max=120)])
+    cert_label_base_share = StringField('Base share label', validators=[DataRequired(), Length(max=120)])
+    cert_label_ytd = StringField('YTD total label', validators=[DataRequired(), Length(max=120)])
+    cert_label_odoo = StringField('Odoo reference label', validators=[DataRequired(), Length(max=120)])
+    cert_footer_disclaimer = StringField('Footer disclaimer', validators=[DataRequired(), Length(max=400)])
+    cert_footer_confidential = StringField(
+        'Confidential footer',
+        validators=[DataRequired(), Length(max=300)],
+        description='Use {company_name} for the company name.',
+    )
+    cert_legal_text = TextAreaField(
+        'Legal / additional text',
+        validators=[Optional(), Length(max=2000)],
+        description='Optional paragraph shown above the signature area.',
+    )
+    cert_show_roster = BooleanField('Show current shareholders roster on certificates', default=True)
+    cert_show_odoo_reference = BooleanField('Show Odoo reference when available', default=True)
+    cert_signature_name = StringField('Signature name', validators=[Optional(), Length(max=120)])
+    cert_signature_title = StringField('Signature title', validators=[Optional(), Length(max=120)])
+    cert_signature_image = FileField(
+        'Signature image',
+        validators=[Optional(), FileAllowed(['png', 'jpg', 'jpeg', 'webp', 'gif'], 'Images only!')],
+    )
+    remove_cert_signature = BooleanField('Remove signature image')
+
     submit = SubmitField('Save Settings')
 
 

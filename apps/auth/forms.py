@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import BooleanField, PasswordField, SelectField, StringField, SubmitField
-from wtforms.validators import DataRequired, Email, EqualTo, Length, Optional
+from wtforms.validators import DataRequired, Email, EqualTo, Length, Optional, Regexp
 
 
 class LoginForm(FlaskForm):
@@ -8,6 +8,22 @@ class LoginForm(FlaskForm):
     password = PasswordField('Password', validators=[DataRequired(), Length(min=4, max=128)])
     remember = BooleanField('Remember me')
     submit = SubmitField('Log In')
+
+
+class OTPForm(FlaskForm):
+    code = StringField(
+        'Verification code',
+        validators=[
+            DataRequired(message='Enter the verification code from your email.'),
+            Length(min=4, max=8),
+            Regexp(r'^\d+$', message='The code must contain digits only.'),
+        ],
+    )
+    submit = SubmitField('Verify & Sign In')
+
+
+class ResendOTPForm(FlaskForm):
+    submit = SubmitField('Resend code')
 
 
 class ChangePasswordForm(FlaskForm):

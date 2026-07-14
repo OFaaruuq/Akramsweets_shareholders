@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ company_name }} — Login verification</title>
+</head>
+<body style="margin:0;padding:0;background:#f6f7f9;font-family:Segoe UI,Arial,sans-serif;color:#1f2937;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f6f7f9;padding:24px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="560" cellspacing="0" cellpadding="0" style="background:#ffffff;border-radius:12px;overflow:hidden;">
+          <tr>
+            <td style="padding:28px 32px 8px;text-align:center;">
+              {% if has_logo %}
+              <img src="cid:{{ logo_cid }}" alt="{{ company_name }}" height="40" style="display:inline-block;max-height:40px;">
+              {% else %}
+              <div style="font-size:20px;font-weight:700;color:{{ brand.primary_color if brand else '#7a1f2b' }};">{{ company_name }}</div>
+              {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:8px 32px 24px;">
+              <h1 style="margin:0 0 12px;font-size:22px;color:#111827;">Login verification</h1>
+              <p style="margin:0 0 16px;font-size:15px;line-height:1.5;">
+                Hello {{ user.full_name }}, use this one-time code to finish signing in:
+              </p>
+              <div style="margin:20px 0;padding:16px 20px;background:#f3f4f6;border-radius:10px;text-align:center;">
+                <div style="font-size:32px;letter-spacing:8px;font-weight:700;color:#111827;">{{ code }}</div>
+              </div>
+              <p style="margin:0 0 8px;font-size:14px;color:#6b7280;">
+                This code expires in <strong>{{ expires_minutes }} minutes</strong>.
+              </p>
+              <p style="margin:0;font-size:13px;color:#9ca3af;">
+                If you did not try to sign in, you can ignore this email.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:16px 32px 28px;font-size:12px;color:#9ca3af;border-top:1px solid #eef2f7;">
+              {{ company_name }} Shareholders — confidential
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

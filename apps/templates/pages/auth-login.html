@@ -1,12 +1,9 @@
 {% extends 'layouts/base.html' %}
 
-
 {% block title %}Log In{% endblock title %}
 
 {% block css %}
-
 {% include 'partials/head-css.html' %}
-
 {% endblock css %}
 
 {% block content %}
@@ -24,27 +21,39 @@
                   <div class="mb-0 border-0 p-md-4 p-lg-0">
                     <div class="mb-3 p-0 text-center">
                       <div class="auth-brand">
-                        <a href="/index" class="logo logo-light">
-                                                            <span class="logo-lg">
-                                                                <img src="{{ config.ASSETS_ROOT }}/images/logo-light.png" alt=""
-                                                                     height="24">
-                                                            </span>
-                        </a>
-                        <a href="/index" class="logo logo-dark">
-                                                            <span class="logo-lg">
-                                                                <img src="{{ config.ASSETS_ROOT }}/images/logo-dark.png" alt=""
-                                                                     height="24">
-                                                            </span>
+                        <a href="{{ url_for('auth.login') }}" class="logo d-inline-block">
+                          <img
+                            src="{{ brand.logo_url if brand and brand.logo_url else config.ASSETS_ROOT + '/images/akram-sweets-logo.png' }}"
+                            alt="{{ brand.company_name if brand else 'Akram Sweets' }}"
+                            style="max-height:72px;max-width:240px;width:auto;height:auto;"
+                          >
                         </a>
                       </div>
                     </div>
 
                     <div class="auth-title-section mb-4 text-center">
-                      <h3 class="text-primary fw-semibold mb-1">Welcome Back !</h3>
-                      <p class="text-muted fs-14 mb-0">Hey, Enter your details to get sign in to your account.</p>
+                      <h3 class="text-primary fw-semibold mb-1">Welcome Back</h3>
+                      <p class="text-muted fs-14 mb-0">
+                        {% if mail_status and mail_status.otp_enabled %}
+                        Sign in with your email and password. A one-time code will be sent to your email.
+                        {% else %}
+                        Sign in with your email and password.
+                        {% endif %}
+                      </p>
                     </div>
 
                     <div class="pt-0">
+                      {% if mail_status and mail_status.otp_blocked %}
+                      <div class="alert alert-warning fs-13">
+                        <strong>{{ mail_status.headline }}</strong><br>
+                        {{ mail_status.detail }}
+                        {% if current_user is defined and current_user.is_authenticated %}
+                        <div class="mt-2"><a href="{{ mail_status.settings_url }}">Open System Settings</a></div>
+                        {% else %}
+                        <div class="mt-2 text-muted">Ask an administrator to configure SMTP, or set <code>LOGIN_OTP_ENABLED=false</code> in <code>.env</code> for local testing.</div>
+                        {% endif %}
+                      </div>
+                      {% endif %}
                       <form method="post" action="{{ url_for('auth.login') }}" class="my-4">
                         {{ form.hidden_tag() }}
                         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -54,27 +63,21 @@
                             {% endfor %}
                           {% endif %}
                         {% endwith %}
+
                         <div class="form-group mb-3">
                           <label for="emailaddress" class="form-label">Email address</label>
-                          {{ form.email(class='form-control', id='emailaddress', placeholder='Enter your email') }}
+                          {{ form.email(class='form-control', id='emailaddress', placeholder='Enter your email', autocomplete='username') }}
                         </div>
 
                         <div class="form-group mb-3">
                           <label for="password" class="form-label">Password</label>
-                          {{ form.password(class='form-control', id='password', placeholder='Enter your password') }}
+                          {{ form.password(class='form-control', id='password', placeholder='Enter your password', autocomplete='current-password') }}
                         </div>
 
-                        <div class="form-group d-flex mb-3">
-                          <div class="col-sm-6">
-                            <div class="form-check">
-                              {{ form.remember(class='form-check-input', id='checkbox-signin') }}
-                              <label class="form-check-label" for="checkbox-signin">Remember me</label>
-                            </div>
-                          </div>
-                          <div class="col-sm-6 text-end">
-                            <a class='text-muted fs-14'
-                               href="/auth-recoverpw">Forgot
-                              password?</a>
+                        <div class="form-group mb-3">
+                          <div class="form-check">
+                            {{ form.remember(class='form-check-input', id='checkbox-signin') }}
+                            <label class="form-check-label" for="checkbox-signin">Remember me</label>
                           </div>
                         </div>
 
@@ -87,75 +90,16 @@
                         </div>
                       </form>
 
-                      <div class="saprator my-4"><span>or continue with email</span></div>
-
-                      <div class="row">
-                        <div class="col-4">
-                          <a class="btn text-dark border fw-normal d-flex align-items-center justify-content-center">
-                            <div>
-                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 48 48"
-                                   class="me-2">
-                                <path fill="#ffc107"
-                                      d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917"/>
-                                <path fill="#ff3d00"
-                                      d="m6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691"/>
-                                <path fill="#4caf50"
-                                      d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44"/>
-                                <path fill="#1976d2"
-                                      d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917"/>
-                              </svg>
-                            </div>
-                            <div>
-                              <span class="align-middle">Google</span>
-                            </div>
-                          </a>
-                        </div>
-
-                        <div class="col-4">
-                          <a class="btn text-dark border fw-normal d-flex align-items-center justify-content-center">
-                            <div>
-                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 256 256"
-                                   class="me-2">
-                                <path fill="#1877f2"
-                                      d="M256 128C256 57.308 198.692 0 128 0S0 57.308 0 128c0 63.888 46.808 116.843 108 126.445V165H75.5v-37H108V99.8c0-32.08 19.11-49.8 48.348-49.8C170.352 50 185 52.5 185 52.5V84h-16.14C152.959 84 148 93.867 148 103.99V128h35.5l-5.675 37H148v89.445c61.192-9.602 108-62.556 108-126.445"/>
-                                <path fill="#fff"
-                                      d="m177.825 165l5.675-37H148v-24.01C148 93.866 152.959 84 168.86 84H185V52.5S170.352 50 156.347 50C127.11 50 108 67.72 108 99.8V128H75.5v37H108v89.445A129 129 0 0 0 128 256a129 129 0 0 0 20-1.555V165z"/>
-                              </svg>
-                            </div>
-                            <div>
-                              <span class="align-middle">Facebook</span>
-                            </div>
-                          </a>
-                        </div>
-
-                        <div class="col-4">
-                          <a class="btn text-dark border fw-normal d-flex align-items-center justify-content-center">
-                            <div>
-                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 128 128"
-                                   class="me-2">
-                                <path
-                                  d="M97.905 67.885c.174 18.8 16.494 25.057 16.674 25.137c-.138.44-2.607 8.916-8.597 17.669c-5.178 7.568-10.553 15.108-19.018 15.266c-8.318.152-10.993-4.934-20.504-4.934c-9.508 0-12.479 4.776-20.354 5.086c-8.172.31-14.395-8.185-19.616-15.724C15.822 94.961 7.669 66.8 18.616 47.791c5.438-9.44 15.158-15.417 25.707-15.571c8.024-.153 15.598 5.398 20.503 5.398c4.902 0 14.106-6.676 23.782-5.696c4.051.169 15.421 1.636 22.722 12.324c-.587.365-13.566 7.921-13.425 23.639M82.272 21.719c4.338-5.251 7.258-12.563 6.462-19.836c-6.254.251-13.816 4.167-18.301 9.416c-4.02 4.647-7.54 12.087-6.591 19.216c6.971.54 14.091-3.542 18.43-8.796"/>
-                              </svg>
-                            </div>
-                            <div>
-                              <span class="align-middle">Apple</span>
-                            </div>
-                          </a>
-                        </div>
+                      <div class="text-center text-muted mt-3">
+                        <p class="mb-0 fs-13">
+                          Accounts are created by a super admin only.
+                        </p>
                       </div>
-
-                      <div class="text-center text-muted mt-4">
-                        <p class="mb-0">Don't have an account ?<a class='text-primary ms-2 fw-medium'
-                                                                  href="/auth-register">Register
-                          Now</a></p>
-                      </div>
-
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       </div>
@@ -177,12 +121,5 @@
 {% endblock content %}
 
 {% block extra_javascript %}
-
-<!-- App js-->
 <script src="{{ config.ASSETS_ROOT }}/js/app.js"></script>
-
 {% endblock extra_javascript %}
-
-
-
-

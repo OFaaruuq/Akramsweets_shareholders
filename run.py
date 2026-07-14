@@ -4,9 +4,9 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+_ROOT = os.path.abspath(os.path.dirname(__file__))
+load_dotenv(os.path.join(_ROOT, '.env'))
 
-from flask_migrate import Migrate
 from flask_minify import Minify
 from sys import exit
 
@@ -28,7 +28,6 @@ except KeyError:
     exit('Error: Invalid <config_mode>. Expected values [Debug, Production] ')
 
 app = create_app(app_config)
-Migrate(app, db)
 
 if not DEBUG:
     Minify(app=app, html=True, js=False, cssless=False)

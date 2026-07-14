@@ -1,28 +1,21 @@
 # -*- encoding: utf-8 -*-
 
 from apps.pages import blueprint
-from flask import Response, redirect, render_template, request, url_for
+from flask import Response, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from jinja2 import TemplateNotFound
 
 from apps.services.dashboard_service import get_dashboard_metrics, get_shareholder_dashboard_metrics
 
-PUBLIC_TEMPLATES = {
-    'auth-login',
-    'auth-register',
-    'auth-recoverpw',
-    'auth-lock-screen',
-    'auth-confirm-mail',
-    'email-verification',
-    'auth-logout',
+# Only real public/error pages remain reachable via the catch-all.
+# Theme demos (ui-*, charts-*, forms-*, tables-*, maps-*, widgets, etc.) redirect home.
+ALLOWED_STATIC_PAGES = {
     'error-404',
     'error-500',
     'error-503',
     'error-429',
     'offline-page',
     'pages-maintenance',
-    'pages-coming-soon',
-    'preview',
 }
 
 
@@ -129,27 +122,54 @@ def legacy_login():
     return redirect(url_for('auth.login'))
 
 
+@blueprint.route('/auth-register')
+def legacy_register():
+    """Public registration is disabled — only super admins create users."""
+    flash('Registration is disabled. Ask a super admin to create your account.', 'warning')
+    return redirect(url_for('auth.login'))
+
+
+@blueprint.route('/apps-contacts')
+@login_required
+def legacy_apps_contacts():
+    """Theme demo URL → real contacts directory."""
+    return redirect(url_for('contacts.list_contacts', **request.args))
+
+
 @blueprint.route('/<template>')
 def route_template(template):
     if template in ('index', 'analytics'):
         return dashboard() if template == 'index' else analytics()
 
     segment = get_segment(request)
+
+    # Auth / contacts aliases
     if segment == 'auth-login':
         return redirect(url_for('auth.login'))
+    if segment == 'auth-register':
+        flash('Registration is disabled. Ask a super admin to create your account.', 'warning')
+        return redirect(url_for('auth.login'))
+    if segment in ('email-verification', 'auth-confirm-mail', 'auth-recoverpw', 'auth-lock-screen', 'auth-logout'):
+        return redirect(url_for('auth.login'))
+    if segment == 'apps-contacts':
+        return redirect(url_for('contacts.list_contacts', **request.args))
 
-    if segment not in PUBLIC_TEMPLATES and not current_user.is_authenticated:
+    # Theme demo pages are not part of this product — send users to the live app.
+    if segment not in ALLOWED_STATIC_PAGES:
+        if not current_user.is_authenticated:
+            return redirect(url_for('auth.login'))
+        flash('That demo page is not part of the Akram Sweets shareholders app.', 'info')
+        return redirect(url_for(current_user.home_endpoint()))
+
+    if not current_user.is_authenticated and segment not in ALLOWED_STATIC_PAGES:
         return redirect(url_for('auth.login'))
 
     try:
         if not template.endswith('.html'):
             template += '.html'
-
         return render_template('pages/' + template, segment=segment)
-
     except TemplateNotFound:
         return render_template('pages/error-404.html'), 404
-
     except Exception:
         return render_template('pages/error-500.html'), 500
 

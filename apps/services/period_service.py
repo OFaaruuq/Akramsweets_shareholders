@@ -107,18 +107,19 @@ def get_period_readiness(year, month):
     arrangements = get_active_arrangements(as_of_date, True)
     arrangement_rows = []
     for arrangement in arrangements:
+        sources = arrangement.source_label()
+        warning = None
+        if not arrangement.applies_to_all_others and not arrangement.source_ids():
+            warning = 'No source shareholders selected — this arrangement will be skipped until sources are set.'
         arrangement_rows.append({
             'name': arrangement.name,
             'recipient': arrangement.recipient.name,
             'bonus_percent': float(arrangement.bonus_percent),
             'applies_to_all_others': arrangement.applies_to_all_others,
+            'sources': sources,
             'apply_on_profit': arrangement.apply_on_profit,
             'apply_on_loss': arrangement.apply_on_loss,
-            'warning': (
-                None
-                if arrangement.applies_to_all_others
-                else 'Selective targeting is not yet supported — this arrangement will be skipped.'
-            ),
+            'warning': warning,
         })
 
     return {

@@ -17,10 +17,15 @@ def notify_shareholder(report_data, email_result, sms_enabled):
     results = {'email': email_result}
 
     company = report_data.get('company_name') or 'Akram Sweets'
+    period_label = report_data.get('period_label') or 'period'
     if sms_enabled and report_data.get('shareholder_phone'):
+        try:
+            amount = float(report_data.get('final_amount') or 0)
+        except (TypeError, ValueError):
+            amount = 0.0
         sms_body = (
-            f'{company} report {report_data["period_label"]}: '
-            f'final amount {float(report_data["final_amount"]):,.2f}. '
+            f'{company} report {period_label}: '
+            f'final amount {amount:,.2f}. '
             f'Certificate & full details sent by email.'
         )
         results['sms'] = send_sms_notification(report_data.get('shareholder_phone'), sms_body)

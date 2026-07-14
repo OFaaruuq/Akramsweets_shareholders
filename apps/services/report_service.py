@@ -9,31 +9,35 @@ def _arrangement_breakdown(period, calculation):
     as_of_date = period.as_of_date
     total = money(period.total_profit_loss)
     is_profit = total >= 0
-    arrangements = [a for a in get_active_arrangements(as_of_date, is_profit) if a.applies_to_all_others]
+    arrangements = get_active_arrangements(as_of_date, is_profit)
     lines = []
+    shareholder_id = calculation.shareholder_id
 
     if calculation.arrangement_received:
         for arrangement in arrangements:
-            if arrangement.recipient_shareholder_id == calculation.shareholder_id:
-                lines.append({
-                    'name': arrangement.name,
-                    'percent': arrangement.bonus_percent,
-                    'role': 'received',
-                    'amount': calculation.arrangement_received,
-                    'description': f'{arrangement.bonus_percent}% received from other shareholders',
-                })
+            if arrangement.recipient_shareholder_id != shareholder_id:
+                continue
+            sources = arrangement.source_label()
+            lines.append({
+                'name': arrangement.name,
+                'percent': arrangement.bonus_percent,
+                'role': 'received',
+                'amount': calculation.arrangement_received,
+                'description': f'{arrangement.bonus_percent}% received from {sources}',
+            })
 
     if calculation.arrangement_deduction:
         for arrangement in arrangements:
-            if arrangement.recipient_shareholder_id != calculation.shareholder_id:
-                lines.append({
-                    'name': arrangement.name,
-                    'percent': arrangement.bonus_percent,
-                    'role': 'deduction',
-                    'amount': calculation.arrangement_deduction,
-                    'description': f'{arrangement.bonus_percent}% redirected to {arrangement.recipient.name}',
-                })
-                break
+            contributors = arrangement.contributing_shareholder_ids([shareholder_id])
+            if shareholder_id not in contributors:
+                continue
+            lines.append({
+                'name': arrangement.name,
+                'percent': arrangement.bonus_percent,
+                'role': 'deduction',
+                'amount': calculation.arrangement_deduction,
+                'description': f'{arrangement.bonus_percent}% redirected to {arrangement.recipient.name}',
+            })
 
     return lines
 

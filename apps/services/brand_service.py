@@ -128,14 +128,16 @@ def save_brand_settings(
 
 
 def ensure_default_logo():
-    """Create a simple branded default logo if none is uploaded yet."""
-    existing = brand_logo_filesystem_path()
-    if existing:
-        return existing
-
+    """Ensure the packaged Akram Sweets logo is available as the brand logo."""
     uploads = brand_uploads_dir()
     destination = uploads / 'logo-default.png'
-    if not destination.is_file():
+    packaged = Path(current_app.root_path) / 'static' / 'images' / 'akram-sweets-logo.png'
+
+    # Prefer the packaged brand mark over any auto-generated placeholder.
+    if packaged.is_file():
+        if (not destination.is_file()) or destination.stat().st_size != packaged.stat().st_size:
+            destination.write_bytes(packaged.read_bytes())
+    elif not destination.is_file():
         try:
             from PIL import Image, ImageDraw, ImageFont
         except ImportError:
@@ -163,7 +165,9 @@ def ensure_default_logo():
         img.save(destination, format='PNG')
 
     relative = 'uploads/brand/logo-default.png'
-    if not SystemSetting.get('brand_logo_path'):
+    current = SystemSetting.get('brand_logo_path') or ''
+    # Keep custom uploaded logos (logo.png / logo.jpg); otherwise pin the default mark.
+    if not current or current.endswith('logo-default.png'):
         SystemSetting.set('brand_logo_path', relative)
     return str(destination)
 

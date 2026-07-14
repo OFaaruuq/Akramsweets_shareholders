@@ -36,6 +36,14 @@
 
 </div>
 
+{% if not is_shareholder_view and mail_status and mail_status.show_warning %}
+<div class="alert alert-{{ 'danger' if mail_status.otp_blocked else 'warning' }}">
+  <strong>{{ mail_status.headline }}</strong>
+  <div class="fs-13 mt-1">{{ mail_status.detail }}</div>
+  <a class="btn btn-sm btn-soft-primary mt-2" href="{{ mail_status.settings_url }}">Configure SMTP</a>
+</div>
+{% endif %}
+
 <!-- Start Main Widgets -->
 <div class="row">
   <div class="col-md-6 col-lg-4 col-xl">

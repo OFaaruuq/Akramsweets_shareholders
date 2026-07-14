@@ -287,14 +287,22 @@ def add_adjustment(period_id):
         )
         db.session.add(adjustment)
         db.session.commit()
-        calculate_period(period)
-        log_action(
-            'adjustment',
-            'manual_adjustment',
-            adjustment.id,
-            f'{period.period_label}: {form.reason.data.strip()}',
-        )
-        flash('Manual adjustment added.', 'success')
+        try:
+            calculate_period(period)
+            log_action(
+                'adjustment',
+                'manual_adjustment',
+                adjustment.id,
+                f'{period.period_label}: {form.reason.data.strip()}',
+            )
+            flash('Manual adjustment added and period recalculated.', 'success')
+        except ValueError as exc:
+            db.session.delete(adjustment)
+            db.session.commit()
+            flash(
+                f'Adjustment was not kept because calculation failed: {exc}',
+                'danger',
+            )
     else:
         flash('Could not save adjustment. Check the form fields.', 'danger')
     return redirect(url_for('periods.detail_period', period_id=period.id))

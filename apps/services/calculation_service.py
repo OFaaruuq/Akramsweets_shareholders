@@ -51,18 +51,17 @@ def _build_calculation_rows(total, as_of_date, adjustments=None):
 
     arrangements = get_active_arrangements(as_of_date, is_profit)
     for arrangement in arrangements:
-        if not arrangement.applies_to_all_others:
-            continue
         bonus_rate = Decimal(arrangement.bonus_percent) / Decimal('100')
         recipient_id = arrangement.recipient_shareholder_id
+        source_ids = arrangement.contributing_shareholder_ids(rows.keys())
+        if not source_ids:
+            continue
 
-        for shareholder in shareholders:
-            if shareholder.id == recipient_id:
+        for shareholder_id in source_ids:
+            if shareholder_id not in rows:
                 continue
-            if shareholder.id not in rows:
-                continue
-            deduction = money(rows[shareholder.id]['base_share'] * bonus_rate)
-            rows[shareholder.id]['arrangement_deduction'] -= deduction
+            deduction = money(rows[shareholder_id]['base_share'] * bonus_rate)
+            rows[shareholder_id]['arrangement_deduction'] -= deduction
             if recipient_id in rows:
                 rows[recipient_id]['arrangement_received'] += deduction
 

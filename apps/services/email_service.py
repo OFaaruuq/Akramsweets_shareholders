@@ -35,14 +35,25 @@ def _mail_settings():
     mail_server = (SystemSetting.get('mail_server') or current_app.config.get('MAIL_SERVER') or '').strip()
     mail_port = int(SystemSetting.get('mail_port') or current_app.config.get('MAIL_PORT', 587) or 587)
     mail_user = (SystemSetting.get('mail_username') or current_app.config.get('MAIL_USERNAME') or '').strip() or None
-    mail_password = SystemSetting.get('mail_password') or current_app.config.get('MAIL_PASSWORD') or None
-    mail_from = (SystemSetting.get('mail_from') or current_app.config.get('MAIL_FROM') or mail_user or '').strip()
-    return mail_server, mail_port, mail_user, mail_password, mail_from
+    raw_password = SystemSetting.get('mail_password') or current_app.config.get('MAIL_PASSWORD') or None
+    # Gmail app passwords are often pasted with spaces — strip them for SMTP auth
+    mail_password = ''.join(str(raw_password).split()) if raw_password else None
+    mail_from = (
+        SystemSetting.get('mail_from')
+        or current_app.config.get('MAIL_FROM')
+        or current_app.config.get('MAIL_DEFAULT_SENDER')
+        or mail_user
+        or ''
+    ).strip()
+    use_tls = current_app.config.get('MAIL_USE_TLS', True)
+    if isinstance(use_tls, str):
+        use_tls = use_tls.lower() in ('1', 'true', 'yes', 'on')
+    return mail_server, mail_port, mail_user, mail_password, mail_from, bool(use_tls)
 
 
 def mail_is_configured():
-    mail_server, _, _, _, mail_from = _mail_settings()
-    return bool(mail_server and mail_from)
+    mail_server, _, mail_user, mail_password, mail_from, _ = _mail_settings()
+    return bool(mail_server and mail_from and mail_user and mail_password)
 
 
 def auto_email_enabled():
@@ -86,7 +97,7 @@ def _build_from_header(mail_from, company_name):
     return formataddr((company_name, mail_from))
 
 
-def _send_smtp(message, mail_server, mail_port, mail_user, mail_password):
+def _send_smtp(message, mail_server, mail_port, mail_user, mail_password, use_tls=True):
     context = ssl.create_default_context()
     if mail_port == 465:
         with smtplib.SMTP_SSL(mail_server, mail_port, context=context) as server:
@@ -97,15 +108,82 @@ def _send_smtp(message, mail_server, mail_port, mail_user, mail_password):
 
     with smtplib.SMTP(mail_server, mail_port, timeout=60) as server:
         server.ehlo()
-        try:
-            server.starttls(context=context)
-            server.ehlo()
-        except smtplib.SMTPException:
-            # Some local/dev SMTP servers do not support STARTTLS.
-            pass
+        if use_tls:
+            try:
+                server.starttls(context=context)
+                server.ehlo()
+            except smtplib.SMTPException:
+                # Some local/dev SMTP servers do not support STARTTLS.
+                pass
         if mail_user and mail_password:
             server.login(mail_user, mail_password)
         server.send_message(message)
+
+
+def send_login_otp_email(user, code, expires_minutes=10):
+    """Email a login verification OTP to the user."""
+    recipient = (user.email or '').strip()
+    if not recipient or '@' not in recipient:
+        return {'sent': False, 'mode': 'skipped', 'reason': 'missing_or_invalid_email'}
+
+    brand = _brand_for_email()
+    company_name = brand.get('company_name') or 'Akram Sweets'
+    subject = f'{company_name} — Login verification code'
+    body_text = render_template(
+        'emails/login_otp.txt',
+        user=user,
+        code=code,
+        expires_minutes=expires_minutes,
+        company_name=company_name,
+    )
+    body_html = render_template(
+        'emails/login_otp.html',
+        user=user,
+        code=code,
+        expires_minutes=expires_minutes,
+        company_name=company_name,
+        brand=brand,
+        logo_cid=LOGO_CID,
+        has_logo=bool(brand.get('logo_filesystem_path')),
+    )
+
+    mail_server, mail_port, mail_user, mail_password, mail_from, use_tls = _mail_settings()
+    if not mail_server or not mail_from or not mail_user or not mail_password:
+        logger.error('SMTP is not configured — cannot send login OTP to %s', recipient)
+        return {
+            'sent': False,
+            'mode': 'error',
+            'reason': 'smtp_not_configured',
+            'recipient': recipient,
+        }
+
+    message = MIMEMultipart('mixed')
+    message['From'] = _build_from_header(mail_from, company_name)
+    message['To'] = recipient
+    message['Subject'] = subject
+
+    related = MIMEMultipart('related')
+    alternative = MIMEMultipart('alternative')
+    alternative.attach(MIMEText(body_text, 'plain', 'utf-8'))
+    alternative.attach(MIMEText(body_html, 'html', 'utf-8'))
+    related.attach(alternative)
+    _attach_brand_logo(related, brand)
+    message.attach(related)
+
+    try:
+        _send_smtp(message, mail_server, mail_port, mail_user, mail_password, use_tls=use_tls)
+    except Exception as exc:
+        logger.exception('Failed to send login OTP to %s', recipient)
+        return {
+            'sent': False,
+            'mode': 'error',
+            'reason': 'smtp_error',
+            'error': str(exc),
+            'recipient': recipient,
+        }
+
+    logger.info('Login OTP emailed to %s', recipient)
+    return {'sent': True, 'mode': 'smtp', 'recipient': recipient}
 
 
 def send_shareholder_report(report_data, certificate_data):
@@ -146,7 +224,7 @@ def send_shareholder_report(report_data, certificate_data):
         brand=brand,
     )
 
-    mail_server, mail_port, mail_user, mail_password, mail_from = _mail_settings()
+    mail_server, mail_port, mail_user, mail_password, mail_from, use_tls = _mail_settings()
 
     report_pdf = generate_shareholder_report_pdf(report_data)
     report_name = report_pdf_filename(report_data)
@@ -191,7 +269,7 @@ def send_shareholder_report(report_data, certificate_data):
     certificate_attachment.add_header('Content-Disposition', 'attachment', filename=certificate_name)
     message.attach(certificate_attachment)
 
-    _send_smtp(message, mail_server, mail_port, mail_user, mail_password)
+    _send_smtp(message, mail_server, mail_port, mail_user, mail_password, use_tls=use_tls)
     logger.info(
         'Shareholder notification emailed to %s (period %s, certificate %s)',
         recipient,
@@ -240,7 +318,8 @@ def distribute_period_reports(period):
                 status = 'failed'
 
             mark_certificate_emailed(certificate, status=status)
-            notification_result = notify_shareholder(certificate_data, email_result, sms_enabled)
+            # Pass report payload (has period_label / final_amount / phone) for SMS + logging
+            notification_result = notify_shareholder(report, email_result, sms_enabled)
             results.append({
                 'shareholder': shareholder_name,
                 'email': email_result,

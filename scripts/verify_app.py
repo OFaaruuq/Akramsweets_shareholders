@@ -15,8 +15,14 @@ TEST_DB = os.path.join(tempfile.gettempdir(), 'akram_shareholders_verify.sqlite3
 if os.path.exists(TEST_DB):
     os.remove(TEST_DB)
 
+# Isolated SQLite for verification — do not touch the Postgres .env settings
+os.environ['DB_ENGINE'] = 'sqlite'
 os.environ['SQLITE_PATH'] = TEST_DB
+os.environ.pop('DATABASE_URL', None)
 os.environ['DEBUG'] = 'True'
+# Automated checks skip email OTP (production login still requires it)
+os.environ['LOGIN_OTP_ENABLED'] = 'false'
+os.environ['OTP_TEST_CAPTURE'] = 'false'
 
 from apps.config import config_dict  # noqa: E402
 from apps import create_app, db  # noqa: E402
@@ -106,6 +112,49 @@ def main():
             if abs(results.get(name, 0) - val) > 0.01:
                 errors.append(f'Calc mismatch {name}: got {results.get(name)} expected {val}')
 
+        # Selective arrangement: 10% only from Shareholder A → Pocly
+        from apps.models.arrangement import SpecialArrangement
+        from datetime import date
+
+        pocly = Shareholder.query.filter_by(email='pocly@akramsweets.com').first()
+        sh_a = Shareholder.query.filter_by(email='shareholder.a@akramsweets.com').first()
+        selective = SpecialArrangement(
+            name='Selective test bonus',
+            recipient_shareholder_id=pocly.id,
+            bonus_percent=Decimal('10'),
+            applies_to_all_others=False,
+            apply_on_profit=True,
+            apply_on_loss=False,
+            effective_from=date(2026, 1, 1),
+            is_active=True,
+        )
+        selective.source_shareholders = [sh_a]
+        db.session.add(selective)
+        db.session.commit()
+
+        selective_period = MonthlyPeriod(year=2026, month=8, total_profit_loss=Decimal('100000'))
+        db.session.add(selective_period)
+        db.session.commit()
+        calculate_period(selective_period)
+        selective_results = {
+            c.shareholder.name: float(c.final_amount) for c in selective_period.calculations
+        }
+        # Base: 30k/40k/30k + existing 20% all-others (Pocly +14k, A -8k, B -6k)
+        # Plus selective 10% of A's base (4k) → Pocly +4k, A -4k
+        # Finals: Pocly 48000, A 28000, B 24000
+        selective_expected = {
+            'Pocly (Owner)': 48000.0,
+            'Shareholder A': 28000.0,
+            'Shareholder B': 24000.0,
+        }
+        for name, val in selective_expected.items():
+            if abs(selective_results.get(name, 0) - val) > 0.01:
+                errors.append(
+                    f'Selective calc mismatch {name}: got {selective_results.get(name)} expected {val}'
+                )
+        selective.is_active = False
+        db.session.commit()
+
         loss_period = MonthlyPeriod(year=2026, month=7, total_profit_loss=Decimal('-100000'))
         db.session.add(loss_period)
         db.session.commit()
@@ -168,6 +217,8 @@ def main():
         if not pdf.startswith(b'%PDF'):
             errors.append('PDF report generation failed')
 
+        period_id = period.id
+
     client.get('/auth/logout')
 
     portal_login = login_client(client, app, 'shareholder.a@akramsweets.com', 'shareholder123')
@@ -191,16 +242,13 @@ def main():
     if r.status_code != 200:
         errors.append('Shareholder should access main dashboard')
 
-    r = client.get('/apps-todolist')
-    if r.status_code != 200:
-        errors.append('Shareholder should access demo template pages')
+    r = client.get('/apps-todolist', follow_redirects=False)
+    if r.status_code not in (302, 303):
+        errors.append('Theme demo pages should redirect away from the app')
 
     r = client.get('/shareholders/', follow_redirects=False)
     if r.status_code != 302:
         errors.append('Shareholder should be blocked from shareholders list')
-
-    with app.app_context():
-        period_id = period.id
 
     r = client.get(f'/portal/reports/{period_id}')
     if r.status_code != 200:

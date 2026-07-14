@@ -1,0 +1,112 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Verify Login{% endblock title %}
+
+{% block css %}
+{% include 'partials/head-css.html' %}
+{% endblock css %}
+
+{% block content %}
+<div class="account-page">
+  <div class="container-fluid p-0">
+    <div class="row align-items-center g-0 px-3 py-3 vh-100">
+      <div class="col-xl-5">
+        <div class="row">
+          <div class="col-md-8 mx-auto">
+            <div class="card">
+              <div class="card-body">
+                <div class="mb-0 p-0 p-lg-3">
+                  <div class="mb-0 border-0 p-md-4 p-lg-0">
+                    <div class="mb-3 p-0 text-center">
+                      <div class="auth-brand">
+                        <a href="{{ url_for('auth.login') }}" class="logo d-inline-block">
+                          <img
+                            src="{{ brand.logo_url if brand and brand.logo_url else config.ASSETS_ROOT + '/images/akram-sweets-logo.png' }}"
+                            alt="{{ brand.company_name if brand else 'Akram Sweets' }}"
+                            style="max-height:72px;max-width:240px;width:auto;height:auto;"
+                          >
+                        </a>
+                      </div>
+                    </div>
+
+                    <div class="auth-title-section mb-3 text-center">
+                      <h3 class="text-primary fw-semibold mb-1">Email verification</h3>
+                      <p class="text-muted fs-14 mb-0">
+                        Enter the {{ otp_length }}-digit code sent to
+                        <strong>{{ masked_email }}</strong>
+                      </p>
+                    </div>
+
+                    <div class="text-center mb-3">
+                      <img src="{{ config.ASSETS_ROOT }}/images/svg/email-verifications.svg" height="160" alt="email verification">
+                    </div>
+
+                    <div class="pt-0">
+                      <form method="post" action="{{ url_for('auth.verify_otp') }}" class="mb-3">
+                        {{ form.hidden_tag() }}
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                          {% if messages %}
+                            {% for category, message in messages %}
+                              <div class="alert alert-{{ category }}">{{ message }}</div>
+                            {% endfor %}
+                          {% endif %}
+                        {% endwith %}
+
+                        <div class="form-group mb-3">
+                          <label for="otp-code" class="form-label">Verification code</label>
+                          {{ form.code(class='form-control form-control-lg text-center', id='otp-code', placeholder='Enter code', autocomplete='one-time-code', inputmode='numeric', maxlength=otp_length, style='letter-spacing:0.35em;font-weight:600;') }}
+                          {% for err in form.code.errors %}
+                            <div class="text-danger fs-12 mt-1">{{ err }}</div>
+                          {% endfor %}
+                        </div>
+
+                        <div class="d-grid">
+                          {{ form.submit(class='btn btn-primary fw-semibold') }}
+                        </div>
+                      </form>
+
+                      <form method="post" action="{{ url_for('auth.resend_otp') }}" class="text-center">
+                        {{ resend_form.hidden_tag() }}
+                        <button type="submit" class="btn btn-link text-muted fs-14">Resend code</button>
+                      </form>
+
+                      <div class="text-center mt-2">
+                        <a href="{{ url_for('auth.login') }}" class="text-muted fs-14">Back to login</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xl-7 d-none d-xl-inline-block">
+        <div class="account-page-bg rounded-4">
+          <div class="text-center">
+            <div class="auth-image">
+              <img src="{{ config.ASSETS_ROOT }}/images/auth-images.svg" class="mx-auto img-fluid" alt="images">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
+
+{% block extra_javascript %}
+<script src="{{ config.ASSETS_ROOT }}/js/app.js"></script>
+<script>
+  (function () {
+    var input = document.getElementById('otp-code');
+    if (input) {
+      input.focus();
+      input.addEventListener('input', function () {
+        this.value = this.value.replace(/\D/g, '').slice(0, {{ otp_length }});
+      });
+    }
+  })();
+</script>
+{% endblock extra_javascript %}

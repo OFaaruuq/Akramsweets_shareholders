@@ -21,13 +21,32 @@ def settings_home():
     return redirect(url_for('app_settings.arrangements'))
 
 
+def _shareholder_choices():
+    return [
+        (sh.id, sh.name)
+        for sh in Shareholder.query.filter_by(is_active=True).order_by(Shareholder.name)
+    ]
+
+
+def _sync_arrangement_sources(arrangement, form):
+    if form.applies_to_all_others.data:
+        arrangement.source_shareholders = []
+        return
+    selected_ids = set(form.source_shareholder_ids.data or [])
+    selected_ids.discard(form.recipient_shareholder_id.data)
+    arrangement.source_shareholders = Shareholder.query.filter(
+        Shareholder.id.in_(selected_ids),
+        Shareholder.is_active.is_(True),
+    ).all() if selected_ids else []
+
+
 @blueprint.route('/arrangements', methods=['GET', 'POST'])
 @management_required
 def arrangements():
     form = ArrangementForm()
-    form.recipient_shareholder_id.choices = [
-        (sh.id, sh.name) for sh in Shareholder.query.filter_by(is_active=True).order_by(Shareholder.name)
-    ]
+    choices = _shareholder_choices()
+    form.recipient_shareholder_id.choices = choices
+    form.source_shareholder_ids.choices = choices
 
     if form.validate_on_submit():
         arrangement = SpecialArrangement(
@@ -42,6 +61,8 @@ def arrangements():
             notes=form.notes.data,
         )
         db.session.add(arrangement)
+        db.session.flush()
+        _sync_arrangement_sources(arrangement, form)
         db.session.commit()
         log_action('create', 'special_arrangement', arrangement.id, arrangement.name)
         flash('Special arrangement saved.', 'success')
@@ -61,9 +82,11 @@ def arrangements():
 def edit_arrangement(arrangement_id):
     arrangement = SpecialArrangement.query.get_or_404(arrangement_id)
     form = ArrangementForm(obj=arrangement)
-    form.recipient_shareholder_id.choices = [
-        (sh.id, sh.name) for sh in Shareholder.query.filter_by(is_active=True).order_by(Shareholder.name)
-    ]
+    choices = _shareholder_choices()
+    form.recipient_shareholder_id.choices = choices
+    form.source_shareholder_ids.choices = choices
+    if not form.is_submitted():
+        form.source_shareholder_ids.data = [s.id for s in arrangement.source_shareholders]
 
     if form.validate_on_submit():
         arrangement.name = form.name.data.strip()
@@ -75,6 +98,7 @@ def edit_arrangement(arrangement_id):
         arrangement.effective_from = form.effective_from.data
         arrangement.effective_to = form.effective_to.data
         arrangement.notes = form.notes.data
+        _sync_arrangement_sources(arrangement, form)
         db.session.commit()
         log_action('update', 'special_arrangement', arrangement.id, arrangement.name)
         flash('Special arrangement updated.', 'success')
@@ -125,9 +149,16 @@ def dashboard_settings():
 @management_required
 def system_settings():
     from apps.services.brand_service import ensure_default_brand_settings, get_brand_settings, save_brand_settings
+    from apps.services.certificate_settings_service import (
+        ensure_default_certificate_settings,
+        get_certificate_settings,
+        save_certificate_settings,
+    )
 
     ensure_default_brand_settings()
+    ensure_default_certificate_settings()
     brand = get_brand_settings()
+    cert = get_certificate_settings()
     form = SystemSettingsForm(
         auto_email_on_approval=str(SystemSetting.get('auto_email_on_approval', 'true')).lower() in ('1', 'true', 'yes', 'on'),
         report_delivery_day=SystemSetting.get('report_delivery_day'),
@@ -140,6 +171,28 @@ def system_settings():
         brand_primary_color=brand['primary_color'],
         brand_secondary_color=brand['secondary_color'],
         brand_accent_color=brand['accent_color'],
+        cert_subtitle=cert['subtitle'],
+        cert_title=cert['title'],
+        cert_intro_text=cert['intro_text'],
+        cert_allocation_text=cert['allocation_text'],
+        cert_profit_label=cert['profit_label'],
+        cert_loss_label=cert['loss_label'],
+        cert_currency_symbol=cert['currency_symbol'],
+        cert_number_prefix=cert['number_prefix'],
+        cert_approver_fallback=cert['approver_fallback'],
+        cert_owner_label=cert['owner_label'],
+        cert_roster_title=cert['roster_title'],
+        cert_label_company_pl=cert['label_company_pl'],
+        cert_label_base_share=cert['label_base_share'],
+        cert_label_ytd=cert['label_ytd'],
+        cert_label_odoo=cert['label_odoo'],
+        cert_footer_disclaimer=cert['footer_disclaimer'],
+        cert_footer_confidential=cert['footer_confidential'],
+        cert_legal_text=cert['legal_text'],
+        cert_show_roster=cert['show_roster'],
+        cert_show_odoo_reference=cert['show_odoo_reference'],
+        cert_signature_name=cert['signature_name'],
+        cert_signature_title=cert['signature_title'],
     )
 
     if form.validate_on_submit():
@@ -163,29 +216,77 @@ def system_settings():
                 logo_file=form.brand_logo.data,
                 remove_logo=form.remove_brand_logo.data,
             )
+            save_certificate_settings(
+                {
+                    'subtitle': form.cert_subtitle.data,
+                    'title': form.cert_title.data,
+                    'intro_text': form.cert_intro_text.data,
+                    'allocation_text': form.cert_allocation_text.data,
+                    'profit_label': form.cert_profit_label.data,
+                    'loss_label': form.cert_loss_label.data,
+                    'currency_symbol': form.cert_currency_symbol.data,
+                    'number_prefix': form.cert_number_prefix.data,
+                    'approver_fallback': form.cert_approver_fallback.data,
+                    'owner_label': form.cert_owner_label.data,
+                    'roster_title': form.cert_roster_title.data,
+                    'label_company_pl': form.cert_label_company_pl.data,
+                    'label_base_share': form.cert_label_base_share.data,
+                    'label_ytd': form.cert_label_ytd.data,
+                    'label_odoo': form.cert_label_odoo.data,
+                    'footer_disclaimer': form.cert_footer_disclaimer.data,
+                    'footer_confidential': form.cert_footer_confidential.data,
+                    'legal_text': form.cert_legal_text.data,
+                    'show_roster': form.cert_show_roster.data,
+                    'show_odoo_reference': form.cert_show_odoo_reference.data,
+                    'signature_name': form.cert_signature_name.data,
+                    'signature_title': form.cert_signature_title.data,
+                },
+                signature_file=form.cert_signature_image.data,
+                remove_signature=form.remove_cert_signature.data,
+            )
         except ValueError as exc:
             flash(str(exc), 'danger')
-            return render_template('settings/system.html', form=form, brand=get_brand_settings(), segment='settings')
+            return render_template(
+                'settings/system.html',
+                form=form,
+                brand=get_brand_settings(),
+                cert=get_certificate_settings(),
+                segment='settings',
+            )
 
-        log_action('update', 'system_settings', None, 'Updated system and brand settings')
-        flash('System and brand settings saved. Certificates will use the updated logo and colors.', 'success')
+        log_action('update', 'system_settings', None, 'Updated system, brand, and certificate settings')
+        flash('Settings saved. New certificates will use the updated brand and certificate content.', 'success')
         return redirect(url_for('app_settings.system_settings'))
 
-    return render_template('settings/system.html', form=form, brand=brand, segment='settings')
+    return render_template(
+        'settings/system.html',
+        form=form,
+        brand=brand,
+        cert=cert,
+        segment='settings',
+    )
 
 
 @blueprint.route('/system/preview-certificate')
 @management_required
 def preview_certificate():
-    """Download a sample branded certificate using current logo and colors."""
+    """Download a sample branded certificate using current logo, colors, and certificate text."""
     from apps.services.brand_service import ensure_default_brand_settings, get_brand_settings
-    from apps.services.pdf_service import generate_shareholder_certificate_pdf
+    from apps.services.certificate_settings_service import (
+        ensure_default_certificate_settings,
+        format_certificate_text,
+        get_certificate_settings,
+    )
+    from apps.services.pdf_service import certificate_pdf_filename, generate_shareholder_certificate_pdf
 
     ensure_default_brand_settings()
+    ensure_default_certificate_settings()
     brand = get_brand_settings()
+    cert = get_certificate_settings()
     now = datetime.utcnow()
+    period_label = now.strftime('%B %Y')
     sample = {
-        'period_label': now.strftime('%B %Y'),
+        'period_label': period_label,
         'generated_at': now,
         'company_total': 100000,
         'shareholder_name': 'Sample Shareholder',
@@ -197,28 +298,63 @@ def preview_certificate():
         'base_share': 40000,
         'final_amount': 40000,
         'ytd_total': 120000,
-        'certificate_number': f'AS-CERT-PREVIEW-{now.strftime("%Y%m")}',
+        'certificate_number': f"{cert['number_prefix']}-PREVIEW-{now.strftime('%Y%m')}",
         'certificate_issued_at': now,
         'approved_at': now,
-        'approved_by': 'Akram Sweets Management',
+        'approved_by': cert['approver_fallback'],
         'company_name': brand['company_name'],
         'brand_primary_color': brand['primary_color'],
         'brand_secondary_color': brand['secondary_color'],
         'brand_accent_color': brand['accent_color'],
         'brand_logo_path': brand['logo_filesystem_path'],
-        'current_shareholders': [
-            {'id': 1, 'name': 'Pocly (Owner)', 'ownership_percent': 30, 'is_owner': True},
-            {'id': 0, 'name': 'Sample Shareholder', 'ownership_percent': 40, 'is_owner': False},
-            {'id': 2, 'name': 'Shareholder B', 'ownership_percent': 30, 'is_owner': False},
-        ],
-        'odoo_reference': 'PREVIEW',
+        'current_shareholders': (
+            [
+                {'id': 1, 'name': 'Pocly (Owner)', 'ownership_percent': 30, 'is_owner': True},
+                {'id': 0, 'name': 'Sample Shareholder', 'ownership_percent': 40, 'is_owner': False},
+                {'id': 2, 'name': 'Shareholder B', 'ownership_percent': 30, 'is_owner': False},
+            ]
+            if cert['show_roster']
+            else []
+        ),
+        'odoo_reference': 'PREVIEW' if cert['show_odoo_reference'] else None,
+        'cert_subtitle': cert['subtitle'],
+        'cert_title': cert['title'],
+        'cert_intro_text': cert['intro_text'],
+        'cert_allocation_text': format_certificate_text(
+            cert['allocation_text'],
+            period_label=period_label,
+            company_name=brand['company_name'],
+        ),
+        'cert_profit_label': cert['profit_label'],
+        'cert_loss_label': cert['loss_label'],
+        'cert_currency_symbol': cert['currency_symbol'],
+        'cert_owner_label': cert['owner_label'],
+        'cert_roster_title': cert['roster_title'],
+        'cert_label_company_pl': cert['label_company_pl'],
+        'cert_label_base_share': cert['label_base_share'],
+        'cert_label_ytd': cert['label_ytd'],
+        'cert_label_odoo': cert['label_odoo'],
+        'cert_footer_disclaimer': cert['footer_disclaimer'],
+        'cert_footer_confidential': format_certificate_text(
+            cert['footer_confidential'],
+            company_name=brand['company_name'],
+            period_label=period_label,
+        ),
+        'cert_legal_text': cert['legal_text'],
+        'cert_show_odoo_reference': cert['show_odoo_reference'],
+        'cert_signature_name': cert['signature_name'],
+        'cert_signature_title': cert['signature_title'],
+        'cert_signature_image_path': cert['signature_filesystem_path'],
     }
     pdf_bytes = generate_shareholder_certificate_pdf(sample)
     return send_file(
         BytesIO(pdf_bytes),
         mimetype='application/pdf',
         as_attachment=True,
-        download_name='Akram_Sweets_Certificate_Preview.pdf',
+        download_name=certificate_pdf_filename(sample).replace(
+            sample['certificate_number'].replace('/', '-'),
+            'Preview',
+        ),
     )
 
 
