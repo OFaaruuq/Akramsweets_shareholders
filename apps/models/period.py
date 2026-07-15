@@ -12,6 +12,17 @@ class MonthlyPeriod(db.Model):
 
     STATUSES = (STATUS_DRAFT, STATUS_REVIEW, STATUS_APPROVED)
 
+    # Post-approval payment tracking
+    PAYMENT_PENDING = 'pending'
+    PAYMENT_COMPLETED = 'completed'
+    PAYMENT_STATUSES = (PAYMENT_PENDING, PAYMENT_COMPLETED)
+
+    WORKFLOW_LABELS = {
+        STATUS_DRAFT: 'Draft',
+        STATUS_REVIEW: 'Management Approval',
+        STATUS_APPROVED: 'Locked',
+    }
+
     id = db.Column(db.Integer, primary_key=True)
     year = db.Column(db.Integer, nullable=False)
     month = db.Column(db.Integer, nullable=False)
@@ -43,6 +54,9 @@ class MonthlyPeriod(db.Model):
     rejected_at = db.Column(db.DateTime, nullable=True)
     rejected_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     reports_sent_at = db.Column(db.DateTime, nullable=True)
+    payment_status = db.Column(db.String(20), nullable=False, default=PAYMENT_PENDING)
+    payment_completed_at = db.Column(db.DateTime, nullable=True)
+    payment_completed_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     created_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -50,6 +64,7 @@ class MonthlyPeriod(db.Model):
     approved_by = db.relationship('User', foreign_keys=[approved_by_id])
     submitted_for_review_by = db.relationship('User', foreign_keys=[submitted_for_review_by_id])
     rejected_by = db.relationship('User', foreign_keys=[rejected_by_id])
+    payment_completed_by = db.relationship('User', foreign_keys=[payment_completed_by_id])
     created_by = db.relationship('User', foreign_keys=[created_by_id])
     calculations = db.relationship(
         'ShareholderCalculation',
@@ -86,6 +101,43 @@ class MonthlyPeriod(db.Model):
         return self.status == self.STATUS_REVIEW
 
     @property
+    def payment_completed(self):
+        return self.payment_status == self.PAYMENT_COMPLETED
+
+    @property
+    def workflow_label(self):
+        if self.payment_completed:
+            return 'Payment Completed'
+        return self.WORKFLOW_LABELS.get(self.status, (self.status or '').title())
+
+    @property
+    def workflow_steps(self):
+        """UI stepper: Draft → Finance Review → Management Approval → Locked → Payment Completed."""
+        steps = [
+            {'key': 'draft', 'label': 'Draft'},
+            {'key': 'finance_review', 'label': 'Finance Review'},
+            {'key': 'management', 'label': 'Management Approval'},
+            {'key': 'locked', 'label': 'Locked'},
+            {'key': 'payment', 'label': 'Payment Completed'},
+        ]
+        if self.payment_completed:
+            active = 'payment'
+        elif self.status == self.STATUS_APPROVED:
+            active = 'locked'
+        elif self.status == self.STATUS_REVIEW:
+            active = 'management'
+        elif self.calculated_at:
+            active = 'finance_review'
+        else:
+            active = 'draft'
+        keys = [s['key'] for s in steps]
+        active_idx = keys.index(active)
+        for i, step in enumerate(steps):
+            step['done'] = i < active_idx
+            step['current'] = i == active_idx
+        return steps
+
+    @property
     def as_of_date(self):
         from calendar import monthrange
         last_day = monthrange(self.year, self.month)[1]
@@ -107,7 +159,7 @@ class MonthlyPeriod(db.Model):
 
     @property
     def company_share(self):
-        """Akram Sweets managing-partner share (Mudarabah)."""
+        """Managing partner share (Mudarabah remainder — company brand name)."""
         return self.managing_partner_share
 
 

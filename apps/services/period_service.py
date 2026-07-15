@@ -88,25 +88,46 @@ def get_prior_period(year, month):
 
 def get_period_readiness(year, month):
     warnings = []
+    blocking_errors = []
     as_of_date = period_as_of_date(year, month)
 
     ownership_total, shareholders = validate_ownership_totals(as_of_date)
     ownership_rows = []
+    from apps.services.share_value_service import capital_for_ownership, shares_for_ownership
+
     for shareholder in shareholders:
         percent = get_ownership_percent(shareholder, as_of_date)
+        registered_shares = float(shareholder.share_count or 0)
+        registered_investment = float(shareholder.investment_amount or 0)
+        derived_shares = shares_for_ownership(percent)
+        derived_capital = capital_for_ownership(percent)
         ownership_rows.append({
             'id': shareholder.id,
             'name': shareholder.name,
             'is_owner': shareholder.is_owner,
             'ownership_percent': float(percent),
+            'investment': registered_investment or (
+                float(derived_capital) if derived_capital is not None else 0.0
+            ),
+            'shares': registered_shares or (
+                float(derived_shares) if derived_shares is not None else 0.0
+            ),
+            'registered_investment': registered_investment,
+            'registered_shares': registered_shares,
         })
 
+    ownership_valid = bool(shareholders) and abs(ownership_total - Decimal('100')) <= OWNERSHIP_TOLERANCE
     if not shareholders:
-        warnings.append('No active shareholders found for this period.')
-    elif abs(ownership_total - Decimal('100')) > OWNERSHIP_TOLERANCE:
-        warnings.append(
-            f'Ownership totals {ownership_total:.4f}% — must equal 100% before calculation.'
+        msg = 'No active shareholders found for this period.'
+        warnings.append(msg)
+        blocking_errors.append(msg)
+    elif not ownership_valid:
+        msg = (
+            f'Ownership totals {ownership_total:.4f}% — must equal exactly 100.0000% '
+            'before profit calculation or approval.'
         )
+        warnings.append(msg)
+        blocking_errors.append(msg)
 
     prior = get_prior_period(year, month)
     if prior is None:
@@ -142,14 +163,50 @@ def get_period_readiness(year, month):
             'apply_on_profit': arrangement.apply_on_profit,
             'apply_on_loss': arrangement.apply_on_loss,
             'warning': warning,
+            'explanation': (
+                f'After normal pool × ownership %, {arrangement.bonus_percent}% of each source '
+                f"shareholder's base profit is transferred to {arrangement.recipient.name}."
+            ),
         })
+
+    # Capital withdrawal warnings (profit continues until effective exit)
+    withdrawal_warnings = []
+    try:
+        from apps.models.shareholder import CapitalWithdrawalRequest
+
+        open_withdrawals = CapitalWithdrawalRequest.query.filter(
+            CapitalWithdrawalRequest.status.in_([
+                CapitalWithdrawalRequest.STATUS_PENDING,
+                CapitalWithdrawalRequest.STATUS_APPROVED,
+            ])
+        ).all()
+        for req in open_withdrawals:
+            due = req.deadline_at.strftime('%d-%b-%Y') if req.deadline_at else 'TBD'
+            withdrawal_warnings.append({
+                'shareholder_id': req.shareholder_id,
+                'shareholder_name': req.shareholder.name if req.shareholder else 'Shareholder',
+                'status': req.status,
+                'amount': float(req.amount or 0),
+                'deadline': due,
+                'message': (
+                    f'{req.shareholder.name if req.shareholder else "Shareholder"} has a '
+                    f'{req.status} withdrawal request. Capital return due: {due}. '
+                    'Profit distribution continues until the withdrawal effective date.'
+                ),
+            })
+            warnings.append(withdrawal_warnings[-1]['message'])
+    except Exception:
+        pass
 
     return {
         'as_of_date': as_of_date,
         'ownership_rows': ownership_rows,
         'ownership_total': float(ownership_total),
-        'ownership_valid': abs(ownership_total - Decimal('100')) <= OWNERSHIP_TOLERANCE,
+        'ownership_valid': ownership_valid,
+        'can_calculate': ownership_valid,
+        'blocking_errors': blocking_errors,
         'arrangements': arrangement_rows,
+        'withdrawal_warnings': withdrawal_warnings,
         'prior_period': prior,
         'existing_period': existing,
         'warnings': warnings,

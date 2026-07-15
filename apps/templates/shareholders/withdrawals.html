@@ -6,7 +6,7 @@
 <div class="py-3 d-flex align-items-sm-center flex-sm-row flex-column gap-2">
   <div class="flex-grow-1">
     <h4 class="fs-18 fw-semibold m-0">Capital Withdrawal Requests</h4>
-    <p class="text-muted mb-0 fs-13">Track requests to return shareholder capital (up to 6 months per agreement).</p>
+    <p class="text-muted mb-0 fs-13">Track requests to return shareholder capital ({{ capital_return.label if capital_return else 'configurable deadline' }} per agreement).</p>
   </div>
 </div>
 

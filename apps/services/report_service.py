@@ -90,6 +90,10 @@ def build_shareholder_report(period, calculation):
     ensure_default_logo()
     brand = get_brand_settings()
     cert = get_certificate_settings()
+    from apps.services.mudarabah_service import get_mudarabah_shareholder_percent
+
+    stored_pct = getattr(period, 'mudarabah_shareholder_percent', None)
+    mudarabah_pct = stored_pct if stored_pct is not None else get_mudarabah_shareholder_percent()
 
     return {
         'period_label': period.period_label,
@@ -97,7 +101,8 @@ def build_shareholder_report(period, calculation):
         'company_total': period.total_profit_loss,
         'shareholders_pool': getattr(period, 'shareholders_pool', None) or 0,
         'managing_partner_share': getattr(period, 'managing_partner_share', None) or 0,
-        'mudarabah_shareholder_percent': getattr(period, 'mudarabah_shareholder_percent', None) or 50,
+        'mudarabah_shareholder_percent': mudarabah_pct,
+        'managing_partner_name': brand['company_name'],
         'company_name': brand['company_name'],
         'brand_primary_color': brand['primary_color'],
         'brand_secondary_color': brand['secondary_color'],

@@ -144,7 +144,7 @@
   <h5 class="mb-0 fs-15">Capital return tracking</h5>
   <span class="badge bg-secondary-subtle text-secondary ms-2">{{ tracking_items|length }}</span>
 </div>
-<p class="text-muted fs-13 mb-2">Approved withdrawals — company has up to 6 months from approval to return capital.</p>
+<p class="text-muted fs-13 mb-2">Approved withdrawals — company has {{ capital_return.label if capital_return else 'the configured deadline' }} from approval to return capital.</p>
 {{ render_queue(tracking_items, 'No outstanding capital returns.') }}
 {% endif %}
 

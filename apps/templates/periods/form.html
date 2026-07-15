@@ -3,20 +3,20 @@
 {% block css %}{% include 'partials/head-css.html' %}
 <style>
   .akram-step { border-left: 3px solid {{ brand.primary_color if brand else '#8A1B24' }}; padding-left: 1rem; }
-  .akram-net-positive { color: #46B277; }
-  .akram-net-negative { color: #E7366B; }
   .period-preview-table td, .period-preview-table th { white-space: nowrap; }
+  .mudarabah-formula { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.85rem; }
+  .ownership-blocked { opacity: 0.55; pointer-events: none; }
 </style>
 {% endblock css %}
 {% block body_attribute %}data-menu-color="dark" data-sidebar="default"{% endblock body_attribute %}
 {% block page_content %}
 
-<div class="py-3 d-flex align-items-sm-center flex-sm-row flex-column">
+<div class="py-3 d-flex align-items-sm-center flex-sm-row flex-column gap-2">
   <div class="flex-grow-1">
     <h4 class="fs-18 fw-semibold m-0">{{ title }}</h4>
     <p class="text-muted mb-0 fs-13">
-      Enter <strong>Net Profit from Odoo</strong>. Under Mudarabah, 50% goes to the shareholders' pool
-      (distributed by ownership %) and 50% to Akram Sweets as managing partner.
+      Enter <strong>Approved Monthly Net Profit (Imported from Odoo ERP)</strong>.
+      Mudarabah splits Net Profit into the shareholders' pool and {{ mudarabah.partner_name if mudarabah else (brand.company_name if brand else company_name) }} share, then distributes the pool by ownership %.
     </p>
   </div>
   <div class="text-end">
@@ -26,6 +26,23 @@
     {% endif %}
   </div>
 </div>
+
+{% if not create_context.ownership_valid %}
+<div class="alert alert-danger">
+  <strong>Calculation blocked.</strong>
+  Ownership totals <strong>{{ '%.4f'|format(create_context.ownership_total) }}%</strong> —
+  must equal exactly <strong>100.0000%</strong> before any Mudarabah calculation or approval.
+  <a href="{{ url_for('shareholders.list_shareholders') }}" class="alert-link">Fix ownership records</a>.
+</div>
+{% endif %}
+
+{% if create_context.withdrawal_warnings %}
+{% for w in create_context.withdrawal_warnings %}
+<div class="alert alert-warning py-2 fs-13">
+  <strong>Capital withdrawal notice.</strong> {{ w.message }}
+</div>
+{% endfor %}
+{% endif %}
 
 <div class="row">
   <div class="col-xl-8">
@@ -56,25 +73,29 @@
       </div>
 
       <div class="card mb-3 border-primary">
-        <div class="card-header d-flex align-items-center">
-          <h5 class="card-title mb-0">2. Net Profit from Odoo</h5>
-          <span class="badge bg-primary-subtle text-primary ms-2">Required</span>
+        <div class="card-header d-flex align-items-center flex-wrap gap-2">
+          <h5 class="card-title mb-0">2. Approved Monthly Net Profit (Imported from Odoo ERP)</h5>
+          <span class="badge bg-primary-subtle text-primary">Only input used for distribution</span>
         </div>
         <div class="card-body">
-          <p class="text-muted fs-13 mb-3">
-            Import / enter only the period’s <strong>Net Profit</strong> from Odoo.
-            Mudarabah split (default 50/50):
-            <code>Shareholders' pool = Net Profit × 50%</code>, then
-            <code>Shareholder profit = pool × ownership %</code>
-            (then special arrangements and adjustments, if any).
-            The remaining 50% belongs to Akram Sweets (managing partner).
-          </p>
+          <p class="text-muted fs-13 mb-3">{{ form.total_profit_loss.description }}</p>
           <div class="row align-items-end">
             <div class="col-md-8 mb-2">
-              <label class="form-label fw-semibold">Net Profit (from Odoo)</label>
+              <label class="form-label fw-semibold">{{ form.total_profit_loss.label.text }}</label>
               {{ form.total_profit_loss(class='form-control form-control-lg fw-semibold', step='0.01', id='pnl-net-profit', placeholder='e.g. 100000.00', required=True) }}
-              <div class="form-text">Use a negative value for a loss month (e.g. -50000.00).</div>
+              <div class="form-text">Use a negative value for a loss month (e.g. -50000.00). Finance/Admin may adjust before approval.</div>
               {% for error in form.total_profit_loss.errors %}<div class="text-danger fs-13">{{ error }}</div>{% endfor %}
+            </div>
+          </div>
+
+          <div class="border rounded p-3 mt-3 bg-light mudarabah-formula" id="live-formula">
+            <div class="fw-semibold mb-2 text-dark" style="font-family:inherit">Mudarabah formula (live)</div>
+            <div class="row g-2">
+              <div class="col-sm-6">Net Profit = <span id="formula-net">{{ currency_symbol }}0.00</span></div>
+              <div class="col-sm-6">Shareholders' Pool (<span id="formula-pool-pct">{{ mudarabah.shareholder_percent_label if mudarabah else '50' }}</span>%) = <span id="formula-pool" class="text-primary">{{ currency_symbol }}0.00</span></div>
+              <div class="col-sm-6"><span id="formula-partner-name">{{ mudarabah.partner_name if mudarabah else (brand.company_name if brand else company_name) }}</span> Share (<span id="formula-partner-pct">{{ mudarabah.partner_percent_label if mudarabah else '50' }}</span>%) = <span id="formula-partner">{{ currency_symbol }}0.00</span></div>
+              <div class="col-sm-6">Total Distributed (preview) = <span id="formula-distributed">{{ currency_symbol }}0.00</span></div>
+              <div class="col-sm-6">Remaining Balance = <span id="formula-remaining">{{ currency_symbol }}0.00</span></div>
             </div>
           </div>
         </div>
@@ -82,45 +103,45 @@
 
       <div class="card mb-3">
         <div class="card-header">
-          <h5 class="card-title mb-0">3. Optional P&amp;L notes</h5>
-          <p class="text-muted fs-12 mb-0 mt-1">Not used for distribution — leave blank unless you want them on the period record.</p>
+          <button class="btn btn-link p-0 text-decoration-none text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#odoo-pnl-ref" aria-expanded="false">
+            <h5 class="card-title mb-0">3. Odoo P&amp;L reference (optional, read-only for calculation)</h5>
+          </button>
+          <p class="text-muted fs-12 mb-0 mt-1">These figures do <strong>not</strong> affect Mudarabah distribution. Store only for audit/reference.</p>
         </div>
-        <div class="card-body">
-          <div class="table-responsive">
-            <table class="table align-middle mb-0">
-              <tbody>
-                <tr>
-                  <td class="fw-medium" style="width:45%">Income</td>
-                  <td>
-                    {{ form.income(class='form-control pnl-input', step='0.01', id='pnl-income', placeholder='Optional') }}
-                  </td>
-                </tr>
-                <tr>
-                  <td class="fw-medium">Gross Profit</td>
-                  <td>
-                    {{ form.gross_profit(class='form-control pnl-input', step='0.01', id='pnl-gross-profit', placeholder='Optional') }}
-                  </td>
-                </tr>
-                <tr>
-                  <td class="fw-medium">Total Gross Profit</td>
-                  <td>
-                    {{ form.total_gross_profit(class='form-control pnl-input', step='0.01', id='pnl-total-gross-profit', placeholder='Optional') }}
-                  </td>
-                </tr>
-                <tr>
-                  <td class="fw-medium">Total Income</td>
-                  <td>
-                    {{ form.total_income(class='form-control pnl-input', step='0.01', id='pnl-total-income', placeholder='Optional') }}
-                  </td>
-                </tr>
-                <tr>
-                  <td class="fw-medium">Total Operating Expenses</td>
-                  <td>
-                    {{ form.total_expenses(class='form-control pnl-input', step='0.01', id='pnl-total-expenses', placeholder='Optional') }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+        <div class="collapse" id="odoo-pnl-ref">
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table align-middle mb-0">
+                <tbody>
+                  <tr>
+                    <td class="fw-medium" style="width:45%">Income</td>
+                    <td>{{ form.income(class='form-control pnl-input', step='0.01', id='pnl-income', placeholder='Reference only', readonly=true) }}</td>
+                  </tr>
+                  <tr>
+                    <td class="fw-medium">Gross Profit</td>
+                    <td>{{ form.gross_profit(class='form-control pnl-input', step='0.01', id='pnl-gross-profit', placeholder='Reference only', readonly=true) }}</td>
+                  </tr>
+                  <tr>
+                    <td class="fw-medium">Total Gross Profit</td>
+                    <td>{{ form.total_gross_profit(class='form-control pnl-input', step='0.01', id='pnl-total-gross-profit', placeholder='Reference only', readonly=true) }}</td>
+                  </tr>
+                  <tr>
+                    <td class="fw-medium">Total Income</td>
+                    <td>{{ form.total_income(class='form-control pnl-input', step='0.01', id='pnl-total-income', placeholder='Reference only', readonly=true) }}</td>
+                  </tr>
+                  <tr>
+                    <td class="fw-medium">Operating Expenses</td>
+                    <td>{{ form.total_expenses(class='form-control pnl-input', step='0.01', id='pnl-total-expenses', placeholder='Reference only', readonly=true) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            {% if current_user.can_enter_financials() %}
+            <div class="form-check mt-2">
+              <input class="form-check-input" type="checkbox" id="unlock-pnl-ref">
+              <label class="form-check-label fs-13" for="unlock-pnl-ref">Unlock reference fields (Finance/Admin — still not used in calculation)</label>
+            </div>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -133,14 +154,18 @@
             {{ form.notes(class='form-control', rows='3', placeholder='Optional context for finance or management review.') }}
           </div>
           <div class="alert alert-info py-2 fs-13 mb-3">
-            Saving creates a <strong>draft</strong> period and calculates each shareholder’s share from
-            <strong>Net Profit × ownership %</strong>.
+            Saving creates a <strong>Draft</strong>, calculates Mudarabah pools, then each shareholder’s profit from
+            <strong>Shareholders' Pool × Ownership Percentage</strong>, then applies special arrangements.
           </div>
           <div class="d-flex flex-wrap gap-2">
-            <button type="button" class="btn btn-soft-primary" id="preview-distribution-btn">
+            <button type="button" class="btn btn-soft-primary" id="preview-distribution-btn" {% if not create_context.ownership_valid %}disabled{% endif %}>
               <i class="mdi mdi-calculator"></i> Preview Distribution
             </button>
+            {% if create_context.ownership_valid %}
             {{ form.submit(class='btn btn-primary') }}
+            {% else %}
+            <button type="button" class="btn btn-primary" disabled title="Ownership must equal 100.0000%">Save &amp; Calculate Mudarabah Distribution</button>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -152,21 +177,20 @@
       <div class="card-header"><h5 class="card-title mb-0">Workflow</h5></div>
       <div class="card-body">
         <ol class="mb-0 ps-3 fs-13">
-          <li class="mb-2 akram-step">Enter Net Profit from Odoo for the month</li>
-          <li class="mb-2 akram-step">Mudarabah: 50% shareholders' pool / 50% Akram Sweets</li>
-          <li class="mb-2 akram-step">Preview pool split by ownership %</li>
-          <li class="mb-2 akram-step">Save as draft &amp; review calculations</li>
-          <li class="mb-2 akram-step">Submit for management approval</li>
-          <li class="akram-step">Approve → lock → email PDF reports</li>
+          <li class="mb-2 akram-step"><strong>Draft</strong> — enter Net Profit &amp; calculate</li>
+          <li class="mb-2 akram-step"><strong>Finance Review</strong> — verify Mudarabah split ({{ mudarabah.label if mudarabah else 'configured %' }})</li>
+          <li class="mb-2 akram-step"><strong>Management Approval</strong> — lock figures</li>
+          <li class="mb-2 akram-step"><strong>Locked</strong> — certificates issued</li>
+          <li class="akram-step"><strong>Payment Completed</strong> — mark payouts done</li>
         </ol>
       </div>
     </div>
 
     <div class="card mb-3">
       <div class="card-header d-flex align-items-center">
-        <h5 class="card-title mb-0">Ownership (as of period end)</h5>
+        <h5 class="card-title mb-0">Ownership Percentage</h5>
         <span class="badge ms-auto {% if create_context.ownership_valid %}bg-success-subtle text-success{% else %}bg-danger-subtle text-danger{% endif %}">
-          {{ '%.2f'|format(create_context.ownership_total) }}%
+          {{ '%.4f'|format(create_context.ownership_total) }}%
         </span>
       </div>
       <div class="card-body p-0">
@@ -175,36 +199,57 @@
         {% endif %}
         <div class="table-responsive">
           <table class="table table-sm mb-0">
-            <thead><tr><th>Shareholder</th><th class="text-end">%</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Shareholder</th>
+                <th class="text-end">Investment</th>
+                <th class="text-end">Shares</th>
+                <th class="text-end">Ownership %</th>
+              </tr>
+            </thead>
             <tbody>
             {% for row in create_context.ownership_rows %}
             <tr>
               <td>{{ row.name }}{% if row.is_owner %} <span class="badge bg-primary-subtle text-primary">Owner</span>{% endif %}</td>
-              <td class="text-end">{{ '%.2f'|format(row.ownership_percent) }}</td>
+              <td class="text-end">{{ currency_symbol }}{{ '{:,.2f}'.format(row.investment) }}</td>
+              <td class="text-end">{% if row.shares %}{{ '%.4f'|format(row.shares) }}{% else %}—{% endif %}</td>
+              <td class="text-end">{{ '%.4f'|format(row.ownership_percent) }}%</td>
             </tr>
             {% else %}
-            <tr><td colspan="2" class="text-muted text-center py-3">No active shareholders</td></tr>
+            <tr><td colspan="4" class="text-muted text-center py-3">No active shareholders</td></tr>
             {% endfor %}
             </tbody>
+            <tfoot>
+              <tr class="table-light fw-semibold">
+                <td>Total</td>
+                <td></td>
+                <td></td>
+                <td class="text-end {% if create_context.ownership_valid %}text-success{% else %}text-danger{% endif %}">
+                  {{ '%.4f'|format(create_context.ownership_total) }}%
+                </td>
+              </tr>
+            </tfoot>
           </table>
         </div>
         {% if not create_context.ownership_valid %}
         <div class="p-3 border-top">
-          <a href="{{ url_for('shareholders.list_shareholders') }}" class="btn btn-sm btn-soft-danger w-100">Fix Ownership Records</a>
+          <a href="{{ url_for('shareholders.list_shareholders') }}" class="btn btn-sm btn-danger w-100">Fix Ownership Records</a>
         </div>
         {% endif %}
       </div>
     </div>
 
     <div class="card mb-3">
-      <div class="card-header"><h5 class="card-title mb-0">Active Arrangements</h5></div>
+      <div class="card-header"><h5 class="card-title mb-0">Special Arrangements</h5></div>
       <div class="card-body">
+        <p class="fs-12 text-muted">Applied <strong>after</strong> normal pool × ownership % distribution.</p>
         {% for arr in create_context.arrangements %}
         <div class="border rounded p-2 mb-2">
           <div class="fw-semibold fs-14">{{ arr.name }}</div>
           <div class="text-muted fs-13">{{ arr.bonus_percent }}% → {{ arr.recipient }}</div>
           <div class="fs-12 text-muted">Sources: {{ arr.sources }}</div>
-          <div class="fs-12">
+          <div class="fs-12 mt-1">{{ arr.explanation }}</div>
+          <div class="fs-12 mt-1">
             {% if arr.apply_on_profit %}<span class="badge bg-success-subtle text-success">Profit</span>{% endif %}
             {% if arr.apply_on_loss %}<span class="badge bg-danger-subtle text-danger">Loss</span>{% endif %}
           </div>
@@ -233,44 +278,55 @@
 </div>
 
 <div class="card d-none" id="preview-card">
-  <div class="card-header d-flex align-items-center">
-    <h5 class="card-title mb-0">Distribution Preview</h5>
-    <span class="badge bg-primary-subtle text-primary ms-2" id="preview-type-badge">Profit</span>
+  <div class="card-header d-flex align-items-center flex-wrap gap-2">
+    <h5 class="card-title mb-0">Mudarabah Distribution Preview</h5>
+    <span class="badge bg-primary-subtle text-primary" id="preview-type-badge">Profit</span>
     <span class="ms-auto text-muted fs-13" id="preview-reconcile"></span>
   </div>
   <div class="card-body border-bottom py-3">
     <div class="row g-3 fs-13" id="preview-mudarabah-summary">
-      <div class="col-md-4">
-        <div class="text-muted">Company Net Profit</div>
+      <div class="col-md-4 col-lg">
+        <div class="text-muted">Net Profit</div>
         <div class="fw-semibold" id="preview-company-net">{{ currency_symbol }}0.00</div>
       </div>
-      <div class="col-md-4">
-        <div class="text-muted">Shareholders' pool <span id="preview-pool-pct"></span></div>
+      <div class="col-md-4 col-lg">
+        <div class="text-muted">Shareholders' Pool <span id="preview-pool-pct"></span></div>
         <div class="fw-semibold text-primary" id="preview-pool">{{ currency_symbol }}0.00</div>
       </div>
-      <div class="col-md-4">
-        <div class="text-muted">Akram Sweets (managing partner)</div>
+      <div class="col-md-4 col-lg">
+        <div class="text-muted">{{ mudarabah.partner_name if mudarabah else (brand.company_name if brand else 'Managing Partner') }} Share <span id="preview-partner-pct"></span></div>
         <div class="fw-semibold" id="preview-partner">{{ currency_symbol }}0.00</div>
       </div>
+      <div class="col-md-4 col-lg">
+        <div class="text-muted">Total Distributed</div>
+        <div class="fw-semibold" id="preview-distributed">{{ currency_symbol }}0.00</div>
+      </div>
+      <div class="col-md-4 col-lg">
+        <div class="text-muted">Remaining Balance</div>
+        <div class="fw-semibold" id="preview-remaining">{{ currency_symbol }}0.00</div>
+      </div>
     </div>
+    <div class="mudarabah-formula mt-3 text-muted" id="preview-formula-text"></div>
   </div>
   <div class="card-body p-0">
+    <div class="px-3 pt-3 fs-13 text-muted">1. Normal distribution (pool × ownership %) · 2. Apply special arrangements · 3. Final profit</div>
     <div class="table-responsive">
       <table class="table table-hover period-preview-table mb-0">
         <thead>
           <tr>
             <th>Shareholder</th>
-            <th>Ownership</th>
-            <th>Base</th>
-            <th>Deduction</th>
-            <th>Received</th>
-            <th class="text-end">Final</th>
+            <th class="text-end">Investment</th>
+            <th class="text-end">Shares</th>
+            <th class="text-end">Ownership %</th>
+            <th class="text-end">Original Profit</th>
+            <th class="text-end">Adjustment</th>
+            <th class="text-end">Final Profit</th>
           </tr>
         </thead>
         <tbody id="preview-table-body"></tbody>
         <tfoot>
           <tr class="table-light fw-semibold">
-            <td colspan="5">Shareholders' pool / distributed</td>
+            <td colspan="6">Shareholders' pool / distributed</td>
             <td class="text-end" id="preview-company-total">{{ currency_symbol }}0.00</td>
           </tr>
         </tfoot>
@@ -291,6 +347,9 @@
     warnings: {{ create_context.warnings|tojson }},
     ownershipValid: {{ create_context.ownership_valid|tojson }},
     currencySymbol: {{ (currency_symbol or '$')|tojson }},
+    mudarabahPercent: {{ (mudarabah.shareholder_percent if mudarabah else 50)|tojson }},
+    partnerPercent: {{ (mudarabah.partner_percent if mudarabah else 50)|tojson }},
+    partnerName: {{ (mudarabah.partner_name if mudarabah else (brand.company_name if brand else company_name or 'Managing Partner'))|tojson }},
   };
 </script>
 <script src="{{ config.ASSETS_ROOT }}/js/pages/akram-period-form.init.js"></script>

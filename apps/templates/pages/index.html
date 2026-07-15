@@ -67,6 +67,61 @@
 </div>
 {% endif %}
 
+{% if not is_shareholder_view %}
+<!-- Mudarabah KPIs -->
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3 col-xl">
+    <div class="card mb-0 h-100"><div class="card-body py-3">
+      <div class="text-muted fs-12">Monthly Net Profit</div>
+      <div class="fs-20 fw-semibold {{ 'text-success' if latest_profit >= 0 else 'text-danger' }}">{{ currency_symbol }}{{ '{:,.2f}'.format(latest_profit) }}</div>
+      <div class="fs-11 text-muted">{% if latest_period %}{{ latest_period.period_label }}{% else %}No period{% endif %}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-3 col-xl">
+    <div class="card mb-0 h-100"><div class="card-body py-3">
+      <div class="text-muted fs-12">{{ mudarabah.pool_caption if mudarabah else "Shareholders' Pool" }}</div>
+      <div class="fs-20 fw-semibold text-primary">{{ currency_symbol }}{{ '{:,.2f}'.format(latest_pool or 0) }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-3 col-xl">
+    <div class="card mb-0 h-100"><div class="card-body py-3">
+      <div class="text-muted fs-12">{{ mudarabah.partner_caption if mudarabah else ((brand.company_name if brand else company_name) ~ ' Share') }}</div>
+      <div class="fs-20 fw-semibold">{{ currency_symbol }}{{ '{:,.2f}'.format(latest_partner or 0) }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-3 col-xl">
+    <div class="card mb-0 h-100"><div class="card-body py-3">
+      <div class="text-muted fs-12">Total Shareholders</div>
+      <div class="fs-20 fw-semibold">{{ active_shareholders }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-3 col-xl">
+    <div class="card mb-0 h-100"><div class="card-body py-3">
+      <div class="text-muted fs-12">Total Investment</div>
+      <div class="fs-20 fw-semibold">{{ currency_symbol }}{{ '{:,.2f}'.format(total_investment or 0) }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-3 col-xl">
+    <div class="card mb-0 h-100"><div class="card-body py-3">
+      <div class="text-muted fs-12">Total Shares</div>
+      <div class="fs-20 fw-semibold">{{ '{:,.4f}'.format(total_shares or 0) }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-md-3 col-xl">
+    <a href="{{ url_for('shareholders.list_withdrawals') }}" class="card mb-0 h-100 text-decoration-none"><div class="card-body py-3">
+      <div class="text-muted fs-12">Pending Withdrawals</div>
+      <div class="fs-20 fw-semibold text-warning">{{ pending_withdrawals }}</div>
+    </div></a>
+  </div>
+  <div class="col-6 col-md-3 col-xl">
+    <a href="{{ url_for('periods.approvals_inbox') }}" class="card mb-0 h-100 text-decoration-none"><div class="card-body py-3">
+      <div class="text-muted fs-12">Pending Approvals</div>
+      <div class="fs-20 fw-semibold text-info">{{ pending_approval }}</div>
+    </div></a>
+  </div>
+</div>
+{% endif %}
+
 <!-- Start Main Widgets -->
 <div class="row">
   <div class="col-md-6 col-lg-4 col-xl">

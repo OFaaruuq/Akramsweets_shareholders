@@ -256,6 +256,8 @@ def get_dashboard_metrics(year=None):
 
     latest_profit = latest_period.total_profit_loss if latest_period else Decimal('0')
     previous_profit = previous_period.total_profit_loss if previous_period else Decimal('0')
+    latest_pool = latest_period.shareholders_pool if latest_period else Decimal('0')
+    latest_partner = latest_period.managing_partner_share if latest_period else Decimal('0')
     latest_distributed = Decimal('0')
     if latest_period and latest_period.calculations.count():
         latest_distributed = sum(
@@ -266,10 +268,27 @@ def get_dashboard_metrics(year=None):
     pending_approval = review_periods
     from apps.models.shareholder import CapitalWithdrawalRequest
 
-    pending_withdrawals = CapitalWithdrawalRequest.query.filter_by(
+    pending_withdrawals = CapitalWithdrawalRequest.query.filter(
+        CapitalWithdrawalRequest.status.in_([
+            CapitalWithdrawalRequest.STATUS_PENDING,
+            CapitalWithdrawalRequest.STATUS_APPROVED,
+        ])
+    ).count()
+    approvals_inbox_count = review_periods + CapitalWithdrawalRequest.query.filter_by(
         status=CapitalWithdrawalRequest.STATUS_PENDING
     ).count()
-    approvals_inbox_count = review_periods + pending_withdrawals
+
+    # Capital / shares register totals
+    active_shareholder_rows = Shareholder.query.filter_by(is_active=True).all()
+    total_investment = sum((Decimal(s.investment_amount or 0) for s in active_shareholder_rows), Decimal('0'))
+    total_shares = sum((Decimal(s.share_count or 0) for s in active_shareholder_rows), Decimal('0'))
+    if total_shares <= 0:
+        try:
+            from apps.services.share_value_service import get_total_company_shares
+
+            total_shares = get_total_company_shares()
+        except Exception:
+            total_shares = Decimal('0')
 
     recent_periods = (
         MonthlyPeriod.query.order_by(MonthlyPeriod.year.desc(), MonthlyPeriod.month.desc()).limit(6).all()
@@ -354,11 +373,15 @@ def get_dashboard_metrics(year=None):
 
     return {
         'active_shareholders': active_shareholders,
+        'total_investment': total_investment,
+        'total_shares': total_shares,
         'draft_periods': draft_periods,
         'review_periods': review_periods,
         'approved_periods': approved_periods,
         'latest_period': latest_period,
         'latest_profit': latest_profit,
+        'latest_pool': latest_pool,
+        'latest_partner': latest_partner,
         'latest_distributed': latest_distributed,
         'pending_approval': pending_approval,
         'pending_withdrawals': pending_withdrawals,

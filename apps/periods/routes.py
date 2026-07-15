@@ -9,7 +9,14 @@ from apps.models.shareholder import Shareholder
 from apps.periods import blueprint
 from apps.services.audit_service import log_action
 from apps.services.approval_service import get_pending_approvals, reject_period
-from apps.services.calculation_service import approve_period, calculate_period, preview_period_distribution, reopen_for_correction, submit_for_review
+from apps.services.calculation_service import (
+    approve_period,
+    calculate_period,
+    mark_payment_completed,
+    preview_period_distribution,
+    reopen_for_correction,
+    submit_for_review,
+)
 from apps.services.period_service import (
     apply_period_form_defaults,
     get_period_create_context,
@@ -18,6 +25,20 @@ from apps.services.period_service import (
     resolve_period_totals,
 )
 from apps.services.report_schedule_service import auto_send_period_reports, can_send_reports_now, get_report_delivery_day, send_period_reports
+
+PERIOD_FORM_TITLE = 'Monthly Mudarabah Profit Distribution'
+
+
+def _form_extras():
+    from apps.services.mudarabah_service import get_mudarabah_shareholder_percent
+    from apps.services.share_value_service import get_share_settings
+
+    settings = get_share_settings()
+    return {
+        'mudarabah_percent': float(get_mudarabah_shareholder_percent()),
+        'share_value_label': settings.get('label'),
+        'share_settings': settings,
+    }
 
 
 def _period_from_form(form, created_by_id=None):
@@ -239,6 +260,7 @@ def approvals_inbox():
 @finance_or_management_required
 def create_period():
     form = PeriodForm()
+    extras = _form_extras()
     if request.method == 'GET':
         create_context = apply_period_form_defaults(form)
     else:
@@ -252,13 +274,19 @@ def create_period():
 
         readiness = get_period_readiness(form.year.data, form.month.data)
         if not readiness['ownership_valid']:
-            flash(readiness['warnings'][0], 'danger')
+            flash(
+                readiness['blocking_errors'][0]
+                if readiness.get('blocking_errors')
+                else 'Ownership must total exactly 100% before calculation.',
+                'danger',
+            )
             return render_template(
                 'periods/form.html',
                 form=form,
-                title='Enter Monthly Result',
+                title=PERIOD_FORM_TITLE,
                 segment='periods',
                 create_context=create_context,
+                **extras,
             )
 
         period = _period_from_form(form, created_by_id=current_user.id)
@@ -273,21 +301,23 @@ def create_period():
             return render_template(
                 'periods/form.html',
                 form=form,
-                title='Enter Monthly Result',
+                title=PERIOD_FORM_TITLE,
                 segment='periods',
                 create_context=create_context,
+                **extras,
             )
 
         log_action('create', 'monthly_period', period.id, period.period_label)
-        flash('Monthly period saved and shareholder distribution calculated.', 'success')
+        flash('Monthly Mudarabah distribution calculated and saved as Draft.', 'success')
         return redirect(url_for('periods.detail_period', period_id=period.id))
 
     return render_template(
         'periods/form.html',
         form=form,
-        title='Enter Monthly Result',
+        title=PERIOD_FORM_TITLE,
         segment='periods',
         create_context=create_context,
+        **extras,
     )
 
 
@@ -307,6 +337,18 @@ def preview_period():
             total_operating_expenses=payload.get('total_expenses'),
         )
         readiness = get_period_readiness(year, month)
+        if not readiness['ownership_valid']:
+            return jsonify({
+                'ok': False,
+                'error': (
+                    readiness['blocking_errors'][0]
+                    if readiness.get('blocking_errors')
+                    else 'Ownership must total exactly 100.0000% before preview.'
+                ),
+                'ownership_valid': False,
+                'ownership_total': readiness['ownership_total'],
+                'warnings': readiness['warnings'],
+            }), 400
         preview = preview_period_distribution(net_total, period_as_of_date(year, month))
         return jsonify({
             'ok': True,
@@ -314,6 +356,7 @@ def preview_period():
             'warnings': readiness['warnings'],
             'ownership_total': readiness['ownership_total'],
             'ownership_valid': readiness['ownership_valid'],
+            'withdrawal_warnings': readiness.get('withdrawal_warnings') or [],
         })
     except (TypeError, ValueError) as exc:
         return jsonify({'ok': False, 'error': str(exc)}), 400
@@ -340,26 +383,70 @@ def detail_period(period_id):
     update_form = ShareholderUpdateForm()
 
     from apps.models.certificate import ShareholderCertificate
+    from apps.services.share_value_service import capital_for_ownership, shares_for_ownership
 
     certificates = {
         cert.shareholder_id: cert
         for cert in ShareholderCertificate.query.filter_by(period_id=period.id).all()
     }
+
+    calc_rows = []
+    for calc in calculations:
+        sh = calc.shareholder
+        ownership = calc.ownership_percent
+        registered_shares = float(sh.share_count or 0) if sh else 0.0
+        registered_investment = float(sh.investment_amount or 0) if sh else 0.0
+        derived_shares = shares_for_ownership(ownership)
+        derived_capital = capital_for_ownership(ownership)
+        arrangement_adj = float(calc.arrangement_deduction or 0) + float(calc.arrangement_received or 0)
+        calc_rows.append({
+            'calc': calc,
+            'investment': registered_investment or (
+                float(derived_capital) if derived_capital is not None else 0.0
+            ),
+            'shares': registered_shares or (
+                float(derived_shares) if derived_shares is not None else 0.0
+            ),
+            'original_profit': float(calc.base_share or 0),
+            'adjustment': arrangement_adj + float(calc.manual_adjustment or 0),
+            'final_profit': float(calc.final_amount or 0),
+        })
+
+    readiness = get_period_readiness(period.year, period.month)
+    remaining = float(period.shareholders_pool or 0) - float(distributed_total or 0)
+
     return render_template(
         'periods/detail.html',
         period=period,
         calculations=calculations,
+        calc_rows=calc_rows,
         certificates=certificates,
         distributed_total=distributed_total,
+        remaining_balance=remaining,
         adjustments=adjustments,
         adjustment_form=adjustment_form,
         correction_form=correction_form,
         reject_form=reject_form,
         update_form=update_form,
+        withdrawal_warnings=readiness.get('withdrawal_warnings') or [],
+        ownership_valid=readiness['ownership_valid'],
+        ownership_total=readiness['ownership_total'],
         report_delivery_day=get_report_delivery_day(),
         can_send_reports_now=can_send_reports_now(),
         segment='periods',
     )
+
+
+@blueprint.route('/<int:period_id>/mark-payment', methods=['POST'])
+@management_required
+def mark_period_payment(period_id):
+    period = MonthlyPeriod.query.get_or_404(period_id)
+    try:
+        mark_payment_completed(period, current_user)
+        flash('Period marked as Payment Completed.', 'success')
+    except ValueError as exc:
+        flash(str(exc), 'danger')
+    return redirect(url_for('periods.detail_period', period_id=period.id))
 
 
 @blueprint.route('/<int:period_id>/edit', methods=['GET', 'POST'])
@@ -377,6 +464,7 @@ def edit_period(period_id):
         return redirect(url_for('periods.detail_period', period_id=period.id))
 
     form = PeriodForm(obj=period)
+    extras = _form_extras()
     if request.method == 'GET':
         # Prefer dedicated P&L fields; fall back to legacy columns for older periods.
         if not form.income.data and period.total_revenues:
@@ -394,6 +482,23 @@ def edit_period(period_id):
     create_context = get_period_create_context(period.year, period.month)
 
     if form.validate_on_submit():
+        if not create_context['ownership_valid']:
+            flash(
+                create_context['blocking_errors'][0]
+                if create_context.get('blocking_errors')
+                else 'Ownership must total exactly 100% before calculation.',
+                'danger',
+            )
+            return render_template(
+                'periods/form.html',
+                form=form,
+                title=f'Edit — {PERIOD_FORM_TITLE}',
+                period=period,
+                segment='periods',
+                create_context=create_context,
+                **extras,
+            )
+
         previous_net = period.total_profit_loss
         _update_period_from_form(period, form)
         db.session.commit()
@@ -404,10 +509,11 @@ def edit_period(period_id):
             return render_template(
                 'periods/form.html',
                 form=form,
-                title=f'Edit Period {period.period_label}',
+                title=f'Edit — {PERIOD_FORM_TITLE}',
                 period=period,
                 segment='periods',
                 create_context=create_context,
+                **extras,
             )
 
         log_action('update', 'monthly_period', period.id, period.period_label)
@@ -420,32 +526,22 @@ def edit_period(period_id):
             try:
                 from apps.services.notification_service import notify_shareholders_period_update
 
-                result = notify_shareholders_period_update(
+                notify_shareholders_period_update(
                     period,
-                    reason='profit_update',
-                    actor=current_user,
-                    respect_setting=True,
+                    message='Figures were updated after recalculation.' if net_changed else None,
                 )
-                if result.get('mode') == 'disabled':
-                    pass
-                elif result.get('ok'):
-                    flash(
-                        f'Shareholders notified of the profit update ({result.get("sent", 0)} of '
-                        f'{result.get("total", 0)}).',
-                        'info',
-                    )
             except Exception:
-                flash('Period saved, but shareholder update emails could not be sent. Check SMTP.', 'warning')
-
+                pass
         return redirect(url_for('periods.detail_period', period_id=period.id))
 
     return render_template(
         'periods/form.html',
         form=form,
-        title=f'Edit Period {period.period_label}',
+        title=f'Edit — {PERIOD_FORM_TITLE}',
         period=period,
         segment='periods',
         create_context=create_context,
+        **extras,
     )
 
 
@@ -471,7 +567,6 @@ def submit_review(period_id):
     period = MonthlyPeriod.query.get_or_404(period_id)
     try:
         submit_for_review(period, user=current_user)
-        log_action('submit_review', 'monthly_period', period.id, period.period_label)
         try:
             from apps.services.notification_service import notify_management_period_submitted
 

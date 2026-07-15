@@ -1,4 +1,4 @@
-"""Capital withdrawal requests — up to 6 months to return capital per agreement."""
+"""Capital withdrawal requests — configurable return deadline from system settings."""
 
 from __future__ import annotations
 
@@ -6,11 +6,52 @@ from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 from apps import db
+from apps.models.settings import SystemSetting
 from apps.models.shareholder import CapitalWithdrawalRequest
 from apps.services.audit_service import log_action
 
 MONEY = Decimal('0.01')
-DEADLINE_DAYS = 183  # ~6 calendar months
+BOOTSTRAP_DEADLINE_DAYS = 183  # ~6 calendar months — used only until Settings is configured
+SETTING_KEY = 'capital_return_deadline_days'
+
+
+def get_capital_return_deadline_days():
+    raw = SystemSetting.get(SETTING_KEY)
+    try:
+        days = int(str(raw or BOOTSTRAP_DEADLINE_DAYS).strip())
+    except (TypeError, ValueError):
+        days = BOOTSTRAP_DEADLINE_DAYS
+    if days < 1 or days > 3650:
+        return BOOTSTRAP_DEADLINE_DAYS
+    return days
+
+
+def get_capital_return_deadline_months_label():
+    days = get_capital_return_deadline_days()
+    months = round(days / 30.4375, 1)
+    if abs(months - int(months)) < 0.05:
+        months = int(months)
+    return {
+        'days': days,
+        'months': months,
+        'label': f'up to {months} months ({days} days)',
+        'short_label': f'{months} months',
+    }
+
+
+def save_capital_return_deadline_days(days):
+    try:
+        value = int(days)
+    except (TypeError, ValueError) as exc:
+        raise ValueError('Capital return deadline must be a whole number of days.') from exc
+    if value < 1 or value > 3650:
+        raise ValueError('Capital return deadline must be between 1 and 3650 days.')
+    SystemSetting.set(SETTING_KEY, str(value))
+
+
+def ensure_default_withdrawal_settings():
+    if not SystemSetting.get(SETTING_KEY):
+        SystemSetting.set(SETTING_KEY, str(BOOTSTRAP_DEADLINE_DAYS))
 
 
 def money(value):
@@ -19,7 +60,7 @@ def money(value):
 
 def _deadline_from(requested_at=None):
     base = requested_at or datetime.utcnow()
-    return base + timedelta(days=DEADLINE_DAYS)
+    return base + timedelta(days=get_capital_return_deadline_days())
 
 
 def create_withdrawal_request(shareholder, amount, reason, user=None):
@@ -33,7 +74,7 @@ def create_withdrawal_request(shareholder, amount, reason, user=None):
         raise ValueError('Please provide a reason for the withdrawal request.')
 
     now = datetime.utcnow()
-    # Provisional deadline until approval; reset to 6 months from approval date.
+    # Provisional deadline until approval; reset from approval date using configured days.
     request = CapitalWithdrawalRequest(
         shareholder_id=shareholder.id,
         amount=amount,
@@ -70,14 +111,14 @@ def approve_withdrawal(request_id, user, review_notes=None):
     request.reviewed_by_id = user.id
     request.reviewed_at = now
     request.review_notes = (review_notes or '').strip() or None
-    # Agreement: up to 6 months to return capital after approval.
     request.deadline_at = _deadline_from(now)
     db.session.commit()
+    meta = get_capital_return_deadline_months_label()
     log_action(
         'approve',
         'capital_withdrawal',
         request.id,
-        f'Approved capital return for {request.shareholder.name} (deadline {request.deadline_at.date()})',
+        f'Approved capital return for {request.shareholder.name} (deadline {request.deadline_at.date()}, {meta["label"]})',
         user=user,
     )
     try:

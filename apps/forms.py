@@ -93,10 +93,10 @@ class CapitalWithdrawalReviewForm(FlaskForm):
 
 class PeriodForm(FlaskForm):
     """
-    Monthly period entry.
+    Monthly Mudarabah profit distribution entry.
 
-    Only Net Profit (from Odoo) is required for shareholder distribution.
-    Optional P&L lines may be stored for reference but are not used in the split.
+    Only Approved Monthly Net Profit (from Odoo) drives distribution.
+    Optional P&L reference lines are stored only when provided and never used in the split.
     """
 
     year = IntegerField('Year', validators=[DataRequired(), NumberRange(min=2000, max=2100)])
@@ -107,37 +107,38 @@ class PeriodForm(FlaskForm):
         validators=[DataRequired()],
     )
     total_profit_loss = DecimalField(
-        'Net Profit (from Odoo)',
+        'Approved Monthly Net Profit (Imported from Odoo ERP)',
         places=2,
-        validators=[InputRequired(message='Enter Net Profit from Odoo (negative for a loss).')],
+        validators=[InputRequired(message='Enter Approved Monthly Net Profit from Odoo (negative for a loss).')],
         description=(
-            'Company Net Profit from Odoo. Under Mudarabah, 50% goes to the shareholders\' '
-            'pool (distributed by ownership %) and 50% to Akram Sweets as managing partner.'
+            'Only this figure is used for Mudarabah distribution. '
+            'Shareholders\' pool = Net Profit × configured Mudarabah %; '
+            'remainder is the managing partner (company) share.'
         ),
     )
     odoo_reference = StringField(
         'Odoo period / journal reference',
         validators=[Optional(), Length(max=255)],
     )
-    # Optional breakdown — not used for shareholder calculation
-    income = DecimalField('Income (optional)', places=2, validators=[Optional()], default=0)
-    gross_profit = DecimalField('Gross Profit (optional)', places=2, validators=[Optional()], default=0)
+    # Optional Odoo P&L reference — not used for shareholder calculation
+    income = DecimalField('Income (Odoo reference)', places=2, validators=[Optional()], default=0)
+    gross_profit = DecimalField('Gross Profit (Odoo reference)', places=2, validators=[Optional()], default=0)
     total_gross_profit = DecimalField(
-        'Total Gross Profit (optional)', places=2, validators=[Optional()], default=0
+        'Total Gross Profit (Odoo reference)', places=2, validators=[Optional()], default=0
     )
-    total_income = DecimalField('Total Income (optional)', places=2, validators=[Optional()], default=0)
+    total_income = DecimalField('Total Income (Odoo reference)', places=2, validators=[Optional()], default=0)
     total_expenses = DecimalField(
-        'Total Operating Expenses (optional)', places=2, validators=[Optional()], default=0
+        'Operating Expenses (Odoo reference)', places=2, validators=[Optional()], default=0
     )
     notes = TextAreaField('Internal notes', validators=[Optional(), Length(max=5000)])
-    submit = SubmitField('Save & Calculate Distribution')
+    submit = SubmitField('Save & Calculate Mudarabah Distribution')
 
     def validate(self, extra_validators=None):
         if not super().validate(extra_validators):
             return False
         if self.total_profit_loss.data is None:
             self.total_profit_loss.errors.append(
-                'Enter Net Profit from Odoo for this accounting period.'
+                'Enter Approved Monthly Net Profit (Imported from Odoo ERP).'
             )
             return False
         return True
@@ -254,8 +255,14 @@ class SystemSettingsForm(FlaskForm):
         default=50,
         description=(
             'Percent of Monthly Net Profit that goes to the shareholders\' profit pool. '
-            'Remainder belongs to Akram Sweets (managing partner). Default 50%.'
+            'The remainder is the managing partner (company) share. Configurable anytime.'
         ),
+    )
+    capital_return_deadline_days = IntegerField(
+        'Capital return deadline (days after approval)',
+        validators=[DataRequired(), NumberRange(min=1, max=3650)],
+        default=183,
+        description='Number of days the company has to return capital after a withdrawal is approved.',
     )
     report_delivery_day = IntegerField('Report delivery day of month', validators=[Optional(), NumberRange(min=1, max=28)])
     mail_from = StringField('From email', validators=[Optional(), Email()])

@@ -69,9 +69,11 @@ def configure_database(app):
             ensure_default_certificate_settings()
             from apps.services.mudarabah_service import ensure_default_mudarabah_settings
             from apps.services.share_value_service import ensure_default_share_settings
+            from apps.services.capital_withdrawal_service import ensure_default_withdrawal_settings
 
             ensure_default_mudarabah_settings()
             ensure_default_share_settings()
+            ensure_default_withdrawal_settings()
             if app.config.get('MAIL_SERVER') and not SystemSetting.get('mail_server'):
                 SystemSetting.set('mail_server', app.config['MAIL_SERVER'])
             if app.config.get('MAIL_PORT') and not SystemSetting.get('mail_port'):
@@ -132,9 +134,39 @@ def create_app(config):
             return {
                 'display': None,
                 'currency_symbol': '$',
-                'company_name': 'Akram Sweets',
+                'company_name': 'Company',
                 'share_value': None,
                 'share_value_label': None,
+            }
+
+    @app.context_processor
+    def inject_mudarabah_settings():
+        try:
+            from apps.services.mudarabah_service import get_mudarabah_settings
+            from apps.services.capital_withdrawal_service import get_capital_return_deadline_months_label
+
+            return {
+                'mudarabah': get_mudarabah_settings(),
+                'capital_return': get_capital_return_deadline_months_label(),
+            }
+        except Exception:
+            return {
+                'mudarabah': {
+                    'shareholder_percent': 50,
+                    'partner_percent': 50,
+                    'shareholder_percent_label': '50',
+                    'partner_percent_label': '50',
+                    'partner_name': 'Managing Partner',
+                    'pool_caption': "Shareholders' Pool (50%)",
+                    'partner_caption': 'Managing Partner Share (50%)',
+                    'label': '50% shareholders / 50% managing partner',
+                },
+                'capital_return': {
+                    'days': 183,
+                    'months': 6,
+                    'label': 'up to 6 months (183 days)',
+                    'short_label': '6 months',
+                },
             }
 
     @app.context_processor

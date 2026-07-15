@@ -29,7 +29,7 @@
       <hr>
       <ul class="list-unstyled mb-0 fs-13">
         <li class="d-flex justify-content-between mb-2"><span>Requested</span><strong>{{ withdrawal.requested_at.strftime('%Y-%m-%d %H:%M') }}</strong></li>
-        <li class="d-flex justify-content-between mb-2"><span>Deadline (6 months from approval)</span><strong>{{ withdrawal.deadline_at.strftime('%Y-%m-%d') }}</strong></li>
+        <li class="d-flex justify-content-between mb-2"><span>Deadline ({{ capital_return.short_label if capital_return else 'configured' }} from approval)</span><strong>{{ withdrawal.deadline_at.strftime('%Y-%m-%d') }}</strong></li>
         <li class="d-flex justify-content-between mb-2"><span>Capital return date</span><strong>{{ withdrawal.capital_return_date or '—' }}</strong></li>
         <li class="d-flex justify-content-between mb-2"><span>Reviewed by</span><strong>{{ withdrawal.reviewed_by.full_name if withdrawal.reviewed_by else '—' }}</strong></li>
       </ul>

@@ -51,14 +51,17 @@ def mudarabah_summary():
         .all()
     )
     rows = []
+    mudarabah = get_mudarabah_settings()
+    default_pct = mudarabah['shareholder_percent']
     for period in periods:
         distributed = sum((float(c.final_amount) for c in period.calculations), 0.0)
+        pct = period.mudarabah_shareholder_percent
         rows.append({
             'period': period,
             'net_profit': float(period.total_profit_loss or 0),
             'shareholders_pool': float(period.shareholders_pool or 0),
             'managing_partner_share': float(period.managing_partner_share or 0),
-            'mudarabah_percent': float(period.mudarabah_shareholder_percent or 50),
+            'mudarabah_percent': float(pct if pct is not None else default_pct),
             'distributed': distributed,
             'status': period.status,
         })
@@ -66,7 +69,7 @@ def mudarabah_summary():
     return render_template(
         'reports/mudarabah_summary.html',
         rows=rows,
-        mudarabah=get_mudarabah_settings(),
+        mudarabah=mudarabah,
         withdrawals=withdrawals,
         segment='mudarabah',
     )

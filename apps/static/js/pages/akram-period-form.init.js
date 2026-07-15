@@ -1,5 +1,5 @@
 /*
-Monthly period entry — Net Profit from Odoo drives ownership distribution
+Monthly Mudarabah profit distribution — Net Profit from Odoo drives the split
 */
 
 (function () {
@@ -14,13 +14,26 @@ Monthly period entry — Net Profit from Odoo drives ownership distribution
   const previewCompanyNet = document.getElementById('preview-company-net');
   const previewPool = document.getElementById('preview-pool');
   const previewPartner = document.getElementById('preview-partner');
+  const previewDistributed = document.getElementById('preview-distributed');
+  const previewRemaining = document.getElementById('preview-remaining');
   const previewPoolPct = document.getElementById('preview-pool-pct');
+  const previewPartnerPct = document.getElementById('preview-partner-pct');
+  const previewFormulaText = document.getElementById('preview-formula-text');
   const previewTypeBadge = document.getElementById('preview-type-badge');
   const previewReconcile = document.getElementById('preview-reconcile');
   const previewError = document.getElementById('preview-error');
   const warningsBox = document.getElementById('period-warnings');
+  const netInput = document.getElementById('pnl-net-profit');
 
-  const currencySymbol = (config.currencySymbol || window.AKRAM_CURRENCY_SYMBOL || '$');
+  const mudarabahPct = Number(config.mudarabahPercent);
+  const partnerPct = Number(
+    config.partnerPercent != null ? config.partnerPercent : 100 - (Number.isFinite(mudarabahPct) ? mudarabahPct : 50)
+  );
+  const partnerName = config.partnerName || 'Managing Partner';
+  const safeMudarabahPct = Number.isFinite(mudarabahPct) ? mudarabahPct : 50;
+  const safePartnerPct = Number.isFinite(partnerPct) ? partnerPct : 100 - safeMudarabahPct;
+
+  const currencySymbol = config.currencySymbol || window.AKRAM_CURRENCY_SYMBOL || '$';
   const currency = (value) => {
     const amount = Number(value) || 0;
     const formatted = Math.abs(amount).toLocaleString(undefined, {
@@ -36,6 +49,27 @@ Monthly period entry — Net Profit from Odoo drives ownership distribution
     const value = parseFloat(el.value);
     return Number.isFinite(value) ? value : 0;
   };
+
+  function updateLiveFormula() {
+    const net = parseNumber('pnl-net-profit');
+    const pool = (net * safeMudarabahPct) / 100;
+    const partner = net - pool;
+    const set = (id, value) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = typeof value === 'string' ? value : currency(value);
+    };
+    set('formula-net', net);
+    set('formula-pool', pool);
+    set('formula-partner', partner);
+    set('formula-distributed', pool);
+    set('formula-remaining', 0);
+    const poolPctEl = document.getElementById('formula-pool-pct');
+    const partnerPctEl = document.getElementById('formula-partner-pct');
+    const partnerNameEl = document.getElementById('formula-partner-name');
+    if (poolPctEl) poolPctEl.textContent = String(safeMudarabahPct);
+    if (partnerPctEl) partnerPctEl.textContent = String(safePartnerPct);
+    if (partnerNameEl) partnerNameEl.textContent = partnerName;
+  }
 
   function renderWarnings(warnings) {
     if (!warningsBox) return;
@@ -74,28 +108,45 @@ Monthly period entry — Net Profit from Odoo drives ownership distribution
         (row) =>
           '<tr>' +
           '<td>' + row.name + '</td>' +
-          '<td>' + row.ownership_percent.toFixed(2) + '%</td>' +
-          '<td>' + currency(row.base_share) + '</td>' +
-          '<td class="text-danger">' + currency(row.arrangement_deduction) + '</td>' +
-          '<td class="text-success">' + currency(row.arrangement_received) + '</td>' +
-          '<td class="text-end fw-semibold ' + (row.final_amount >= 0 ? 'text-success' : 'text-danger') + '">' +
-          currency(row.final_amount) +
+          '<td class="text-end">' + currency(row.investment) + '</td>' +
+          '<td class="text-end">' + (row.shares ? Number(row.shares).toFixed(4) : '—') + '</td>' +
+          '<td class="text-end">' + Number(row.ownership_percent).toFixed(4) + '%</td>' +
+          '<td class="text-end">' + currency(row.original_profit != null ? row.original_profit : row.base_share) + '</td>' +
+          '<td class="text-end">' + currency(row.arrangement_adjustment != null ? row.arrangement_adjustment : ((row.arrangement_deduction || 0) + (row.arrangement_received || 0))) + '</td>' +
+          '<td class="text-end fw-semibold ' + ((row.profit != null ? row.profit : row.final_amount) >= 0 ? 'text-success' : 'text-danger') + '">' +
+          currency(row.profit != null ? row.profit : row.final_amount) +
           '</td></tr>'
       )
       .join('');
 
-    previewCompanyTotal.textContent = currency(preview.shareholders_pool != null ? preview.shareholders_pool : preview.distributed_total);
+    const pool = preview.shareholders_pool != null ? preview.shareholders_pool : preview.distributed_total;
+    previewCompanyTotal.textContent = currency(pool);
     if (previewCompanyNet) previewCompanyNet.textContent = currency(preview.company_total);
     if (previewPool) previewPool.textContent = currency(preview.shareholders_pool);
     if (previewPartner) previewPartner.textContent = currency(preview.managing_partner_share);
+    if (previewDistributed) previewDistributed.textContent = currency(preview.distributed_total);
+    if (previewRemaining) previewRemaining.textContent = currency(preview.remaining_balance != null ? preview.remaining_balance : preview.variance);
     if (previewPoolPct && preview.mudarabah_shareholder_percent != null) {
       previewPoolPct.textContent = '(' + Number(preview.mudarabah_shareholder_percent).toFixed(0) + '%)';
+    }
+    if (previewPartnerPct) {
+      const pct = preview.mudarabah_partner_percent != null
+        ? preview.mudarabah_partner_percent
+        : safePartnerPct;
+      previewPartnerPct.textContent = '(' + Number(pct).toFixed(0) + '%)';
+    }
+    if (previewFormulaText && preview.formula) {
+      const f = preview.formula;
+      previewFormulaText.textContent =
+        'Net Profit = ' + currency(f.net_profit) +
+        '  →  Shareholders Pool (' + Number(f.shareholder_percent).toFixed(0) + '%) = ' + currency(f.shareholders_pool) +
+        '  →  ' + partnerName + ' (' + Number(f.partner_percent).toFixed(0) + '%) = ' + currency(f.akram_share);
     }
     previewTypeBadge.textContent = preview.is_profit ? 'Profit' : 'Loss';
     previewTypeBadge.className =
       'badge ms-2 ' + (preview.is_profit ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger');
     previewReconcile.textContent =
-      'Pool distributed ' + currency(preview.distributed_total) + ' · Variance ' + currency(preview.variance);
+      'Pool distributed ' + currency(preview.distributed_total) + ' · Remaining ' + currency(preview.remaining_balance != null ? preview.remaining_balance : preview.variance);
 
     if (data.warnings && data.warnings.length) {
       renderWarnings(data.warnings);
@@ -106,7 +157,7 @@ Monthly period entry — Net Profit from Odoo drives ownership distribution
     if (!config.ownershipValid) {
       previewCard.classList.remove('d-none');
       previewError.classList.remove('d-none');
-      previewError.textContent = 'Ownership must total 100% before previewing distribution.';
+      previewError.textContent = 'Ownership must total exactly 100.0000% before previewing distribution.';
       previewBody.innerHTML = '';
       return;
     }
@@ -127,6 +178,9 @@ Monthly period entry — Net Profit from Odoo drives ownership distribution
       if (!response.ok || !data.ok) {
         throw new Error(data.error || 'Could not preview distribution.');
       }
+      if (data.ownership_valid === false) {
+        throw new Error('Ownership must total exactly 100.0000% before previewing distribution.');
+      }
       renderPreview(data);
     } catch (error) {
       previewCard.classList.remove('d-none');
@@ -139,6 +193,20 @@ Monthly period entry — Net Profit from Odoo drives ownership distribution
     }
   }
 
+  const unlockPnl = document.getElementById('unlock-pnl-ref');
+  if (unlockPnl) {
+    unlockPnl.addEventListener('change', function () {
+      document.querySelectorAll('#odoo-pnl-ref .pnl-input').forEach(function (el) {
+        el.readOnly = !unlockPnl.checked;
+      });
+    });
+  }
+
   if (previewBtn) previewBtn.addEventListener('click', previewDistribution);
+  if (netInput) {
+    netInput.addEventListener('input', updateLiveFormula);
+    netInput.addEventListener('change', updateLiveFormula);
+  }
+  updateLiveFormula();
   renderWarnings(config.warnings || []);
 })();

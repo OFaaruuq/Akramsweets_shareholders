@@ -600,7 +600,13 @@ def review_withdrawal(request_id):
         try:
             if form.submit_approve.data:
                 approve_withdrawal(withdrawal.id, current_user, form.review_notes.data)
-                flash('Capital withdrawal approved. Company has up to 6 months to return capital.', 'success')
+                from apps.services.capital_withdrawal_service import get_capital_return_deadline_months_label
+
+                deadline_meta = get_capital_return_deadline_months_label()
+                flash(
+                    f'Capital withdrawal approved. Company has {deadline_meta["label"]} to return capital.',
+                    'success',
+                )
             elif form.submit_reject.data:
                 reject_withdrawal(withdrawal.id, current_user, form.review_notes.data)
                 flash('Capital withdrawal rejected.', 'warning')

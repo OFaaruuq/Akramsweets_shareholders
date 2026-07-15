@@ -102,6 +102,56 @@ def main():
         r = client.get(path)
         if r.status_code != 200:
             errors.append(f'{path} returned {r.status_code}')
+        if path == '/periods/create':
+            body = r.get_data(as_text=True)
+            if 'Monthly Mudarabah Profit Distribution' not in body and 'Approved Monthly Net Profit' not in body:
+                errors.append('Period create page missing Mudarabah labels')
+            if 'Ownership Percentage' not in body:
+                errors.append('Period create page missing Ownership Percentage label')
+            if '100.0000%' not in body and 'must equal exactly' not in body and 'Ownership totals' not in body:
+                # Seed has 100% so look for success badge / table
+                if 'Ownership Percentage' not in body:
+                    errors.append('Period create ownership section missing')
+
+    # Ownership gate: preview must reject when totals != 100 (simulate by checking API with seed = 100 ok)
+    with app.app_context():
+        from apps.services.period_service import get_period_readiness
+        from datetime import date as date_cls
+
+        ready = get_period_readiness(2026, 12)
+        if not ready['ownership_valid']:
+            errors.append('Seed ownership should be valid for readiness checks')
+        if 'can_calculate' not in ready or not ready['can_calculate']:
+            errors.append('Readiness should expose can_calculate=True for seed data')
+        if 'blocking_errors' not in ready:
+            errors.append('Readiness missing blocking_errors')
+        if abs(ready['ownership_total'] - 100) > 0.01:
+            errors.append(f'Seed ownership total expected 100, got {ready["ownership_total"]}')
+        # Enriched ownership rows
+        if ready['ownership_rows'] and 'investment' not in ready['ownership_rows'][0]:
+            errors.append('Ownership rows should include investment for period create table')
+
+    create_page = client.get('/periods/create')
+    csrf_m = re.search(r'name="csrf_token"[^>]*value="([^"]+)"', create_page.get_data(as_text=True))
+    if csrf_m:
+        preview = client.post(
+            '/periods/preview',
+            json={
+                'year': 2027,
+                'month': 1,
+                'total_profit_loss': 100000,
+            },
+            headers={'X-CSRFToken': csrf_m.group(1)},
+        )
+        if preview.status_code != 200:
+            errors.append(f'Preview with valid ownership failed: {preview.status_code}')
+        else:
+            pdata = preview.get_json() or {}
+            if not pdata.get('ok') or not pdata.get('preview', {}).get('formula'):
+                errors.append('Preview should return Mudarabah formula payload')
+            sh = (pdata.get('preview') or {}).get('shareholders') or []
+            if sh and 'profit' not in sh[0]:
+                errors.append('Preview shareholder rows should include profit')
 
     # Shareholder registration: block ownership over 100%, allow search filters
     with app.app_context():
@@ -117,21 +167,21 @@ def main():
         if stats['active'] != 3:
             errors.append(f'Expected 3 active shareholders in stats, got {stats["active"]}')
 
-    create_page = client.get('/shareholders/create')
-    if create_page.status_code != 200:
-        errors.append(f'/shareholders/create returned {create_page.status_code}')
+    sh_create = client.get('/shareholders/create')
+    if sh_create.status_code != 200:
+        errors.append(f'/shareholders/create returned {sh_create.status_code}')
     else:
-        csrf_m = re.search(
+        csrf_sh = re.search(
             r'name="csrf_token"[^>]*value="([^"]+)"',
-            create_page.get_data(as_text=True),
+            sh_create.get_data(as_text=True),
         )
-        if not csrf_m:
+        if not csrf_sh:
             errors.append('CSRF missing on shareholder create form')
         else:
             over_post = client.post(
                 '/shareholders/create',
                 data={
-                    'csrf_token': csrf_m.group(1),
+                    'csrf_token': csrf_sh.group(1),
                     'name': 'Overflow Investor',
                     'email': 'overflow@akramsweets.com',
                     'country_code': 'so',
@@ -152,6 +202,7 @@ def main():
         errors.append(f'Shareholder list filter returned {filtered.status_code}')
     elif 'Shareholder A' not in filtered.get_data(as_text=True):
         errors.append('Shareholder list search should find Shareholder A')
+
 
     with app.app_context():
         from apps.services.period_service import resolve_period_totals

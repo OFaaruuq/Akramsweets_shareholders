@@ -16,7 +16,7 @@
       Approvals
       {% if approvals_pending %}<span class="badge bg-warning text-dark ms-1">{{ approvals_pending }}</span>{% endif %}
     </a>
-    <a href="{{ url_for('periods.create_period') }}" class="btn btn-primary">Enter Monthly Result</a>
+    <a href="{{ url_for('periods.create_period') }}" class="btn btn-primary">Monthly Mudarabah Profit Distribution</a>
   </div>
 </div>
 
@@ -98,7 +98,7 @@
             <th>Period</th>
             <th>Net Profit</th>
             <th>Shareholders' pool</th>
-            <th>Akram Sweets</th>
+            <th>{{ mudarabah.partner_name if mudarabah else (brand.company_name if brand else 'Managing Partner') }}</th>
             <th>Status</th>
             <th>Workflow</th>
             <th class="text-end">Actions</th>
@@ -173,7 +173,7 @@
             {% if q or year_filter or status_filter %}
             <a href="{{ url_for('periods.list_periods') }}" class="btn btn-light">Clear filters</a>
             {% else %}
-            <a href="{{ url_for('periods.create_period') }}" class="btn btn-primary">Enter Monthly Result</a>
+            <a href="{{ url_for('periods.create_period') }}" class="btn btn-primary">Monthly Mudarabah Profit Distribution</a>
             {% endif %}
           </td>
         </tr>

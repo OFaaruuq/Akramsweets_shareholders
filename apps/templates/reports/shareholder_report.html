@@ -9,8 +9,8 @@
 <p><strong>Shareholder:</strong> {{ report.shareholder_name }} ({{ report.shareholder_email }})</p>
 <p><strong>Company Net Profit (Odoo):</strong> {{ '%.2f'|format(report.company_total) }}</p>
 {% if report.shareholders_pool is defined %}
-<p><strong>Shareholders' pool ({{ '%.0f'|format(report.mudarabah_shareholder_percent) }}%):</strong> {{ '%.2f'|format(report.shareholders_pool) }}</p>
-<p><strong>Akram Sweets (managing partner):</strong> {{ '%.2f'|format(report.managing_partner_share) }}</p>
+<p><strong>Shareholders' pool ({{ '%.4g'|format(report.mudarabah_shareholder_percent) }}%):</strong> {{ '%.2f'|format(report.shareholders_pool) }}</p>
+<p><strong>{{ mudarabah.partner_name if mudarabah else 'Managing Partner' }} (managing partner):</strong> {{ '%.2f'|format(report.managing_partner_share) }}</p>
 {% endif %}
 <hr>
 <p><strong>Ownership:</strong> {{ '%.2f'|format(report.ownership_percent) }}%</p>

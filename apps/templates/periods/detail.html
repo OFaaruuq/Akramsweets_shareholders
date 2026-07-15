@@ -1,10 +1,19 @@
 {% extends 'layouts/vertical.html' %}
 {% block title %}Period {{ period.period_label }}{% endblock title %}
-{% block css %}{% include 'partials/head-css.html' %}{% endblock css %}
+{% block css %}{% include 'partials/head-css.html' %}
+<style>
+  .workflow-step { opacity: 0.45; }
+  .workflow-step.done, .workflow-step.current { opacity: 1; }
+  .workflow-step.current { font-weight: 600; color: {{ brand.primary_color if brand else '#8A1B24' }}; }
+</style>
+{% endblock css %}
 {% block body_attribute %}data-menu-color="dark" data-sidebar="default"{% endblock body_attribute %}
 {% block page_content %}
-<div class="py-3 d-flex align-items-sm-center flex-sm-row flex-column">
-  <div class="flex-grow-1"><h4 class="fs-18 fw-semibold m-0">Period {{ period.period_label }}</h4></div>
+<div class="py-3 d-flex align-items-sm-center flex-sm-row flex-column gap-2">
+  <div class="flex-grow-1">
+    <h4 class="fs-18 fw-semibold m-0">Monthly Mudarabah — {{ period.period_label }}</h4>
+    <p class="text-muted mb-0 fs-13">{{ period.workflow_label }}</p>
+  </div>
   <div class="text-end d-flex flex-wrap gap-1 justify-content-end">
     {% if period.is_editable %}
     <a href="{{ url_for('periods.edit_period', period_id=period.id) }}" class="btn btn-light">Edit figures</a>
@@ -15,14 +24,20 @@
     {% if period.status == 'draft' %}
     <form method="post" action="{{ url_for('periods.submit_review', period_id=period.id) }}" class="d-inline">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="btn btn-warning">Submit for Review</button>
+      <button class="btn btn-warning" {% if not ownership_valid %}disabled title="Ownership must be 100%"{% endif %}>Submit for Finance / Management Review</button>
     </form>
     {% endif %}
     {% endif %}
     {% if period.status == 'review' and current_user.can_approve_periods() %}
     <form method="post" action="{{ url_for('periods.approve_period_view', period_id=period.id) }}" class="d-inline">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="btn btn-primary">Approve &amp; Certify</button>
+      <button class="btn btn-primary" {% if not ownership_valid %}disabled{% endif %}>Approve &amp; Lock</button>
+    </form>
+    {% endif %}
+    {% if period.is_locked and not period.payment_completed and current_user.can_approve_periods() %}
+    <form method="post" action="{{ url_for('periods.mark_period_payment', period_id=period.id) }}" class="d-inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-success" onclick="return confirm('Mark all shareholder payments as completed for this period?')">Mark Payment Completed</button>
     </form>
     {% endif %}
     {% if period.is_locked and current_user.can_approve_periods() %}
@@ -43,12 +58,39 @@
   </div>
 </div>
 
+<div class="card mb-3">
+  <div class="card-body py-3">
+    <div class="d-flex flex-wrap gap-3 fs-13">
+      {% for step in period.workflow_steps %}
+      <div class="workflow-step {% if step.done %}done{% endif %} {% if step.current %}current{% endif %}">
+        {% if step.done %}<i class="mdi mdi-check-circle text-success"></i>{% elif step.current %}<i class="mdi mdi-circle-slice-8"></i>{% else %}<i class="mdi mdi-circle-outline"></i>{% endif %}
+        {{ step.label }}
+      </div>
+      {% if not loop.last %}<span class="text-muted">→</span>{% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% if not ownership_valid %}
+<div class="alert alert-danger py-2 fs-13">
+  <strong>Ownership invalid:</strong> currently {{ '%.4f'|format(ownership_total) }}% (must be 100.0000%).
+  Submit / approve are blocked until ownership is fixed.
+  <a href="{{ url_for('shareholders.list_shareholders') }}">Fix ownership</a>
+</div>
+{% endif %}
+
+{% for w in withdrawal_warnings %}
+<div class="alert alert-warning py-2 fs-13">
+  <strong>Capital withdrawal notice.</strong> {{ w.message }}
+</div>
+{% endfor %}
+
 {% if period.status == 'review' %}
 <div class="alert alert-info py-2 fs-13">
-  <strong>Awaiting approval.</strong> Figures are locked.
+  <strong>Management Approval.</strong> Figures are locked.
   {% if period.submitted_for_review_by %}Submitted by {{ period.submitted_for_review_by.full_name }}{% endif %}
   {% if period.submitted_for_review_at %} on {{ period.submitted_for_review_at.strftime('%Y-%m-%d %H:%M') }}{% endif %}.
-  {% if current_user.can_approve_periods() %}Approve to certify, or return to draft with a reason below.{% else %}Management will approve or return this period.{% endif %}
 </div>
 {% endif %}
 
@@ -59,68 +101,107 @@
   {% if period.rejected_at %} ({{ period.rejected_at.strftime('%Y-%m-%d %H:%M') }}){% endif %}
 </div>
 {% endif %}
+
 <div class="row">
-  <div class="col-xl-4">  <div class="card"><div class="card-body">
-    <p class="text-muted mb-1">Net Profit from Odoo</p>
-    <h3 class="{{ 'text-success' if period.total_profit_loss >= 0 else 'text-danger' }}">{{ currency_symbol }}{{ '%.2f'|format(period.total_profit_loss) }}</h3>
-    <hr>
-    <ul class="list-unstyled mb-0 fs-13">
-      <li class="d-flex justify-content-between mb-1"><span>Net Profit</span><strong class="{{ 'text-success' if period.total_profit_loss >= 0 else 'text-danger' }}">{{ currency_symbol }}{{ '%.2f'|format(period.total_profit_loss) }}</strong></li>
-      <li class="d-flex justify-content-between mb-1"><span>Shareholders' pool ({{ '%.0f'|format(period.mudarabah_shareholder_percent or 50) }}%)</span><strong class="text-primary">{{ currency_symbol }}{{ '%.2f'|format(period.shareholders_pool or 0) }}</strong></li>
-      <li class="d-flex justify-content-between mb-1"><span>Akram Sweets (managing partner)</span><strong>{{ currency_symbol }}{{ '%.2f'|format(period.managing_partner_share or 0) }}</strong></li>
-      {% if period.income %}<li class="d-flex justify-content-between mb-1"><span>Income (optional)</span><strong>{{ currency_symbol }}{{ '%.2f'|format(period.income) }}</strong></li>{% endif %}
-      {% if period.gross_profit %}<li class="d-flex justify-content-between mb-1"><span>Gross Profit (optional)</span><strong>{{ currency_symbol }}{{ '%.2f'|format(period.gross_profit) }}</strong></li>{% endif %}
-      {% if period.total_gross_profit %}<li class="d-flex justify-content-between mb-1"><span>Total Gross Profit (optional)</span><strong>{{ currency_symbol }}{{ '%.2f'|format(period.total_gross_profit) }}</strong></li>{% endif %}
-      {% if period.total_income %}<li class="d-flex justify-content-between mb-1"><span>Total Income (optional)</span><strong>{{ currency_symbol }}{{ '%.2f'|format(period.total_income) }}</strong></li>{% endif %}
-      {% if period.total_expenses %}<li class="d-flex justify-content-between mb-1"><span>Operating Expenses (optional)</span><strong>{{ currency_symbol }}{{ '%.2f'|format(period.total_expenses) }}</strong></li>{% endif %}
-    </ul>
-    <p class="text-muted mb-1 mt-3">Distributed to shareholders (from pool)</p>
-    <h5 class="mb-0">{{ currency_symbol }}{{ '%.2f'|format(distributed_total) }}</h5>
-    <p class="text-muted mb-1 mt-3">Status</p>
-    <span class="badge {% if period.status == 'approved' %}bg-success{% elif period.status == 'review' %}bg-info{% else %}bg-warning text-dark{% endif %}">{{ period.status|replace('_', ' ')|title }}</span>
-    {% if period.submitted_for_review_at %}<p class="text-muted mb-0 mt-2">Submitted for review: {{ period.submitted_for_review_at.strftime('%Y-%m-%d %H:%M') }}</p>{% endif %}
-    {% if period.approved_at %}<p class="text-muted mb-0 mt-2">Approved: {{ period.approved_at.strftime('%Y-%m-%d %H:%M') }}{% if period.approved_by %} by {{ period.approved_by.full_name }}{% endif %}</p>{% endif %}
-    {% if period.odoo_reference %}<p class="text-muted mb-0 mt-3">Odoo: {{ period.odoo_reference }}</p>{% endif %}
-    {% if period.reports_sent_at %}<p class="text-muted mb-0 mt-2">Reports &amp; certificates emailed: {{ period.reports_sent_at.strftime('%Y-%m-%d %H:%M') }}</p>{% endif %}
-    {% if report_delivery_day %}<p class="text-muted mb-0 mt-2">Scheduled report day: {{ report_delivery_day }}</p>{% endif %}
-  </div></div></div>
-  <div class="col-xl-8"><div class="card"><div class="card-body"><div class="table-responsive">
-  <table class="table table-hover mb-0">
-  <thead><tr><th>Shareholder</th><th>Ownership</th><th>Base</th><th>Deduction</th><th>Received</th><th>Adjustment</th><th>Final</th><th>Certificate</th><th></th></tr></thead>
-  <tbody>
-  {% for calc in calculations %}
-  {% set cert = certificates.get(calc.shareholder_id) if certificates else none %}
-  <tr>
-    <td>{{ calc.shareholder.name }}</td>
-    <td>{{ '%.2f'|format(calc.ownership_percent) }}%</td>
-    <td>{{ '%.2f'|format(calc.base_share) }}</td>
-    <td>{{ '%.2f'|format(calc.arrangement_deduction) }}</td>
-    <td>{{ '%.2f'|format(calc.arrangement_received) }}</td>
-    <td>{{ '%.2f'|format(calc.manual_adjustment) }}</td>
-    <td class="fw-semibold">{{ '%.2f'|format(calc.final_amount) }}</td>
-    <td>
-      {% if cert %}
-      <div class="fs-12">{{ cert.certificate_number }}</div>
-      {% if cert.email_status == 'sent' %}
-      <span class="badge bg-success-subtle text-success">Emailed</span>
-      {% elif cert.email_status == 'logged' %}
-      <span class="badge bg-secondary-subtle text-secondary">Logged</span>
-      {% else %}
-      <span class="badge bg-warning-subtle text-warning">Pending email</span>
-      {% endif %}
-      {% else %}
-      <span class="text-muted">—</span>
-      {% endif %}
-    </td>
-    <td><a href="{{ url_for('reports.shareholder_report', period_id=period.id, shareholder_id=calc.shareholder_id) }}" class="btn btn-sm btn-soft-secondary">Report</a>
-    <a href="{{ url_for('reports.shareholder_report_pdf', period_id=period.id, shareholder_id=calc.shareholder_id) }}" class="btn btn-sm btn-soft-primary">PDF</a>
-    <a href="{{ url_for('reports.shareholder_certificate_pdf', period_id=period.id, shareholder_id=calc.shareholder_id) }}" class="btn btn-sm btn-soft-danger">Certificate</a></td>
-  </tr>
-  {% endfor %}
-  </tbody></table></div></div></div></div>
+  <div class="col-xl-4">
+    <div class="card">
+      <div class="card-body">
+        <p class="text-muted mb-1">Approved Monthly Net Profit (Imported from Odoo ERP)</p>
+        <h3 class="{{ 'text-success' if period.total_profit_loss >= 0 else 'text-danger' }}">{{ currency_symbol }}{{ '{:,.2f}'.format(period.total_profit_loss) }}</h3>
+        <hr>
+        <p class="fw-semibold fs-13 mb-2">Mudarabah formula</p>
+        <ul class="list-unstyled mb-0 fs-13 mudarabah-formula">
+          <li class="d-flex justify-content-between mb-1"><span>Net Profit</span><strong>{{ currency_symbol }}{{ '{:,.2f}'.format(period.total_profit_loss) }}</strong></li>
+          <li class="d-flex justify-content-between mb-1"><span>Shareholders' Pool ({{ '%.4g'|format(period.mudarabah_shareholder_percent or mudarabah.shareholder_percent) }}%)</span><strong class="text-primary">{{ currency_symbol }}{{ '{:,.2f}'.format(period.shareholders_pool or 0) }}</strong></li>
+          <li class="d-flex justify-content-between mb-1"><span>{{ mudarabah.partner_name }} Share ({{ '%.4g'|format(100 - (period.mudarabah_shareholder_percent or mudarabah.shareholder_percent)) }}%)</span><strong>{{ currency_symbol }}{{ '{:,.2f}'.format(period.managing_partner_share or 0) }}</strong></li>
+          <li class="d-flex justify-content-between mb-1"><span>Total Distributed</span><strong>{{ currency_symbol }}{{ '{:,.2f}'.format(distributed_total) }}</strong></li>
+          <li class="d-flex justify-content-between mb-1"><span>Remaining Balance</span><strong>{{ currency_symbol }}{{ '{:,.2f}'.format(remaining_balance) }}</strong></li>
+        </ul>
+        <p class="text-muted mb-1 mt-3">Status</p>
+        <span class="badge {% if period.payment_completed %}bg-success{% elif period.status == 'approved' %}bg-primary{% elif period.status == 'review' %}bg-info{% else %}bg-warning text-dark{% endif %}">{{ period.workflow_label }}</span>
+        {% if period.submitted_for_review_at %}<p class="text-muted mb-0 mt-2">Submitted: {{ period.submitted_for_review_at.strftime('%Y-%m-%d %H:%M') }}</p>{% endif %}
+        {% if period.approved_at %}<p class="text-muted mb-0 mt-2">Locked: {{ period.approved_at.strftime('%Y-%m-%d %H:%M') }}{% if period.approved_by %} by {{ period.approved_by.full_name }}{% endif %}</p>{% endif %}
+        {% if period.payment_completed_at %}<p class="text-muted mb-0 mt-2">Payment completed: {{ period.payment_completed_at.strftime('%Y-%m-%d %H:%M') }}{% if period.payment_completed_by %} by {{ period.payment_completed_by.full_name }}{% endif %}</p>{% endif %}
+        {% if period.odoo_reference %}<p class="text-muted mb-0 mt-3">Odoo: {{ period.odoo_reference }}</p>{% endif %}
+        {% if period.reports_sent_at %}<p class="text-muted mb-0 mt-2">Reports emailed: {{ period.reports_sent_at.strftime('%Y-%m-%d %H:%M') }}</p>{% endif %}
+      </div>
+    </div>
+    <div class="card mt-3">
+      <div class="card-header"><h5 class="card-title mb-0">Reports</h5></div>
+      <div class="card-body d-grid gap-1">
+        <a class="btn btn-sm btn-soft-primary" href="{{ url_for('reports.mudarabah_summary') }}">Mudarabah Distribution Summary</a>
+        <a class="btn btn-sm btn-soft-secondary" href="{{ url_for('reports.history') }}">Monthly Net Profit / Distribution Reports</a>
+        <a class="btn btn-sm btn-soft-danger" href="{{ url_for('reports.certificates_register') }}">Certificates Register</a>
+        <a class="btn btn-sm btn-soft-secondary" href="{{ url_for('app_settings.audit_log') }}">Audit Report</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-8">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title mb-0">Shareholder Distribution</h5>
+        <p class="text-muted fs-12 mb-0 mt-1">Normal distribution → Apply special arrangements → Final profit</p>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Shareholder</th>
+                <th class="text-end">Investment</th>
+                <th class="text-end">Shares</th>
+                <th class="text-end">Ownership %</th>
+                <th class="text-end">Original Profit</th>
+                <th class="text-end">Adjustment</th>
+                <th class="text-end">Final Profit</th>
+                <th>Certificate</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+            {% for row in calc_rows %}
+            {% set calc = row.calc %}
+            {% set cert = certificates.get(calc.shareholder_id) if certificates else none %}
+            <tr>
+              <td>{{ calc.shareholder.name }}</td>
+              <td class="text-end">{{ currency_symbol }}{{ '{:,.2f}'.format(row.investment) }}</td>
+              <td class="text-end">{% if row.shares %}{{ '%.4f'|format(row.shares) }}{% else %}—{% endif %}</td>
+              <td class="text-end">{{ '%.4f'|format(calc.ownership_percent) }}%</td>
+              <td class="text-end">{{ currency_symbol }}{{ '{:,.2f}'.format(row.original_profit) }}</td>
+              <td class="text-end">{{ currency_symbol }}{{ '{:,.2f}'.format(row.adjustment) }}</td>
+              <td class="text-end fw-semibold {{ 'text-success' if row.final_profit >= 0 else 'text-danger' }}">{{ currency_symbol }}{{ '{:,.2f}'.format(row.final_profit) }}</td>
+              <td>
+                {% if cert %}
+                <div class="fs-12">{{ cert.certificate_number }}</div>
+                {% if cert.email_status == 'sent' %}
+                <span class="badge bg-success-subtle text-success">Emailed</span>
+                {% elif cert.email_status == 'logged' %}
+                <span class="badge bg-secondary-subtle text-secondary">Logged</span>
+                {% else %}
+                <span class="badge bg-warning-subtle text-warning">Pending email</span>
+                {% endif %}
+                {% else %}
+                <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td class="text-nowrap">
+                <a href="{{ url_for('reports.shareholder_report', period_id=period.id, shareholder_id=calc.shareholder_id) }}" class="btn btn-sm btn-soft-secondary">Statement</a>
+                <a href="{{ url_for('reports.shareholder_report_pdf', period_id=period.id, shareholder_id=calc.shareholder_id) }}" class="btn btn-sm btn-soft-primary">PDF</a>
+                <a href="{{ url_for('reports.shareholder_certificate_pdf', period_id=period.id, shareholder_id=calc.shareholder_id) }}" class="btn btn-sm btn-soft-danger">Certificate</a>
+              </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
+
 {% if adjustments %}
-<div class="card mt-3"><div class="card-header"><h5 class="card-title mb-0">Manual Adjustments</h5></div><div class="card-body"><div class="table-responsive">
+<div class="card mt-3"><div class="card-header"><h5 class="card-title mb-0">Manual Adjustments (audit trail)</h5></div><div class="card-body"><div class="table-responsive">
 <table class="table mb-0"><thead><tr><th>Shareholder</th><th>Amount</th><th>Reason</th><th>Added by</th><th>Date</th></tr></thead>
 <tbody>{% for row in adjustments %}
 <tr><td>{{ row.shareholder.name }}</td><td>{{ '%.2f'|format(row.amount) }}</td><td>{{ row.reason }}</td><td>{{ row.created_by.full_name if row.created_by else '-' }}</td><td>{{ row.created_at.strftime('%Y-%m-%d %H:%M') }}</td></tr>
@@ -133,8 +214,6 @@
   <div class="card-body">
     <p class="text-muted fs-13 mb-3">
       Emails every shareholder on this period with the current Net Profit and their distribution amount.
-      Use this anytime (draft, review, or approved). Formal PDF reports/certificates still use
-      <strong>Approve</strong> or <strong>Send Reports</strong>.
     </p>
     <form method="post" action="{{ url_for('periods.send_shareholder_update', period_id=period.id) }}">
       {{ update_form.hidden_tag() }}
@@ -174,7 +253,7 @@
 </form></div></div>
 {% endif %}
 
-{% if period.is_locked and current_user.can_approve_periods() %}
+{% if period.is_locked and not period.payment_completed and current_user.can_approve_periods() %}
 <div class="card mt-3 border-warning"><div class="card-header bg-warning-subtle"><h5 class="card-title mb-0">Logged Correction</h5></div><div class="card-body">
 <p class="text-muted">Reopen this approved period as a <strong>draft</strong>. Finance must edit, recalculate, and submit for review again before it can be re-approved.</p>
 <form method="post" action="{{ url_for('periods.reopen_correction', period_id=period.id) }}">
