@@ -39,6 +39,9 @@ REQUIRED_COLUMNS = {
     'shareholders': {
         'name', 'email', 'phone', 'country', 'country_code', 'is_owner', 'is_active',
     },
+    'users': {
+        'email', 'password_hash', 'full_name', 'role', 'is_active', 'avatar_path',
+    },
     'special_arrangements': {
         'name', 'recipient_shareholder_id', 'bonus_percent', 'applies_to_all_others',
     },

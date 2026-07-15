@@ -1,0 +1,86 @@
+{% extends 'layouts/vertical.html' %}
+{% block title %}My Profile{% endblock title %}
+{% block css %}{% include 'partials/head-css.html' %}{% endblock css %}
+{% block body_attribute %}data-menu-color="dark" data-sidebar="default"{% endblock body_attribute %}
+{% block page_content %}
+<div class="py-3">
+  <h4 class="fs-18 fw-semibold m-0">My Profile</h4>
+  <p class="text-muted mb-0">Update your profile photo and password.</p>
+</div>
+
+<div class="row">
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-header"><h5 class="card-title mb-0">Profile photo</h5></div>
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <img src="{{ current_user.avatar_url }}" alt="Profile"
+               class="rounded-circle border" width="88" height="88" style="object-fit:cover;">
+          <div>
+            <div class="fw-semibold">{{ current_user.full_name }}</div>
+            <div class="text-muted fs-13">{{ current_user.email }}</div>
+            <div class="text-muted fs-12 mt-1">{{ current_user.role|replace('_', ' ')|title }}</div>
+          </div>
+        </div>
+        <form method="post" enctype="multipart/form-data">
+          {{ avatar_form.hidden_tag() }}
+          <input type="hidden" name="form_action" value="avatar">
+          <div class="mb-3">
+            <label class="form-label">Upload new photo</label>
+            {{ avatar_form.avatar(class='form-control', accept='image/png,image/jpeg,image/webp,image/gif') }}
+            <div class="form-text">PNG, JPG, WEBP, or GIF · max 5 MB</div>
+            {% for error in avatar_form.avatar.errors %}<div class="text-danger fs-13">{{ error }}</div>{% endfor %}
+          </div>
+          {% if current_user.has_custom_avatar %}
+          <div class="form-check mb-3">
+            {{ avatar_form.remove_avatar(class='form-check-input') }}
+            <label class="form-check-label" for="{{ avatar_form.remove_avatar.id }}">Remove current photo</label>
+          </div>
+          {% endif %}
+          {{ avatar_form.submit(class='btn btn-primary') }}
+        </form>
+      </div>
+    </div>
+
+    {% if current_user.is_shareholder() and current_user.shareholder %}
+    <div class="card">
+      <div class="card-header"><h5 class="card-title mb-0">Shareholder details</h5></div>
+      <div class="card-body">
+        <p class="mb-2"><strong>Name:</strong> {{ current_user.shareholder.name }}</p>
+        <p class="mb-2"><strong>Shareholder email:</strong> {{ current_user.shareholder.email }}</p>
+        <p class="mb-0"><strong>Login email:</strong> {{ current_user.email }}</p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header"><h5 class="card-title mb-0">Change password</h5></div>
+      <div class="card-body">
+        <form method="post">
+          {{ password_form.hidden_tag() }}
+          <input type="hidden" name="form_action" value="password">
+          <div class="mb-3">
+            <label class="form-label">Current password</label>
+            {{ password_form.current_password(class='form-control') }}
+            {% for error in password_form.current_password.errors %}<div class="text-danger fs-13">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label">New password</label>
+            {{ password_form.new_password(class='form-control') }}
+            {% for error in password_form.new_password.errors %}<div class="text-danger fs-13">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Confirm new password</label>
+            {{ password_form.confirm_password(class='form-control') }}
+            {% for error in password_form.confirm_password.errors %}<div class="text-danger fs-13">{{ error }}</div>{% endfor %}
+          </div>
+          {{ password_form.submit(class='btn btn-primary') }}
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock page_content %}
+{% block extra_javascript %}{% include 'partials/vendor.html' %}{% endblock extra_javascript %}

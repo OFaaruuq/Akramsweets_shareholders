@@ -182,5 +182,5 @@ def notify_password_changed(user):
             'If you did not make this change, contact management immediately.',
         ],
         cta_label='Open account',
-        cta_endpoint='portal.profile' if user.is_shareholder() else 'pages.dashboard',
+        cta_endpoint='auth.account',
     )

@@ -123,7 +123,9 @@ def _notification_url(action, entity_type, entity_id):
                 return url_for('shareholders.edit_shareholder', shareholder_id=portal_user.shareholder_id)
             return url_for('shareholders.list_shareholders')
         if entity_type == 'user' and action == 'password_change':
-            return url_for('portal.profile') if current_user.is_shareholder() else url_for('pages.dashboard')
+            return url_for('auth.account')
+        if entity_type == 'user' and action in ('avatar_update', 'avatar_remove'):
+            return url_for('auth.account')
         if action == 'send_reports' and entity_id:
             return url_for('periods.detail_period', period_id=entity_id)
     except Exception:
@@ -162,6 +164,8 @@ def _format_notification(entry, unread_cutoff):
         ('create', 'media_image'): details or 'Application image uploaded',
         ('delete', 'media_image'): details or 'Application image deleted',
         ('password_change', 'user'): 'Password changed',
+        ('avatar_update', 'user'): 'Profile photo updated',
+        ('avatar_remove', 'user'): 'Profile photo removed',
         ('notify', 'management'): details or 'Management notification',
     }
     title = title_map.get((entry.action, entry.entity_type))
@@ -244,11 +248,11 @@ def _shareholder_portal_audit_items(limit, unread_cutoff, company):
         if not item.get('actor') or item['actor'] == 'System':
             item['actor'] = company
         if entry.action == 'password_change':
-            item['url'] = url_for('portal.profile')
+            item['url'] = url_for('auth.account')
         elif entry.entity_type == 'shareholder':
             item['url'] = url_for('portal.ownership')
         else:
-            item['url'] = url_for('portal.profile')
+            item['url'] = url_for('auth.account')
         items.append(item)
     return items
 

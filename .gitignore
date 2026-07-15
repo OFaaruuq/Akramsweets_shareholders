@@ -55,6 +55,8 @@ apps/static/uploads/signatures/*
 !apps/static/uploads/signatures/.gitkeep
 apps/static/uploads/media/*
 !apps/static/uploads/media/.gitkeep
+apps/static/uploads/avatars/*
+!apps/static/uploads/avatars/.gitkeep
 
 # Flask-Migrate / Alembic revisions (commit these — required for clean deploys)
 # Ignore only local bytecode under migrations

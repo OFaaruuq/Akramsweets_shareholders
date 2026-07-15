@@ -6,9 +6,12 @@
     background-color: var(--#{$prefix}body-bg);
     padding: 0 calc(#{$grid-gutter-width} / 2) 0 0;
     position: fixed;
-    left: $sidebar-width;
-    right: 0;
-    height: $topbar-height;
+    left: calc(#{$sidebar-width} + 8px);
+    right: 12px;
+    top: 8px;
+    height: 62px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
     // box-shadow: $box-shadow-sm;
     z-index: 1000;
     transition: all .1s ease-out;
@@ -18,9 +21,9 @@
             padding: 0 15px;
             color: var(--#{$prefix}topbar-menu-nav-link-color);
             display: block;
-            line-height: $topbar-height;
+            line-height: 62px;
             text-align: center;
-            max-height: $topbar-height;
+            max-height: 62px;
             position: relative;
         }
         .topbar-search {

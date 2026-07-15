@@ -6,6 +6,7 @@ from apps.auth.decorators import management_required
 from apps.auth.forms import StaffUserForm
 from apps.models.user import User
 from apps.services.audit_service import log_action
+from apps.services.avatar_service import clear_user_avatar, save_user_avatar
 from apps.users import blueprint
 
 
@@ -14,6 +15,17 @@ STAFF_ROLES = [
     (User.ROLE_ADMIN, 'System Administrator'),
     (User.ROLE_FINANCE, 'Finance / Accounts Staff'),
 ]
+
+
+def _apply_avatar_from_form(user, form):
+    """Apply avatar upload/remove from StaffUserForm. Returns flash message or None."""
+    if form.remove_avatar.data:
+        clear_user_avatar(user)
+        return 'Profile photo removed.'
+    if form.avatar.data and getattr(form.avatar.data, 'filename', None):
+        save_user_avatar(user, form.avatar.data)
+        return 'Profile photo updated.'
+    return None
 
 
 @blueprint.route('/')
@@ -52,6 +64,15 @@ def create_user():
                 )
                 user.set_password(form.password.data)
                 db.session.add(user)
+                db.session.flush()  # need user.id before avatar filename
+                try:
+                    _apply_avatar_from_form(user, form)
+                except ValueError as exc:
+                    db.session.rollback()
+                    flash(str(exc), 'danger')
+                    return render_template(
+                        'users/form.html', form=form, title='Add Staff User', segment='users'
+                    )
                 db.session.commit()
                 log_action('create', 'staff_user', user.id, user.email)
                 try:
@@ -99,6 +120,19 @@ def edit_user(user_id):
             details = f'{user.email} (password reset)'
         else:
             details = user.email
+        try:
+            avatar_note = _apply_avatar_from_form(user, form)
+        except ValueError as exc:
+            flash(str(exc), 'danger')
+            return render_template(
+                'users/form.html',
+                form=form,
+                title='Edit Staff User',
+                user=user,
+                segment='users',
+            )
+        if avatar_note:
+            details = f'{details}; {avatar_note}'
         db.session.commit()
         log_action('update', 'staff_user', user.id, details)
         flash('Staff user updated.', 'success')

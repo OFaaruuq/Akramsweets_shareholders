@@ -23,6 +23,7 @@ class User(UserMixin, db.Model):
     role = db.Column(db.String(20), nullable=False, default=ROLE_FINANCE)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     shareholder_id = db.Column(db.Integer, db.ForeignKey('shareholders.id'), nullable=True)
+    avatar_path = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     shareholder = db.relationship('Shareholder', backref=db.backref('user_account', uselist=False))
@@ -32,6 +33,18 @@ class User(UserMixin, db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    @property
+    def avatar_url(self):
+        from apps.services.avatar_service import user_avatar_url
+
+        return user_avatar_url(self)
+
+    @property
+    def has_custom_avatar(self):
+        from apps.services.avatar_service import user_has_custom_avatar
+
+        return user_has_custom_avatar(self)
 
     def is_management(self):
         return self.role in (self.ROLE_OWNER, self.ROLE_ADMIN)

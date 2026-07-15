@@ -1,12 +1,9 @@
 from flask import flash, redirect, render_template, send_file, url_for
 from flask_login import current_user
 
-from apps import db
 from apps.auth.decorators import shareholder_portal_required
-from apps.auth.forms import ChangePasswordForm
 from apps.models.period import MonthlyPeriod, ShareholderCalculation
 from apps.portal import blueprint
-from apps.services.audit_service import log_action
 from apps.services.certificate_service import build_certificate_payload, get_shareholder_certificate, issue_shareholder_certificate
 from apps.services.dashboard_service import get_shareholder_portal_metrics
 from apps.services.pdf_service import (
@@ -122,28 +119,5 @@ def ownership():
 @blueprint.route('/profile', methods=['GET', 'POST'])
 @shareholder_portal_required
 def profile():
-    form = ChangePasswordForm()
-    shareholder = current_user.shareholder
-
-    if form.validate_on_submit():
-        if not current_user.check_password(form.current_password.data):
-            flash('Current password is incorrect.', 'danger')
-        else:
-            current_user.set_password(form.new_password.data)
-            db.session.commit()
-            log_action('password_change', 'user', current_user.id, current_user.email)
-            try:
-                from apps.services.notification_service import notify_password_changed
-
-                notify_password_changed(current_user)
-            except Exception:
-                pass
-            flash('Password updated successfully.', 'success')
-            return redirect(url_for('portal.profile'))
-
-    return render_template(
-        'portal/profile.html',
-        form=form,
-        shareholder=shareholder,
-        segment='portal-profile',
-    )
+    """Shareholder account settings live on the shared profile page."""
+    return redirect(url_for('auth.account'))

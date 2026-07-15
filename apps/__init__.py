@@ -28,7 +28,10 @@ def load_user(user_id):
 
 def register_extensions(app):
     db.init_app(app)
-    migrate.init_app(app, db)
+    from apps.db_utils import migrations_dir
+
+    # Absolute path so flask/scripts work from any cwd (e.g. scripts/).
+    migrate.init_app(app, db, directory=str(migrations_dir()))
     login_manager.init_app(app)
     csrf.init_app(app)
 

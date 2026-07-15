@@ -89,6 +89,7 @@ def main():
         '/settings/arrangements',
         '/settings/system',
         '/settings/images',
+        '/auth/account',
         '/settings/audit-log',
         '/users/',
         '/reports/',
@@ -278,10 +279,14 @@ def main():
             sess['_user_id'] = str(user.id)
             sess['_fresh'] = True
 
-    for path in ['/portal/', '/portal/reports', '/portal/ownership', '/portal/profile']:
+    for path in ['/portal/', '/portal/reports', '/portal/ownership', '/auth/account']:
         r = client.get(path)
         if r.status_code != 200:
             errors.append(f'{path} returned {r.status_code}')
+
+    r = client.get('/portal/profile', follow_redirects=False)
+    if r.status_code not in (302, 303):
+        errors.append(f'/portal/profile should redirect to account, got {r.status_code}')
 
     r = client.get('/')
     if r.status_code != 200:

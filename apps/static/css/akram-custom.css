@@ -1,0 +1,36 @@
+/* Akram Sweets — small UI overrides (no gulp rebuild required) */
+
+/* Top navbar: subtle rounded corners */
+.topbar-custom {
+  border-radius: 8px;
+  top: 8px;
+  right: 12px;
+  left: calc(260px + 8px);
+  height: 62px;
+  background-color: var(--bs-topbar-bg, #fff);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.topbar-custom .topnav-menu .nav-link {
+  line-height: 62px;
+  max-height: 62px;
+}
+
+.topbar-custom .nav-user img,
+.topbar-custom img.rounded-circle {
+  border-radius: 8px !important;
+}
+
+/* Condensed sidebar */
+html[data-sidenav-size="sm"] .topbar-custom,
+body[data-sidenav-size="sm"] .topbar-custom {
+  left: calc(70px + 8px);
+}
+
+/* Mobile: full-width with small radius */
+@media (max-width: 991.98px) {
+  .topbar-custom {
+    left: 8px !important;
+    right: 8px;
+  }
+}

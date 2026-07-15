@@ -52,6 +52,7 @@ def upgrade():
             sa.Column('role', sa.String(length=20), nullable=False),
             sa.Column('is_active', sa.Boolean(), nullable=False, server_default=sa.true()),
             sa.Column('shareholder_id', sa.Integer(), sa.ForeignKey('shareholders.id'), nullable=True),
+            sa.Column('avatar_path', sa.String(length=255), nullable=True),
             sa.Column('created_at', sa.DateTime(), nullable=False),
         )
         op.create_index('ix_users_email', 'users', ['email'], unique=True)

@@ -9,10 +9,13 @@
 </div>
 <div class="card"><div class="card-body"><div class="table-responsive">
 <table class="table table-hover mb-0">
-<thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr></thead>
+<thead><tr><th></th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr></thead>
 <tbody>
 {% for user in users %}
 <tr>
+  <td style="width:48px">
+    <img src="{{ user.avatar_url }}" alt="" class="rounded-circle" width="36" height="36" style="object-fit:cover;">
+  </td>
   <td>{{ user.full_name }}</td>
   <td>{{ user.email }}</td>
   <td>{{ user.role|replace('_', ' ')|title }}</td>
@@ -20,7 +23,7 @@
   <td class="text-end"><a href="{{ url_for('users.edit_user', user_id=user.id) }}" class="btn btn-sm btn-soft-primary">Edit</a></td>
 </tr>
 {% else %}
-<tr><td colspan="5" class="text-center text-muted">No staff users yet.</td></tr>
+<tr><td colspan="6" class="text-center text-muted">No staff users yet.</td></tr>
 {% endfor %}
 </tbody></table></div></div></div>
 {% endblock page_content %}

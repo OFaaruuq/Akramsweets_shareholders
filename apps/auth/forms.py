@@ -1,4 +1,5 @@
 from flask_wtf import FlaskForm
+from flask_wtf.file import FileAllowed, FileField
 from wtforms import BooleanField, PasswordField, SelectField, StringField, SubmitField
 from wtforms.validators import DataRequired, Email, EqualTo, Length, Optional, Regexp
 
@@ -37,6 +38,18 @@ class ChangePasswordForm(FlaskForm):
     submit = SubmitField('Update Password')
 
 
+class ProfileAvatarForm(FlaskForm):
+    avatar = FileField(
+        'Profile image',
+        validators=[
+            Optional(),
+            FileAllowed(['png', 'jpg', 'jpeg', 'webp', 'gif'], 'Images only!'),
+        ],
+    )
+    remove_avatar = BooleanField('Remove current photo (use default)')
+    submit = SubmitField('Update Profile Photo')
+
+
 class ShareholderPortalAccountForm(FlaskForm):
     email = StringField('Portal login email', validators=[DataRequired(), Email(), Length(max=120)])
     full_name = StringField('Display name', validators=[DataRequired(), Length(max=120)])
@@ -50,4 +63,12 @@ class StaffUserForm(FlaskForm):
     role = SelectField('Role', choices=[], validators=[DataRequired()])
     password = PasswordField('Password', validators=[Optional(), Length(min=6, max=128)])
     is_active = BooleanField('Active', default=True)
+    avatar = FileField(
+        'Profile image',
+        validators=[
+            Optional(),
+            FileAllowed(['png', 'jpg', 'jpeg', 'webp', 'gif'], 'Images only!'),
+        ],
+    )
+    remove_avatar = BooleanField('Remove current photo')
     submit = SubmitField('Save User')
