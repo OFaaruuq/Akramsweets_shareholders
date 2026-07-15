@@ -9,8 +9,8 @@
                     <span class="logo-sm"><img src="{{ brand.logo_url }}" alt="{{ brand.company_name }}" style="max-height:28px;max-width:120px;width:auto;"></span>
                     <span class="logo-lg"><img src="{{ brand.logo_url }}" alt="{{ brand.company_name }}" style="max-height:44px;max-width:180px;width:auto;"></span>
                     {% else %}
-                    <span class="logo-sm"><img src="{{ config.ASSETS_ROOT }}/images/akram-sweets-logo.png" alt="Akram Sweets" style="max-height:28px;max-width:120px;width:auto;"></span>
-                    <span class="logo-lg"><img src="{{ config.ASSETS_ROOT }}/images/akram-sweets-logo.png" alt="Akram Sweets" style="max-height:44px;max-width:180px;width:auto;"></span>
+                    <span class="logo-sm"><img src="{{ config.ASSETS_ROOT }}/images/akram-sweets-logo.png" alt="{{ brand.company_name if brand else company_name or 'Company' }}" style="max-height:28px;max-width:120px;width:auto;"></span>
+                    <span class="logo-lg"><img src="{{ config.ASSETS_ROOT }}/images/akram-sweets-logo.png" alt="{{ brand.company_name if brand else company_name or 'Company' }}" style="max-height:44px;max-width:180px;width:auto;"></span>
                     {% endif %}
                 </a>
                 <a href="{{ url_for('pages.dashboard') }}" class="logo logo-dark text-decoration-none">
@@ -18,8 +18,8 @@
                     <span class="logo-sm"><img src="{{ brand.logo_url }}" alt="{{ brand.company_name }}" style="max-height:28px;max-width:120px;width:auto;"></span>
                     <span class="logo-lg"><img src="{{ brand.logo_url }}" alt="{{ brand.company_name }}" style="max-height:44px;max-width:180px;width:auto;"></span>
                     {% else %}
-                    <span class="logo-sm"><img src="{{ config.ASSETS_ROOT }}/images/akram-sweets-logo.png" alt="Akram Sweets" style="max-height:28px;max-width:120px;width:auto;"></span>
-                    <span class="logo-lg"><img src="{{ config.ASSETS_ROOT }}/images/akram-sweets-logo.png" alt="Akram Sweets" style="max-height:44px;max-width:180px;width:auto;"></span>
+                    <span class="logo-sm"><img src="{{ config.ASSETS_ROOT }}/images/akram-sweets-logo.png" alt="{{ brand.company_name if brand else company_name or 'Company' }}" style="max-height:28px;max-width:120px;width:auto;"></span>
+                    <span class="logo-lg"><img src="{{ config.ASSETS_ROOT }}/images/akram-sweets-logo.png" alt="{{ brand.company_name if brand else company_name or 'Company' }}" style="max-height:44px;max-width:180px;width:auto;"></span>
                     {% endif %}
                 </a>
             </div>
@@ -94,12 +94,14 @@
                     </a>
                 </li>
 
+                {% if current_user.is_management() %}
                 <li>
                     <a href="{{ url_for('app_settings.arrangements') }}" class="tp-link">
                         <span class="nav-icon"><iconify-icon icon="solar:hand-money-bold-duotone"></iconify-icon></span>
                         <span> Special Arrangements </span>
                     </a>
                 </li>
+                {% endif %}
 
                 <li>
                     <a href="{{ url_for('reports.certificates_register') }}" class="tp-link">
@@ -115,6 +117,7 @@
                     </a>
                 </li>
 
+                {% if current_user.is_management() %}
                 <li class="menu-title mt-2">Administration</li>
 
                 {% if current_user.can_manage_users() %}
@@ -142,7 +145,13 @@
                     </a>
                 </li>
 
-                {% if current_user.is_management() %}
+                <li>
+                    <a href="{{ url_for('app_settings.manage_images') }}" class="tp-link">
+                        <span class="nav-icon"><iconify-icon icon="solar:gallery-bold-duotone"></iconify-icon></span>
+                        <span> Manage Images </span>
+                    </a>
+                </li>
+
                 <li>
                     <a href="{{ url_for('app_settings.dashboard_settings') }}" class="tp-link">
                         <span class="nav-icon"><iconify-icon icon="solar:widget-bold-duotone"></iconify-icon></span>

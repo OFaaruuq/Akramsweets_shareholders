@@ -22,8 +22,8 @@ sys.path.insert(0, ROOT_DIR)
 
 from dotenv import load_dotenv
 
+# Project .env only — matches apps.config (no parent workspace .env).
 load_dotenv(os.path.join(ROOT_DIR, '.env'))
-load_dotenv(os.path.join(os.path.dirname(ROOT_DIR), '.env'))
 
 EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
 
@@ -86,8 +86,8 @@ def main() -> int:
     args = parse_args()
 
     # Import after dotenv so DB settings apply
-    from apps.config import config_dict
     from apps import create_app, db
+    from apps.config import resolve_config
     from apps.models.user import User
     from apps.services.audit_service import log_action
 
@@ -103,8 +103,7 @@ def main() -> int:
         return 1
 
     role = User.ROLE_OWNER if args.role == 'owner' else User.ROLE_ADMIN
-    debug = (os.getenv('DEBUG', 'False') == 'True')
-    app = create_app(config_dict['Debug' if debug else 'Production'])
+    app = create_app(resolve_config())
 
     with app.app_context():
         existing = User.query.filter_by(email=email).first()

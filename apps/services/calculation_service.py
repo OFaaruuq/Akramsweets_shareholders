@@ -53,6 +53,9 @@ def _build_calculation_rows(total, as_of_date, adjustments=None):
     for arrangement in arrangements:
         bonus_rate = Decimal(arrangement.bonus_percent) / Decimal('100')
         recipient_id = arrangement.recipient_shareholder_id
+        # Recipient must be in the active ownership pool — never deduct without a credit.
+        if recipient_id not in rows:
+            continue
         source_ids = arrangement.contributing_shareholder_ids(rows.keys())
         if not source_ids:
             continue
@@ -62,8 +65,7 @@ def _build_calculation_rows(total, as_of_date, adjustments=None):
                 continue
             deduction = money(rows[shareholder_id]['base_share'] * bonus_rate)
             rows[shareholder_id]['arrangement_deduction'] -= deduction
-            if recipient_id in rows:
-                rows[recipient_id]['arrangement_received'] += deduction
+            rows[recipient_id]['arrangement_received'] += deduction
 
     if adjustments:
         for adjustment in adjustments:

@@ -29,6 +29,7 @@ from apps.services.pdf_service import (
 logger = logging.getLogger(__name__)
 
 LOGO_CID = 'brand-logo'
+EMAIL_HEADER_CID = 'email-header'
 
 
 def _mail_settings():
@@ -89,6 +90,35 @@ def _attach_brand_logo(related_part, brand):
     return True
 
 
+def _email_header_flags():
+    from apps.services.media_service import get_slot_image
+
+    item = get_slot_image('email_header')
+    return bool(item and item.get('filesystem_path')), EMAIL_HEADER_CID
+
+
+def _attach_email_header(related_part):
+    """Embed optional admin-managed email header banner."""
+    from apps.services.media_service import get_slot_image
+
+    item = get_slot_image('email_header')
+    if not item or not item.get('filesystem_path'):
+        return False
+    path = Path(item['filesystem_path'])
+    if not path.is_file():
+        return False
+    data = path.read_bytes()
+    mime_type, _ = mimetypes.guess_type(str(path))
+    subtype = 'png'
+    if mime_type and mime_type.startswith('image/'):
+        subtype = mime_type.split('/', 1)[1]
+    image = MIMEImage(data, _subtype=subtype)
+    image.add_header('Content-ID', f'<{EMAIL_HEADER_CID}>')
+    image.add_header('Content-Disposition', 'inline', filename=path.name)
+    related_part.attach(image)
+    return True
+
+
 def _build_from_header(mail_from, company_name):
     if not mail_from:
         return company_name
@@ -129,6 +159,7 @@ def send_login_otp_email(user, code, expires_minutes=10):
     brand = _brand_for_email()
     company_name = brand.get('company_name') or 'Akram Sweets'
     subject = f'{company_name} — Login verification code'
+    has_email_header, email_header_cid = _email_header_flags()
     body_text = render_template(
         'emails/login_otp.txt',
         user=user,
@@ -145,6 +176,8 @@ def send_login_otp_email(user, code, expires_minutes=10):
         brand=brand,
         logo_cid=LOGO_CID,
         has_logo=bool(brand.get('logo_filesystem_path')),
+        has_email_header=has_email_header,
+        email_header_cid=email_header_cid,
     )
 
     mail_server, mail_port, mail_user, mail_password, mail_from, use_tls = _mail_settings()
@@ -168,6 +201,8 @@ def send_login_otp_email(user, code, expires_minutes=10):
     alternative.attach(MIMEText(body_html, 'html', 'utf-8'))
     related.attach(alternative)
     _attach_brand_logo(related, brand)
+    if has_email_header:
+        _attach_email_header(related)
     message.attach(related)
 
     try:
@@ -183,6 +218,96 @@ def send_login_otp_email(user, code, expires_minutes=10):
         }
 
     logger.info('Login OTP emailed to %s', recipient)
+    return {'sent': True, 'mode': 'smtp', 'recipient': recipient}
+
+
+def send_system_notice(
+    recipient,
+    subject,
+    *,
+    title,
+    paragraphs,
+    cta_label=None,
+    cta_endpoint=None,
+    cta_kwargs=None,
+):
+    """Send a branded transactional notice (staff invite, review alert, etc.)."""
+    recipient = (recipient or '').strip()
+    if not recipient or '@' not in recipient:
+        return {'sent': False, 'mode': 'skipped', 'reason': 'missing_or_invalid_email'}
+
+    brand = _brand_for_email()
+    company_name = brand.get('company_name') or 'Company'
+    has_email_header, email_header_cid = _email_header_flags()
+    cta_url = None
+    if cta_endpoint:
+        try:
+            from flask import url_for
+
+            cta_url = url_for(cta_endpoint, _external=True, **(cta_kwargs or {}))
+        except Exception:
+            cta_url = None
+
+    body_text = render_template(
+        'emails/system_notice.txt',
+        company_name=company_name,
+        title=title,
+        paragraphs=paragraphs,
+        cta_label=cta_label,
+        cta_url=cta_url,
+    )
+    body_html = render_template(
+        'emails/system_notice.html',
+        company_name=company_name,
+        title=title,
+        paragraphs=paragraphs,
+        cta_label=cta_label,
+        cta_url=cta_url,
+        brand=brand,
+        logo_cid=LOGO_CID,
+        has_logo=bool(brand.get('logo_filesystem_path')),
+        has_email_header=has_email_header,
+        email_header_cid=email_header_cid,
+    )
+
+    mail_server, mail_port, mail_user, mail_password, mail_from, use_tls = _mail_settings()
+    if not mail_server or not mail_from:
+        logger.info('Email not configured. Would notify %s:\n%s', recipient, body_text)
+        return {
+            'sent': False,
+            'mode': 'log',
+            'recipient': recipient,
+            'reason': 'smtp_not_configured',
+        }
+
+    message = MIMEMultipart('mixed')
+    message['From'] = _build_from_header(mail_from, company_name)
+    message['To'] = recipient
+    message['Subject'] = f'{company_name} — {subject}' if company_name not in subject else subject
+
+    related = MIMEMultipart('related')
+    alternative = MIMEMultipart('alternative')
+    alternative.attach(MIMEText(body_text, 'plain', 'utf-8'))
+    alternative.attach(MIMEText(body_html, 'html', 'utf-8'))
+    related.attach(alternative)
+    _attach_brand_logo(related, brand)
+    if has_email_header:
+        _attach_email_header(related)
+    message.attach(related)
+
+    try:
+        _send_smtp(message, mail_server, mail_port, mail_user, mail_password, use_tls=use_tls)
+    except Exception as exc:
+        logger.exception('Failed to send system notice to %s', recipient)
+        return {
+            'sent': False,
+            'mode': 'error',
+            'reason': 'smtp_error',
+            'error': str(exc),
+            'recipient': recipient,
+        }
+
+    logger.info('System notice emailed to %s (%s)', recipient, title)
     return {'sent': True, 'mode': 'smtp', 'recipient': recipient}
 
 
@@ -208,19 +333,29 @@ def send_shareholder_report(report_data, certificate_data):
 
     subject = f"{company_name} — Shareholder Update & Certificate — {report_data['period_label']}"
     logo_cid = LOGO_CID
+    has_email_header, email_header_cid = _email_header_flags()
+    currency_symbol = (
+        report_data.get('currency_symbol')
+        or (certificate_data or {}).get('cert_currency_symbol')
+        or '$'
+    )
     body_text = render_template(
         'emails/shareholder_report.txt',
         report=report_data,
         certificate=certificate_data,
         company_name=company_name,
+        currency_symbol=currency_symbol,
     )
     body_html = render_template(
         'emails/shareholder_report.html',
         report=report_data,
         certificate=certificate_data,
         company_name=company_name,
+        currency_symbol=currency_symbol,
         logo_cid=logo_cid,
         has_logo=bool(brand.get('logo_filesystem_path')),
+        has_email_header=has_email_header,
+        email_header_cid=email_header_cid,
         brand=brand,
     )
 
@@ -259,6 +394,8 @@ def send_shareholder_report(report_data, certificate_data):
     alternative.attach(MIMEText(body_html, 'html', 'utf-8'))
     related.attach(alternative)
     _attach_brand_logo(related, brand)
+    if has_email_header:
+        _attach_email_header(related)
     message.attach(related)
 
     report_attachment = MIMEApplication(report_pdf, _subtype='pdf')

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>{{ title }}</title></head>
+<body style="margin:0;padding:0;background:#f6f3ee;font-family:Georgia,serif;color:#2b1a16;">
+  {% set company = company_name or (brand.company_name if brand else 'Company') %}
+  {% set primary = (brand.primary_color if brand else '#8A1B24') %}
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f6f3ee;padding:24px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="560" cellspacing="0" cellpadding="0" style="background:#ffffff;border-radius:8px;overflow:hidden;">
+          <tr>
+            <td style="background:{{ primary }};padding:20px 28px;color:#fff;">
+              {% if has_logo %}
+              <img src="cid:{{ logo_cid }}" alt="{{ company }}" style="max-height:40px;max-width:160px;">
+              {% else %}
+              <strong style="font-size:18px;">{{ company }}</strong>
+              {% endif %}
+            </td>
+          </tr>
+          {% if has_email_header and email_header_cid %}
+          <tr>
+            <td style="padding:0;line-height:0;">
+              <img src="cid:{{ email_header_cid }}" alt="" style="display:block;width:100%;max-height:160px;object-fit:cover;">
+            </td>
+          </tr>
+          {% endif %}
+          <tr>
+            <td style="padding:28px;">
+              <h1 style="margin:0 0 16px;font-size:22px;color:{{ primary }};">{{ title }}</h1>
+              {% for paragraph in paragraphs %}
+              <p style="margin:0 0 12px;line-height:1.5;font-size:15px;">{{ paragraph }}</p>
+              {% endfor %}
+              {% if cta_url %}
+              <p style="margin:24px 0 0;">
+                <a href="{{ cta_url }}" style="display:inline-block;background:{{ primary }};color:#fff;text-decoration:none;padding:10px 18px;border-radius:4px;font-size:14px;">
+                  {{ cta_label or 'Open' }}
+                </a>
+              </p>
+              {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:16px 28px;background:#faf7f2;font-size:12px;color:#7a6a62;">
+              Sent by {{ company }} Shareholders Profit Calculation System.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

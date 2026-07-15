@@ -1,9 +1,5 @@
-<meta charset="utf-8" />
-<title> {% block title %}{% endblock title %} | Akram Sweets Shareholders Calculate</title>
+<title>{% block title %}{% endblock title %} | {{ brand.company_name if brand else 'Akram Sweets' }} Shareholders</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Akram Sweets Shareholders Profit Calculation System — monthly profit distribution, loss handling, and shareholder reporting."/>
-<meta name="author" content="Akram Sweets"/>
-<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-
-<!-- App favicon -->
-<link rel="shortcut icon" href="{{ config.ASSETS_ROOT }}/images/favicon.ico">
+<meta name="description" content="{{ brand.company_name if brand else 'Akram Sweets' }} Shareholders Profit Calculation System — monthly profit distribution, loss handling, and shareholder reporting."/>
+<meta name="author" content="{{ brand.company_name if brand else 'Akram Sweets' }}"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>

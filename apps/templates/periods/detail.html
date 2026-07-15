@@ -42,23 +42,21 @@
     {% endif %}
   </div>
 </div>
-{% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}{% endif %}{% endwith %}
 <div class="row">
   <div class="col-xl-4"><div class="card"><div class="card-body">
-    <p class="text-muted mb-1">Company net P/L</p>
-    <h3 class="{{ 'text-success' if period.total_profit_loss >= 0 else 'text-danger' }}">${{ '%.2f'|format(period.total_profit_loss) }}</h3>
-    {% if period.uses_breakdown or period.total_revenues or period.cost_of_goods or period.total_expenses or period.other_income %}
+    <p class="text-muted mb-1">Net Profit (distributed)</p>
+    <h3 class="{{ 'text-success' if period.total_profit_loss >= 0 else 'text-danger' }}">{{ currency_symbol }}{{ '%.2f'|format(period.total_profit_loss) }}</h3>
     <hr>
     <ul class="list-unstyled mb-0 fs-13">
-      <li class="d-flex justify-content-between mb-1"><span>Revenues</span><strong>${{ '%.2f'|format(period.total_revenues) }}</strong></li>
-      <li class="d-flex justify-content-between mb-1"><span>COGS</span><strong>${{ '%.2f'|format(period.cost_of_goods) }}</strong></li>
-      <li class="d-flex justify-content-between mb-1"><span>Expenses</span><strong>${{ '%.2f'|format(period.total_expenses) }}</strong></li>
-      <li class="d-flex justify-content-between mb-1"><span>Other income</span><strong>${{ '%.2f'|format(period.other_income) }}</strong></li>
-      <li class="d-flex justify-content-between"><span>Entry mode</span><strong>{{ 'P&L breakdown' if period.uses_breakdown else 'Manual net' }}</strong></li>
+      <li class="d-flex justify-content-between mb-1"><span>Income</span><strong>{{ currency_symbol }}{{ '%.2f'|format(period.income or period.total_revenues) }}</strong></li>
+      <li class="d-flex justify-content-between mb-1"><span>Gross Profit</span><strong>{{ currency_symbol }}{{ '%.2f'|format(period.gross_profit or 0) }}</strong></li>
+      <li class="d-flex justify-content-between mb-1"><span>Total Gross Profit</span><strong>{{ currency_symbol }}{{ '%.2f'|format(period.total_gross_profit or 0) }}</strong></li>
+      <li class="d-flex justify-content-between mb-1"><span>Total Income</span><strong>{{ currency_symbol }}{{ '%.2f'|format(period.total_income or 0) }}</strong></li>
+      <li class="d-flex justify-content-between mb-1"><span>Total Operating Expenses</span><strong>{{ currency_symbol }}{{ '%.2f'|format(period.total_expenses) }}</strong></li>
+      <li class="d-flex justify-content-between"><span>Net Profit</span><strong class="{{ 'text-success' if period.total_profit_loss >= 0 else 'text-danger' }}">{{ currency_symbol }}{{ '%.2f'|format(period.total_profit_loss) }}</strong></li>
     </ul>
-    {% endif %}
     <p class="text-muted mb-1 mt-3">Distributed total</p>
-    <h5 class="mb-0">${{ '%.2f'|format(distributed_total) }}</h5>
+    <h5 class="mb-0">{{ currency_symbol }}{{ '%.2f'|format(distributed_total) }}</h5>
     <p class="text-muted mb-1 mt-3">Status</p>
     <span class="badge {% if period.status == 'approved' %}bg-success{% elif period.status == 'review' %}bg-info{% else %}bg-warning text-dark{% endif %}">{{ period.status|replace('_', ' ')|title }}</span>
     {% if period.odoo_reference %}<p class="text-muted mb-0 mt-3">Odoo: {{ period.odoo_reference }}</p>{% endif %}

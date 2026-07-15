@@ -155,6 +155,8 @@ def _build_analytics_summary(monthly_totals, manual_kpis):
 
 def _build_chart_payload(monthly_totals, distribution_rows, manual_kpis, workflow, is_shareholder_view=False):
     profit_values = [_money(p.total_profit_loss) for p in monthly_totals]
+    revenue_values = [_money(p.total_revenues) for p in monthly_totals]
+    expense_values = [_money(p.total_expenses) for p in monthly_totals]
     distributed_values = []
     for period in monthly_totals:
         total = sum((calc.final_amount for calc in period.calculations), Decimal('0'))
@@ -164,6 +166,8 @@ def _build_chart_payload(monthly_totals, distribution_rows, manual_kpis, workflo
     if not labels:
         labels = ['N/A']
         profit_values = [0]
+        revenue_values = [0]
+        expense_values = [0]
         distributed_values = [0]
 
     pie_labels = []
@@ -185,11 +189,11 @@ def _build_chart_payload(monthly_totals, distribution_rows, manual_kpis, workflo
 
     return {
         'sparklines': {
-            'revenues': _sparkline([manual_kpis['total_revenues']] * max(1, len(monthly_totals))),
+            'revenues': _sparkline(revenue_values or [_money(manual_kpis['total_revenues'])]),
             'profit': _sparkline(profit_values),
-            'shareholders': _sparkline([workflow['active_shareholders']] * max(1, len(monthly_totals))),
+            'shareholders': _sparkline([workflow['active_shareholders']] * max(1, len(labels))),
             'distributed': _sparkline(distributed_values),
-            'pending': _sparkline([workflow['review_periods']] * max(1, len(monthly_totals))),
+            'pending': _sparkline([workflow['review_periods']] * max(1, len(labels))),
         },
         'profit_over_time': {
             'labels': labels,
@@ -204,7 +208,7 @@ def _build_chart_payload(monthly_totals, distribution_rows, manual_kpis, workflo
         'revenue_stats': {
             'labels': labels[-7:] if len(labels) > 7 else labels,
             'profits': profit_values[-7:] if len(profit_values) > 7 else profit_values,
-            'revenues': [_money(manual_kpis['total_revenues'])] * min(7, max(1, len(labels))),
+            'revenues': revenue_values[-7:] if len(revenue_values) > 7 else revenue_values,
         },
         'analytics': {
             'is_shareholder_view': is_shareholder_view,
@@ -212,8 +216,8 @@ def _build_chart_payload(monthly_totals, distribution_rows, manual_kpis, workflo
                 'labels': labels,
                 'profits': profit_values,
                 'distributed': distributed_values,
-                'expenses': [_money(manual_kpis['total_expenses'])] * len(labels),
-                'revenues': [_money(manual_kpis['total_revenues'])] * len(labels),
+                'expenses': expense_values,
+                'revenues': revenue_values,
             },
             'growth_rate': {
                 'labels': labels,

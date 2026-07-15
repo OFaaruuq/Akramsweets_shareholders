@@ -1,5 +1,5 @@
 /*
-Akram Sweets — Monthly period entry (profit calculation)
+Monthly period entry — full manual P&L statement
 */
 
 (function () {
@@ -7,10 +7,6 @@ Akram Sweets — Monthly period entry (profit calculation)
   const form = document.getElementById('period-create-form');
   if (!form) return;
 
-  const entryMode = document.getElementById('entry-mode');
-  const breakdownFields = document.getElementById('breakdown-fields');
-  const manualFields = document.getElementById('manual-fields');
-  const computedNetDisplay = document.getElementById('computed-net-display');
   const previewBtn = document.getElementById('preview-distribution-btn');
   const previewCard = document.getElementById('preview-card');
   const previewBody = document.getElementById('preview-table-body');
@@ -19,14 +15,16 @@ Akram Sweets — Monthly period entry (profit calculation)
   const previewReconcile = document.getElementById('preview-reconcile');
   const previewError = document.getElementById('preview-error');
   const warningsBox = document.getElementById('period-warnings');
+  const referenceNet = document.getElementById('pnl-reference-net');
 
+  const currencySymbol = (config.currencySymbol || window.AKRAM_CURRENCY_SYMBOL || '$');
   const currency = (value) => {
     const amount = Number(value) || 0;
     const formatted = Math.abs(amount).toLocaleString(undefined, {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
-    return (amount < 0 ? '-$' : '$') + formatted;
+    return (amount < 0 ? '-' : '') + currencySymbol + formatted;
   };
 
   const parseNumber = (id) => {
@@ -36,22 +34,12 @@ Akram Sweets — Monthly period entry (profit calculation)
     return Number.isFinite(value) ? value : 0;
   };
 
-  function toggleEntryMode() {
-    const isManual = entryMode && entryMode.value === 'manual';
-    breakdownFields.classList.toggle('d-none', isManual);
-    manualFields.classList.toggle('d-none', !isManual);
-    updateComputedNet();
-  }
-
-  function updateComputedNet() {
-    if (!computedNetDisplay || entryMode.value === 'manual') return;
-    const net =
-      parseNumber('total-revenues') -
-      parseNumber('cost-of-goods') -
-      parseNumber('total-expenses') +
-      parseNumber('other-income');
-    computedNetDisplay.textContent = currency(net);
-    computedNetDisplay.className = 'mt-2 fs-18 fw-semibold ' + (net >= 0 ? 'akram-net-positive' : 'akram-net-negative');
+  function updateReferenceNet() {
+    if (!referenceNet) return;
+    const net = parseNumber('pnl-total-income') - parseNumber('pnl-total-expenses');
+    referenceNet.textContent = currency(net);
+    referenceNet.className =
+      'fw-semibold ' + (net >= 0 ? 'akram-net-positive' : 'akram-net-negative');
   }
 
   function renderWarnings(warnings) {
@@ -70,12 +58,12 @@ Akram Sweets — Monthly period entry (profit calculation)
     return {
       year: document.getElementById('period-year').value,
       month: document.getElementById('period-month').value,
-      entry_mode: entryMode.value,
-      total_revenues: parseNumber('total-revenues'),
-      cost_of_goods: parseNumber('cost-of-goods'),
-      total_expenses: parseNumber('total-expenses'),
-      other_income: parseNumber('other-income'),
-      total_profit_loss: parseNumber('manual-total'),
+      income: parseNumber('pnl-income'),
+      gross_profit: parseNumber('pnl-gross-profit'),
+      total_gross_profit: parseNumber('pnl-total-gross-profit'),
+      total_income: parseNumber('pnl-total-income'),
+      total_expenses: parseNumber('pnl-total-expenses'),
+      total_profit_loss: parseNumber('pnl-net-profit'),
     };
   }
 
@@ -150,19 +138,11 @@ Akram Sweets — Monthly period entry (profit calculation)
     }
   }
 
-  if (entryMode) {
-    entryMode.addEventListener('change', toggleEntryMode);
-    toggleEntryMode();
-  }
-
-  document.querySelectorAll('.breakdown-input').forEach((input) => {
-    input.addEventListener('input', updateComputedNet);
+  document.querySelectorAll('.pnl-input').forEach((input) => {
+    input.addEventListener('input', updateReferenceNet);
   });
-  const manualTotal = document.getElementById('manual-total');
-  if (manualTotal) manualTotal.addEventListener('input', updateComputedNet);
-
   if (previewBtn) previewBtn.addEventListener('click', previewDistribution);
 
   renderWarnings(config.warnings || []);
-  updateComputedNet();
+  updateReferenceNet();
 })();

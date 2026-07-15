@@ -14,12 +14,6 @@
   <a href="{{ url_for('shareholders.list_shareholders') }}" class="btn btn-light">Back to list</a>
 </div>
 
-{% with messages = get_flashed_messages(with_categories=true) %}
-{% if messages %}{% for category, message in messages %}
-<div class="alert alert-{{ category }}">{{ message }}</div>
-{% endfor %}{% endif %}
-{% endwith %}
-
 <div class="row">
   <div class="col-xl-8">
     <div class="card"><div class="card-body">

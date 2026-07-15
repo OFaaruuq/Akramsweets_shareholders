@@ -51,6 +51,11 @@ apps/static/.temp
 apps/static/uploads/brand/*
 !apps/static/uploads/brand/.gitkeep
 !apps/static/uploads/brand/logo-default.png
+apps/static/uploads/signatures/*
+!apps/static/uploads/signatures/.gitkeep
+apps/static/uploads/media/*
+!apps/static/uploads/media/.gitkeep
 
-# Flask migrations local state (recreate via flask db)
-migrations/
+# Flask-Migrate / Alembic revisions (commit these — required for clean deploys)
+# Ignore only local bytecode under migrations
+migrations/**/__pycache__/

@@ -88,6 +88,7 @@ def main():
         '/periods/create',
         '/settings/arrangements',
         '/settings/system',
+        '/settings/images',
         '/settings/audit-log',
         '/users/',
         '/reports/',
@@ -98,7 +99,39 @@ def main():
             errors.append(f'{path} returned {r.status_code}')
 
     with app.app_context():
-        period = MonthlyPeriod(year=2026, month=6, total_profit_loss=Decimal('100000'))
+        from apps.services.period_service import resolve_period_totals
+
+        net, pnl_fields = resolve_period_totals(
+            income=Decimal('500000'),
+            gross_profit=Decimal('200000'),
+            total_gross_profit=Decimal('210000'),
+            total_income=Decimal('520000'),
+            total_operating_expenses=Decimal('150000'),
+            net_profit=Decimal('100000'),
+        )
+        if net != Decimal('100000'):
+            errors.append(f'P&L net should be entered Net Profit, got {net}')
+        if pnl_fields['total_revenues'] != Decimal('500000'):
+            errors.append('P&L should mirror Income into total_revenues')
+        if pnl_fields['cost_of_goods'] != Decimal('300000'):
+            errors.append('P&L cost_of_goods should be Income − Gross Profit')
+        if pnl_fields['other_income'] != Decimal('20000'):
+            errors.append('P&L other_income should be Total Income − Income')
+
+        period = MonthlyPeriod(
+            year=2026,
+            month=6,
+            total_profit_loss=net,
+            income=pnl_fields['income'],
+            gross_profit=pnl_fields['gross_profit'],
+            total_gross_profit=pnl_fields['total_gross_profit'],
+            total_income=pnl_fields['total_income'],
+            total_revenues=pnl_fields['total_revenues'],
+            cost_of_goods=pnl_fields['cost_of_goods'],
+            total_expenses=pnl_fields['total_expenses'],
+            other_income=pnl_fields['other_income'],
+            entry_mode=pnl_fields['entry_mode'],
+        )
         db.session.add(period)
         db.session.commit()
         calculate_period(period)
@@ -218,6 +251,18 @@ def main():
             errors.append('PDF report generation failed')
 
         period_id = period.id
+
+        from apps.services.topbar_service import TOPBAR_EXCLUDED_ACTIONS
+
+        if 'login' not in TOPBAR_EXCLUDED_ACTIONS or 'logout' not in TOPBAR_EXCLUDED_ACTIONS:
+            errors.append('Auth noise should be excluded from topbar notifications')
+
+    # Topbar notifications render for staff after workflow
+    dash = client.get('/')
+    if dash.status_code != 200:
+        errors.append('Dashboard after period workflow failed')
+    elif 'Notifications' not in dash.get_data(as_text=True):
+        errors.append('Topbar notifications dropdown missing')
 
     client.get('/auth/logout')
 

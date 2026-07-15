@@ -16,11 +16,17 @@ class MonthlyPeriod(db.Model):
     year = db.Column(db.Integer, nullable=False)
     month = db.Column(db.Integer, nullable=False)
     total_profit_loss = db.Column(db.Numeric(14, 2), nullable=False, default=0)
+    # Full P&L statement (all entered manually). Net Profit = total_profit_loss.
+    income = db.Column(db.Numeric(14, 2), nullable=False, default=0)
+    gross_profit = db.Column(db.Numeric(14, 2), nullable=False, default=0)
+    total_gross_profit = db.Column(db.Numeric(14, 2), nullable=False, default=0)
+    total_income = db.Column(db.Numeric(14, 2), nullable=False, default=0)
+    # Legacy / compatibility fields (kept in sync for older reports/charts)
     total_revenues = db.Column(db.Numeric(14, 2), nullable=False, default=0)
     cost_of_goods = db.Column(db.Numeric(14, 2), nullable=False, default=0)
     total_expenses = db.Column(db.Numeric(14, 2), nullable=False, default=0)
     other_income = db.Column(db.Numeric(14, 2), nullable=False, default=0)
-    entry_mode = db.Column(db.String(20), nullable=False, default='breakdown')
+    entry_mode = db.Column(db.String(20), nullable=False, default='pnl')
     odoo_reference = db.Column(db.String(255), nullable=True)
     notes = db.Column(db.Text, nullable=True)
     status = db.Column(db.String(20), nullable=False, default=STATUS_DRAFT)
@@ -71,17 +77,17 @@ class MonthlyPeriod(db.Model):
 
     @property
     def computed_net_profit_loss(self):
+        """Reference check only — distribution always uses entered Net Profit."""
         from decimal import Decimal
-        return (
-            Decimal(self.total_revenues or 0)
-            - Decimal(self.cost_of_goods or 0)
-            - Decimal(self.total_expenses or 0)
-            + Decimal(self.other_income or 0)
-        )
+        return Decimal(self.total_income or 0) - Decimal(self.total_expenses or 0)
 
     @property
     def uses_breakdown(self):
-        return self.entry_mode == 'breakdown'
+        return self.entry_mode in ('breakdown', 'pnl')
+
+    @property
+    def net_profit(self):
+        return self.total_profit_loss
 
 
 class ShareholderCalculation(db.Model):

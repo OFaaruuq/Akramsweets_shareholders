@@ -49,6 +49,7 @@ def auto_send_period_reports(period):
 
 def send_due_approved_reports():
     from apps.models.period import MonthlyPeriod
+    from apps.services.audit_service import log_action
     from apps.services.certificate_service import ensure_approved_period_certificates
 
     # Always keep monthly certificates issued for current shareholders on approved periods.
@@ -63,6 +64,14 @@ def send_due_approved_reports():
 
     sent = []
     for period in pending:
-        distribute_period_reports(period)
+        results = distribute_period_reports(period)
+        smtp_sent = any((r.get('email') or {}).get('sent') for r in results)
+        log_action(
+            'send_reports',
+            'monthly_period',
+            period.id,
+            f'{period.period_label} (scheduled)'
+            + ('' if smtp_sent else ' — logged / pending SMTP'),
+        )
         sent.append(period)
     return sent

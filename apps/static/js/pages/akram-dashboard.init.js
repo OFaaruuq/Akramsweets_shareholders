@@ -4,6 +4,15 @@ Akram Sweets Shareholders Dashboard charts
 
 (function () {
   const data = window.AKRAM_DASHBOARD || {};
+  const currencySymbol = window.AKRAM_CURRENCY_SYMBOL || '$';
+  const brandPrimary = window.AKRAM_BRAND_PRIMARY || '#8A1B24';
+  const brandSecondary = window.AKRAM_BRAND_SECONDARY || '#C8924B';
+  const formatMoney = (val) => {
+    const amount = Number(val) || 0;
+    if (Math.abs(amount) >= 1000) return currencySymbol + (amount / 1000).toFixed(1) + 'K';
+    return currencySymbol + amount.toFixed(0);
+  };
+  const formatMoneyExact = (value) => currencySymbol + Number(value).toLocaleString(undefined, { minimumFractionDigits: 2 });
   const sparklines = data.sparklines || {};
   const profitOverTime = data.profit_over_time || { labels: [], profits: [], distributed: [] };
   const distributionPie = data.distribution_pie || { labels: ['No data'], series: [1], rows: [] };
@@ -101,8 +110,7 @@ Akram Sweets Shareholders Dashboard charts
     yaxis: {
       labels: {
         formatter: function (val) {
-          if (Math.abs(val) >= 1000) return '$' + (val / 1000).toFixed(1) + 'K';
-          return '$' + val.toFixed(0);
+          return formatMoney(val);
         },
         style: { colors: '#9aa0ac' },
       },
@@ -113,7 +121,7 @@ Akram Sweets Shareholders Dashboard charts
     tooltip: {
       shared: true,
       intersect: false,
-      y: { formatter: (value) => '$' + Number(value).toLocaleString(undefined, { minimumFractionDigits: 2 }) },
+      y: { formatter: (value) => formatMoneyExact(value) },
     },
     legend: { position: 'top', horizontalAlign: 'right' },
     grid: { borderColor: '#f1f1f1', strokeDashArray: 3 },
@@ -126,7 +134,7 @@ Akram Sweets Shareholders Dashboard charts
     ],
     chart: { type: 'bar', height: 200, toolbar: { show: false } },
     grid: { borderColor: '#f1f1f1', strokeDashArray: 3 },
-    colors: ['#8A1B24', '#C8924B'],
+    colors: [brandPrimary, brandSecondary],
     plotOptions: { bar: { borderRadius: 1, horizontal: false, columnWidth: '50%' } },
     dataLabels: { enabled: false },
     legend: { show: false },

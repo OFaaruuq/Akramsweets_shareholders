@@ -15,31 +15,50 @@ MONTH_CHOICES = [(i, month_name[i]) for i in range(1, 13)]
 OWNERSHIP_TOLERANCE = Decimal('0.01')
 
 
-def compute_net_from_breakdown(revenues, cost_of_goods, expenses, other_income):
-    return (
-        Decimal(revenues or 0)
-        - Decimal(cost_of_goods or 0)
-        - Decimal(expenses or 0)
-        + Decimal(other_income or 0)
-    )
+def money_value(value):
+    return Decimal(value or 0)
 
 
-def resolve_period_totals(entry_mode, total_profit_loss, revenues, cost_of_goods, expenses, other_income):
-    if entry_mode == 'manual':
-        return Decimal(total_profit_loss or 0), {
-            'total_revenues': Decimal(revenues or 0),
-            'cost_of_goods': Decimal(cost_of_goods or 0),
-            'total_expenses': Decimal(expenses or 0),
-            'other_income': Decimal(other_income or 0),
-        }
+def resolve_period_totals(
+    *,
+    income,
+    gross_profit,
+    total_gross_profit,
+    total_income,
+    total_operating_expenses,
+    net_profit,
+):
+    """
+    Persist the full manual P&L statement.
 
-    breakdown = {
-        'total_revenues': Decimal(revenues or 0),
-        'cost_of_goods': Decimal(cost_of_goods or 0),
-        'total_expenses': Decimal(expenses or 0),
-        'other_income': Decimal(other_income or 0),
+    Shareholder distribution always uses the entered Net Profit.
+    Legacy columns are kept in sync for charts/reports that still read them.
+    """
+    income = money_value(income)
+    gross_profit = money_value(gross_profit)
+    total_gross_profit = money_value(total_gross_profit)
+    total_income = money_value(total_income)
+    total_operating_expenses = money_value(total_operating_expenses)
+    net_profit = money_value(net_profit)
+
+    # Implied COGS for compatibility displays (Income − Gross Profit)
+    cost_of_goods = income - gross_profit
+    # Other income portion implied by Total Income − Income
+    other_income = total_income - income
+
+    return net_profit, {
+        'income': income,
+        'gross_profit': gross_profit,
+        'total_gross_profit': total_gross_profit,
+        'total_income': total_income,
+        'total_expenses': total_operating_expenses,
+        'total_profit_loss': net_profit,
+        # Legacy mirrors
+        'total_revenues': income,
+        'cost_of_goods': cost_of_goods,
+        'other_income': other_income,
+        'entry_mode': 'pnl',
     }
-    return compute_net_from_breakdown(**breakdown), breakdown
 
 
 def period_as_of_date(year, month):
@@ -105,11 +124,17 @@ def get_period_readiness(year, month):
         warnings.append(f'A period for {year}-{month:02d} already exists.')
 
     arrangements = get_active_arrangements(as_of_date, True)
+    active_ids = {row['id'] for row in ownership_rows}
     arrangement_rows = []
     for arrangement in arrangements:
         sources = arrangement.source_label()
         warning = None
-        if not arrangement.applies_to_all_others and not arrangement.source_ids():
+        if arrangement.recipient_shareholder_id not in active_ids:
+            warning = (
+                f'Recipient {arrangement.recipient.name} is inactive or has 0% ownership — '
+                'this arrangement will be skipped.'
+            )
+        elif not arrangement.applies_to_all_others and not arrangement.source_ids():
             warning = 'No source shareholders selected — this arrangement will be skipped until sources are set.'
         arrangement_rows.append({
             'name': arrangement.name,
@@ -162,15 +187,5 @@ def apply_period_form_defaults(form, period=None):
     if form.month.data is None:
         form.month.data = context['suggested_month']
 
-    kpis = context['dashboard_kpis']
-    if form.total_revenues.data is None:
-        form.total_revenues.data = kpis['total_revenues']
-    if form.cost_of_goods.data is None:
-        form.cost_of_goods.data = kpis['cost_of_goods']
-    if form.total_expenses.data is None:
-        form.total_expenses.data = kpis['total_expenses']
-    if form.other_income.data is None:
-        form.other_income.data = kpis['other_income']
-    if not form.entry_mode.data:
-        form.entry_mode.data = 'breakdown'
+    # Leave P&L lines blank — every line must be typed in manually.
     return context

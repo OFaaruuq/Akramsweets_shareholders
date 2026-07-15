@@ -20,23 +20,27 @@ from apps.services.report_schedule_service import auto_send_period_reports, can_
 
 
 def _period_from_form(form, created_by_id=None):
-    net_total, breakdown = resolve_period_totals(
-        form.entry_mode.data,
-        form.total_profit_loss.data,
-        form.total_revenues.data,
-        form.cost_of_goods.data,
-        form.total_expenses.data,
-        form.other_income.data,
+    net_total, fields = resolve_period_totals(
+        income=form.income.data,
+        gross_profit=form.gross_profit.data,
+        total_gross_profit=form.total_gross_profit.data,
+        total_income=form.total_income.data,
+        total_operating_expenses=form.total_expenses.data,
+        net_profit=form.total_profit_loss.data,
     )
     period = MonthlyPeriod(
         year=form.year.data,
         month=form.month.data,
         total_profit_loss=net_total,
-        total_revenues=breakdown['total_revenues'],
-        cost_of_goods=breakdown['cost_of_goods'],
-        total_expenses=breakdown['total_expenses'],
-        other_income=breakdown['other_income'],
-        entry_mode=form.entry_mode.data,
+        income=fields['income'],
+        gross_profit=fields['gross_profit'],
+        total_gross_profit=fields['total_gross_profit'],
+        total_income=fields['total_income'],
+        total_revenues=fields['total_revenues'],
+        cost_of_goods=fields['cost_of_goods'],
+        total_expenses=fields['total_expenses'],
+        other_income=fields['other_income'],
+        entry_mode=fields['entry_mode'],
         odoo_reference=(form.odoo_reference.data or '').strip() or None,
         notes=(form.notes.data or '').strip() or None,
     )
@@ -46,20 +50,24 @@ def _period_from_form(form, created_by_id=None):
 
 
 def _update_period_from_form(period, form):
-    net_total, breakdown = resolve_period_totals(
-        form.entry_mode.data,
-        form.total_profit_loss.data,
-        form.total_revenues.data,
-        form.cost_of_goods.data,
-        form.total_expenses.data,
-        form.other_income.data,
+    net_total, fields = resolve_period_totals(
+        income=form.income.data,
+        gross_profit=form.gross_profit.data,
+        total_gross_profit=form.total_gross_profit.data,
+        total_income=form.total_income.data,
+        total_operating_expenses=form.total_expenses.data,
+        net_profit=form.total_profit_loss.data,
     )
     period.total_profit_loss = net_total
-    period.total_revenues = breakdown['total_revenues']
-    period.cost_of_goods = breakdown['cost_of_goods']
-    period.total_expenses = breakdown['total_expenses']
-    period.other_income = breakdown['other_income']
-    period.entry_mode = form.entry_mode.data
+    period.income = fields['income']
+    period.gross_profit = fields['gross_profit']
+    period.total_gross_profit = fields['total_gross_profit']
+    period.total_income = fields['total_income']
+    period.total_revenues = fields['total_revenues']
+    period.cost_of_goods = fields['cost_of_goods']
+    period.total_expenses = fields['total_expenses']
+    period.other_income = fields['other_income']
+    period.entry_mode = fields['entry_mode']
     period.odoo_reference = (form.odoo_reference.data or '').strip() or None
     period.notes = (form.notes.data or '').strip() or None
 
@@ -137,14 +145,13 @@ def preview_period():
     try:
         year = int(payload.get('year'))
         month = int(payload.get('month'))
-        entry_mode = payload.get('entry_mode', 'breakdown')
         net_total, _ = resolve_period_totals(
-            entry_mode,
-            payload.get('total_profit_loss'),
-            payload.get('total_revenues'),
-            payload.get('cost_of_goods'),
-            payload.get('total_expenses'),
-            payload.get('other_income'),
+            income=payload.get('income'),
+            gross_profit=payload.get('gross_profit'),
+            total_gross_profit=payload.get('total_gross_profit'),
+            total_income=payload.get('total_income'),
+            total_operating_expenses=payload.get('total_expenses'),
+            net_profit=payload.get('total_profit_loss'),
         )
         readiness = get_period_readiness(year, month)
         preview = preview_period_distribution(net_total, period_as_of_date(year, month))
@@ -207,6 +214,20 @@ def edit_period(period_id):
         return redirect(url_for('periods.detail_period', period_id=period.id))
 
     form = PeriodForm(obj=period)
+    if request.method == 'GET':
+        # Prefer dedicated P&L fields; fall back to legacy columns for older periods.
+        if not form.income.data and period.total_revenues:
+            form.income.data = period.income or period.total_revenues
+        if not form.gross_profit.data and (period.total_revenues or period.cost_of_goods):
+            form.gross_profit.data = period.gross_profit or (
+                (period.total_revenues or 0) - (period.cost_of_goods or 0)
+            )
+        if not form.total_gross_profit.data:
+            form.total_gross_profit.data = period.total_gross_profit or form.gross_profit.data or 0
+        if not form.total_income.data:
+            form.total_income.data = period.total_income or (
+                (period.total_revenues or 0) + (period.other_income or 0)
+            )
     create_context = get_period_create_context(period.year, period.month)
 
     if form.validate_on_submit():
@@ -259,6 +280,13 @@ def submit_review(period_id):
     try:
         submit_for_review(period)
         log_action('submit_review', 'monthly_period', period.id, period.period_label)
+        try:
+            from apps.services.notification_service import notify_management_period_submitted
+
+            notify_management_period_submitted(period, submitted_by=current_user)
+        except Exception:
+            # Audit + flash already recorded; email failure must not block workflow.
+            pass
         flash('Period submitted for management review.', 'success')
     except ValueError as exc:
         flash(str(exc), 'danger')
@@ -289,11 +317,15 @@ def add_adjustment(period_id):
         db.session.commit()
         try:
             calculate_period(period)
+            shareholder = Shareholder.query.get(form.shareholder_id.data)
+            from apps.services.display_settings_service import money_label
+
             log_action(
                 'adjustment',
                 'manual_adjustment',
                 adjustment.id,
-                f'{period.period_label}: {form.reason.data.strip()}',
+                f'{period.period_label}: {money_label(form.amount.data)} for '
+                f'{shareholder.name if shareholder else "shareholder"} — {form.reason.data.strip()}',
             )
             flash('Manual adjustment added and period recalculated.', 'success')
         except ValueError as exc:

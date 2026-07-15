@@ -5,9 +5,6 @@
 {% block page_content %}
 <div class="py-3"><h4 class="fs-18 fw-semibold m-0">System Settings</h4>
 <p class="text-muted mb-0 fs-13">Configure brand identity, certificate wording, automatic emails, and SMTP delivery.</p></div>
-{% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}
-<div class="alert alert-{{ category }}">{{ message }}</div>
-{% endfor %}{% endif %}{% endwith %}
 
 {% if mail_status and mail_status.show_warning %}
 <div class="alert alert-{{ 'danger' if mail_status.otp_blocked else 'warning' }}">
@@ -32,7 +29,12 @@
 <div class="card mb-3">
   <div class="card-header"><h5 class="card-title mb-0">Brand identity (certificates)</h5></div>
   <div class="card-body">
-    <p class="text-muted fs-13">Certificates, PDF reports, and shareholder emails use these brand colors and logo. Defaults match Akram Sweets maroon and gold.</p>
+    <p class="text-muted fs-13">
+      Certificates, PDF reports, and shareholder emails use these brand colors and logo.
+      Defaults match Akram Sweets maroon and gold.
+      Manage all application images (logo, signature, login background, banners) in
+      <a href="{{ url_for('app_settings.manage_images') }}">Manage Images</a>.
+    </p>
     <div class="row align-items-start">
       <div class="col-md-4 mb-3">
         <label class="form-label">{{ form.brand_company_name.label.text }}</label>
@@ -219,11 +221,33 @@
       {{ form.auto_email_on_approval(class='form-check-input', id='auto-email') }}
       <label class="form-check-label" for="auto-email">{{ form.auto_email_on_approval.label.text }}</label>
     </div>
+    <div class="mb-3 form-check">
+      {{ form.sms_notifications_enabled(class='form-check-input', id='sms-notify') }}
+      <label class="form-check-label" for="sms-notify">{{ form.sms_notifications_enabled.label.text }}</label>
+    </div>
+    <div class="mb-3 form-check">
+      {{ form.notify_management_on_review(class='form-check-input', id='notify-review') }}
+      <label class="form-check-label" for="notify-review">{{ form.notify_management_on_review.label.text }}</label>
+    </div>
+    <div class="mb-3 form-check">
+      {{ form.email_portal_credentials(class='form-check-input', id='email-portal') }}
+      <label class="form-check-label" for="email-portal">{{ form.email_portal_credentials.label.text }}</label>
+    </div>
+    <div class="mb-3 form-check">
+      {{ form.email_staff_invite(class='form-check-input', id='email-staff') }}
+      <label class="form-check-label" for="email-staff">{{ form.email_staff_invite.label.text }}</label>
+    </div>
+    <div class="mb-3 form-check">
+      {{ form.email_password_change(class='form-check-input', id='email-password') }}
+      <label class="form-check-label" for="email-password">{{ form.email_password_change.label.text }}</label>
+    </div>
     <div class="alert alert-info py-2 fs-13">
       <strong>Certificates</strong> always use your company name, brand colors, logo, and the certificate wording above when a period is approved.
       Configure SMTP below and keep <em>auto email on approval</em> enabled so each shareholder receives an email
       with the branded certificate PDF and profit report attached.
       Use port <strong>587</strong> (STARTTLS) or <strong>465</strong> (SSL).
+      SMS/WhatsApp is optional and currently logs only until a provider is connected.
+      Staff topbar notifications follow the audit trail for period, shareholder, arrangement, certificate, and settings activity.
     </div>
     <div class="row">
       <div class="col-md-4 mb-3"><label class="form-label">Report delivery day</label>{{ form.report_delivery_day(class='form-control') }}</div>

@@ -1,0 +1,11 @@
+{{ company_name }} — {{ title }}
+
+{% for paragraph in paragraphs %}
+{{ paragraph }}
+
+{% endfor %}
+{% if cta_url %}
+{{ cta_label or 'Open' }}: {{ cta_url }}
+{% endif %}
+
+— {{ company_name }} Shareholders

@@ -1,5 +1,6 @@
 from datetime import date
 from decimal import Decimal
+import os
 
 from apps import db
 from apps.models.arrangement import SpecialArrangement
@@ -14,9 +15,34 @@ PORTAL_USERS = (
 )
 
 
+def _demo_seed_enabled():
+    """
+    Demo users/shareholders are only auto-created when explicitly allowed.
+
+    - SEED_DEMO_DATA=true forces seeding
+    - SEED_DEMO_DATA=false disables seeding even in DEBUG
+    - Otherwise DEBUG mode seeds an empty database for local development
+    """
+    flag = os.getenv('SEED_DEMO_DATA')
+    if flag is not None and str(flag).strip() != '':
+        return str(flag).strip().lower() in ('1', 'true', 'yes', 'on')
+    try:
+        from flask import current_app, has_app_context
+
+        if has_app_context():
+            return bool(current_app.debug)
+    except RuntimeError:
+        pass
+    return str(os.getenv('DEBUG', 'False')).strip().lower() in ('1', 'true', 'yes', 'on')
+
+
 def seed_if_empty():
     if User.query.count():
-        seed_portal_users_if_missing()
+        if _demo_seed_enabled():
+            seed_portal_users_if_missing()
+        return
+
+    if not _demo_seed_enabled():
         return
 
     owner = Shareholder(
@@ -96,37 +122,48 @@ def seed_if_empty():
 
 
 def seed_portal_users_if_missing():
+    if not _demo_seed_enabled():
+        return
+
     from apps.services.brand_service import ensure_default_brand_settings
 
     ensure_default_brand_settings()
-    shareholders = []
-    for name, email, _, _ in PORTAL_USERS:
-        shareholder = Shareholder.query.filter_by(name=name).first()
-        if shareholder and not shareholder.user_account and not User.query.filter_by(email=email).first():
-            shareholders.append(shareholder)
-
-    if not shareholders:
-        return
-
-    _create_portal_users(shareholders, commit=True)
-
-
-def _create_portal_users(shareholders, commit=False):
-    by_name = {shareholder.name: shareholder for shareholder in shareholders}
-    for name, email, full_name, password in PORTAL_USERS:
-        shareholder = by_name.get(name)
-        if not shareholder or shareholder.user_account:
+    shareholders = {
+        sh.name: sh
+        for sh in Shareholder.query.filter(Shareholder.name.in_([row[0] for row in PORTAL_USERS])).all()
+    }
+    created = False
+    for shareholder_name, email, full_name, password in PORTAL_USERS:
+        shareholder = shareholders.get(shareholder_name)
+        if not shareholder:
             continue
-
+        existing = User.query.filter_by(email=email).first()
+        if existing:
+            continue
         user = User(
             email=email,
             full_name=full_name,
             role=User.ROLE_SHAREHOLDER,
             shareholder_id=shareholder.id,
-            is_active=True,
         )
         user.set_password(password)
         db.session.add(user)
-
-    if commit:
+        created = True
+    if created:
         db.session.commit()
+
+
+def _create_portal_users(shareholders):
+    by_name = {sh.name: sh for sh in shareholders}
+    for shareholder_name, email, full_name, password in PORTAL_USERS:
+        shareholder = by_name.get(shareholder_name)
+        if not shareholder:
+            continue
+        user = User(
+            email=email,
+            full_name=full_name,
+            role=User.ROLE_SHAREHOLDER,
+            shareholder_id=shareholder.id,
+        )
+        user.set_password(password)
+        db.session.add(user)

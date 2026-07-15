@@ -131,7 +131,13 @@ def profile():
         else:
             current_user.set_password(form.new_password.data)
             db.session.commit()
-            log_action('password_change', 'user', current_user.id)
+            log_action('password_change', 'user', current_user.id, current_user.email)
+            try:
+                from apps.services.notification_service import notify_password_changed
+
+                notify_password_changed(current_user)
+            except Exception:
+                pass
             flash('Password updated successfully.', 'success')
             return redirect(url_for('portal.profile'))
 

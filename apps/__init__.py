@@ -18,7 +18,12 @@ login_manager.login_message_category = 'warning'
 @login_manager.user_loader
 def load_user(user_id):
     from apps.models.user import User
-    return User.query.get(int(user_id))
+    from apps import db
+
+    try:
+        return db.session.get(User, int(user_id))
+    except (TypeError, ValueError):
+        return None
 
 
 def register_extensions(app):
@@ -59,7 +64,6 @@ def configure_database(app):
 
             ensure_default_brand_settings()
             ensure_default_certificate_settings()
-            # Sync SMTP from .env into settings when UI fields are empty
             if app.config.get('MAIL_SERVER') and not SystemSetting.get('mail_server'):
                 SystemSetting.set('mail_server', app.config['MAIL_SERVER'])
             if app.config.get('MAIL_PORT') and not SystemSetting.get('mail_port'):
@@ -71,7 +75,7 @@ def configure_database(app):
             if app.config.get('MAIL_FROM') and not SystemSetting.get('mail_from'):
                 SystemSetting.set('mail_from', app.config['MAIL_FROM'])
         except Exception:
-            pass
+            app.logger.exception('Startup settings sync failed (brand/certificate/SMTP defaults)')
 
     @app.teardown_request
     def shutdown_session(exception=None):
@@ -102,6 +106,44 @@ def create_app(config):
             return {'mail_status': get_mail_delivery_status()}
         except Exception:
             return {'mail_status': None}
+
+    @app.context_processor
+    def inject_display_settings():
+        try:
+            from apps.services.display_settings_service import get_display_settings
+
+            display = get_display_settings()
+            return {
+                'display': display,
+                'currency_symbol': display['currency_symbol'],
+                'company_name': display['company_name'],
+            }
+        except Exception:
+            return {
+                'display': None,
+                'currency_symbol': '$',
+                'company_name': 'Akram Sweets',
+            }
+
+    @app.context_processor
+    def inject_app_images():
+        try:
+            from apps.services.media_service import get_application_images
+
+            images = get_application_images()
+            return {
+                'app_images': images,
+                'login_background_url': images.get('login_background_url'),
+                'email_header_url': images.get('email_header_url'),
+                'dashboard_banner_url': images.get('dashboard_banner_url'),
+            }
+        except Exception:
+            return {
+                'app_images': None,
+                'login_background_url': None,
+                'email_header_url': None,
+                'dashboard_banner_url': None,
+            }
 
     @app.context_processor
     def inject_topbar():

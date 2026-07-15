@@ -92,20 +92,22 @@ Copy `env.sample` to `.env` and adjust. Never commit `.env` — it is gitignored
 
 ## Production notes
 
-- Set `DEBUG=False` and a strong `SECRET_KEY`
-- Use PostgreSQL with a strong `DB_PASS`
+- Set `DEBUG=False` and a strong `SECRET_KEY` (required; 16+ characters)
+- Use PostgreSQL with a strong `DB_PASS` (special characters are URL-encoded automatically for `DB_*`)
 - Keep PostgreSQL bound to localhost or behind a firewall
 - Configure SMTP (`MAIL_*`) before enabling login OTP (`LOGIN_OTP_ENABLED=true`)
-- Apply schema changes with Alembic: `flask --app run.py db upgrade`
+- Apply schema changes with Alembic before or on first boot:
+  `flask --app run.py db upgrade`
+- Prefer `gunicorn wsgi:app` (also works with `gunicorn run:app`)
 - Run the report scheduler separately: `python scripts/send_scheduled_reports.py` (cron/systemd)
 
 ### Database migrations
 
 ```bash
-# Apply pending revisions
+# Apply pending revisions (clean server or upgrades)
 flask --app run.py db upgrade
 
-# After model changes (creates a new revision)
+# After model changes
 flask --app run.py db migrate -m "describe change"
 flask --app run.py db upgrade
 ```
@@ -115,6 +117,14 @@ Destructive local rebuild (DEBUG only, wipes data):
 ```bash
 ALLOW_SCHEMA_RESET=true flask --app run.py run
 ```
+
+### Clean server checklist
+
+1. Install PostgreSQL and create DB/role (`scripts/init_postgres.sql` or `scripts/setup_database.py`)
+2. `cp env.sample .env` and set `SECRET_KEY`, `DB_*` / `DATABASE_URL`, `MAIL_*`
+3. `python -m venv venv && source venv/bin/activate && pip install -r requirements.txt`
+4. `flask --app run.py db upgrade`
+5. `gunicorn wsgi:app` (or `flask --app run.py run` for DEBUG)
 
 ## License
 

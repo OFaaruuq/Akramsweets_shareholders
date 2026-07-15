@@ -105,6 +105,7 @@ def _draw_line(c, y, text, bold=False):
 
 def generate_shareholder_report_pdf(report):
     brand = _brand_palette(report)
+    currency = report.get('currency_symbol') or report.get('cert_currency_symbol') or '$'
     buffer = BytesIO()
     pdf = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
@@ -131,16 +132,21 @@ def generate_shareholder_report_pdf(report):
     pdf.line(2 * cm, y, width - 2 * cm, y)
     y -= 0.8 * cm
 
+    def money(amount):
+        value = float(amount or 0)
+        sign = '-' if value < 0 else ''
+        return f'{sign}{currency}{abs(value):,.2f}'
+
     generated = report['generated_at'].strftime('%Y-%m-%d %H:%M') if report.get('generated_at') else 'Draft'
     y = _draw_line(pdf, y, f"Generated: {generated}")
     y = _draw_line(pdf, y, f"Shareholder: {report['shareholder_name']} ({report['shareholder_email']})")
-    y = _draw_line(pdf, y, f"Company total for month: {float(report['company_total']):,.2f}")
+    y = _draw_line(pdf, y, f"Company total for month: {money(report['company_total'])}")
     if report.get('odoo_reference'):
         y = _draw_line(pdf, y, f"Odoo reference: {report['odoo_reference']}")
     y -= 0.3 * cm
 
     y = _draw_line(pdf, y, f"Ownership: {float(report['ownership_percent']):,.2f}%", bold=True)
-    y = _draw_line(pdf, y, f"Base share: {float(report['base_share']):,.2f}")
+    y = _draw_line(pdf, y, f"Base share: {money(report['base_share'])}")
 
     if report.get('arrangements_applied'):
         y = _draw_line(pdf, y, 'Special arrangements:', bold=True)
@@ -149,27 +155,27 @@ def generate_shareholder_report_pdf(report):
                 pdf,
                 y,
                 f"  - {item['name']} ({float(item['percent']):,.2f}%): "
-                f"{float(item['amount']):,.2f} — {item['description']}",
+                f"{money(item['amount'])} — {item['description']}",
             )
     else:
-        y = _draw_line(pdf, y, f"Arrangement deduction: {float(report['arrangement_deduction']):,.2f}")
-        y = _draw_line(pdf, y, f"Arrangement received: {float(report['arrangement_received']):,.2f}")
+        y = _draw_line(pdf, y, f"Arrangement deduction: {money(report['arrangement_deduction'])}")
+        y = _draw_line(pdf, y, f"Arrangement received: {money(report['arrangement_received'])}")
 
     if report.get('adjustment_lines'):
         y = _draw_line(pdf, y, 'Manual adjustments:', bold=True)
         for item in report['adjustment_lines']:
-            y = _draw_line(pdf, y, f"  - {float(item['amount']):,.2f} — {item['reason']}")
+            y = _draw_line(pdf, y, f"  - {money(item['amount'])} — {item['reason']}")
     else:
-        y = _draw_line(pdf, y, f"Manual adjustment: {float(report['manual_adjustment']):,.2f}")
+        y = _draw_line(pdf, y, f"Manual adjustment: {money(report['manual_adjustment'])}")
 
     y -= 0.4 * cm
     pdf.setFillColor(brand['primary'])
     pdf.setFont('Helvetica-Bold', 13)
-    pdf.drawString(2 * cm, y, f"Final amount: {float(report['final_amount']):,.2f}")
+    pdf.drawString(2 * cm, y, f"Final amount: {money(report['final_amount'])}")
     y -= 0.7 * cm
     pdf.setFillColor(colors.black)
     pdf.setFont('Helvetica', 10)
-    pdf.drawString(2 * cm, y, f"Year-to-date total: {float(report['ytd_total']):,.2f}")
+    pdf.drawString(2 * cm, y, f"Year-to-date total: {money(report['ytd_total'])}")
 
     pdf.setFillColor(colors.grey)
     pdf.setFont('Helvetica', 8)

@@ -5,7 +5,14 @@ from flask import flash, redirect, render_template, send_file, url_for
 
 from apps.app_settings import blueprint
 from apps.auth.decorators import management_required
-from apps.forms import ArrangementForm, DashboardSettingsForm, SystemSettingsForm
+from apps.forms import (
+    ArrangementForm,
+    BrandLogoForm,
+    CertificateSignatureImageForm,
+    DashboardSettingsForm,
+    MediaLibraryUploadForm,
+    SystemSettingsForm,
+)
 from apps.models.arrangement import SpecialArrangement
 from apps.models.audit import AuditLog
 from apps.models.settings import SystemSetting
@@ -21,11 +28,24 @@ def settings_home():
     return redirect(url_for('app_settings.arrangements'))
 
 
-def _shareholder_choices():
-    return [
-        (sh.id, sh.name)
-        for sh in Shareholder.query.filter_by(is_active=True).order_by(Shareholder.name)
-    ]
+def _shareholder_choices(include_ids=None):
+    """Active shareholders for arrangement pickers; keep current IDs selectable when editing."""
+    include_ids = {int(i) for i in (include_ids or []) if i}
+    query = Shareholder.query
+    if include_ids:
+        from sqlalchemy import or_
+
+        query = query.filter(
+            or_(Shareholder.is_active.is_(True), Shareholder.id.in_(include_ids))
+        )
+    else:
+        query = query.filter_by(is_active=True)
+    rows = query.order_by(Shareholder.name).all()
+    choices = []
+    for sh in rows:
+        label = sh.name if sh.is_active else f'{sh.name} (inactive)'
+        choices.append((sh.id, label))
+    return choices
 
 
 def _sync_arrangement_sources(arrangement, form):
@@ -49,24 +69,28 @@ def arrangements():
     form.source_shareholder_ids.choices = choices
 
     if form.validate_on_submit():
-        arrangement = SpecialArrangement(
-            name=form.name.data.strip(),
-            recipient_shareholder_id=form.recipient_shareholder_id.data,
-            bonus_percent=form.bonus_percent.data,
-            applies_to_all_others=form.applies_to_all_others.data,
-            apply_on_profit=form.apply_on_profit.data,
-            apply_on_loss=form.apply_on_loss.data,
-            effective_from=form.effective_from.data,
-            effective_to=form.effective_to.data,
-            notes=form.notes.data,
-        )
-        db.session.add(arrangement)
-        db.session.flush()
-        _sync_arrangement_sources(arrangement, form)
-        db.session.commit()
-        log_action('create', 'special_arrangement', arrangement.id, arrangement.name)
-        flash('Special arrangement saved.', 'success')
-        return redirect(url_for('app_settings.arrangements'))
+        recipient = Shareholder.query.get(form.recipient_shareholder_id.data)
+        if not recipient or not recipient.is_active:
+            flash('Recipient must be an active shareholder.', 'danger')
+        else:
+            arrangement = SpecialArrangement(
+                name=form.name.data.strip(),
+                recipient_shareholder_id=form.recipient_shareholder_id.data,
+                bonus_percent=form.bonus_percent.data,
+                applies_to_all_others=form.applies_to_all_others.data,
+                apply_on_profit=form.apply_on_profit.data,
+                apply_on_loss=form.apply_on_loss.data,
+                effective_from=form.effective_from.data,
+                effective_to=form.effective_to.data,
+                notes=form.notes.data,
+            )
+            db.session.add(arrangement)
+            db.session.flush()
+            _sync_arrangement_sources(arrangement, form)
+            db.session.commit()
+            log_action('create', 'special_arrangement', arrangement.id, arrangement.name)
+            flash('Special arrangement saved. It will apply on the next period calculation.', 'success')
+            return redirect(url_for('app_settings.arrangements'))
 
     rows = SpecialArrangement.query.order_by(SpecialArrangement.effective_from.desc()).all()
     return render_template(
@@ -82,27 +106,32 @@ def arrangements():
 def edit_arrangement(arrangement_id):
     arrangement = SpecialArrangement.query.get_or_404(arrangement_id)
     form = ArrangementForm(obj=arrangement)
-    choices = _shareholder_choices()
+    include_ids = [arrangement.recipient_shareholder_id] + [s.id for s in arrangement.source_shareholders]
+    choices = _shareholder_choices(include_ids=include_ids)
     form.recipient_shareholder_id.choices = choices
     form.source_shareholder_ids.choices = choices
     if not form.is_submitted():
         form.source_shareholder_ids.data = [s.id for s in arrangement.source_shareholders]
 
     if form.validate_on_submit():
-        arrangement.name = form.name.data.strip()
-        arrangement.recipient_shareholder_id = form.recipient_shareholder_id.data
-        arrangement.bonus_percent = form.bonus_percent.data
-        arrangement.applies_to_all_others = form.applies_to_all_others.data
-        arrangement.apply_on_profit = form.apply_on_profit.data
-        arrangement.apply_on_loss = form.apply_on_loss.data
-        arrangement.effective_from = form.effective_from.data
-        arrangement.effective_to = form.effective_to.data
-        arrangement.notes = form.notes.data
-        _sync_arrangement_sources(arrangement, form)
-        db.session.commit()
-        log_action('update', 'special_arrangement', arrangement.id, arrangement.name)
-        flash('Special arrangement updated.', 'success')
-        return redirect(url_for('app_settings.arrangements'))
+        recipient = Shareholder.query.get(form.recipient_shareholder_id.data)
+        if not recipient or not recipient.is_active:
+            flash('Recipient must be an active shareholder.', 'danger')
+        else:
+            arrangement.name = form.name.data.strip()
+            arrangement.recipient_shareholder_id = form.recipient_shareholder_id.data
+            arrangement.bonus_percent = form.bonus_percent.data
+            arrangement.applies_to_all_others = form.applies_to_all_others.data
+            arrangement.apply_on_profit = form.apply_on_profit.data
+            arrangement.apply_on_loss = form.apply_on_loss.data
+            arrangement.effective_from = form.effective_from.data
+            arrangement.effective_to = form.effective_to.data
+            arrangement.notes = form.notes.data
+            _sync_arrangement_sources(arrangement, form)
+            db.session.commit()
+            log_action('update', 'special_arrangement', arrangement.id, arrangement.name)
+            flash('Special arrangement updated.', 'success')
+            return redirect(url_for('app_settings.arrangements'))
 
     return render_template(
         'settings/arrangement_form.html',
@@ -120,7 +149,24 @@ def deactivate_arrangement(arrangement_id):
     arrangement.is_active = False
     db.session.commit()
     log_action('deactivate', 'special_arrangement', arrangement.id, arrangement.name)
-    flash('Special arrangement deactivated.', 'success')
+    flash('Special arrangement deactivated. It will no longer apply to new calculations.', 'success')
+    return redirect(url_for('app_settings.arrangements'))
+
+
+@blueprint.route('/arrangements/<int:arrangement_id>/activate', methods=['POST'])
+@management_required
+def activate_arrangement(arrangement_id):
+    arrangement = SpecialArrangement.query.get_or_404(arrangement_id)
+    if not arrangement.recipient or not arrangement.recipient.is_active:
+        flash('Cannot activate: recipient shareholder is inactive.', 'danger')
+        return redirect(url_for('app_settings.arrangements'))
+    if not arrangement.applies_to_all_others and not arrangement.source_ids():
+        flash('Cannot activate: select at least one source shareholder first.', 'danger')
+        return redirect(url_for('app_settings.edit_arrangement', arrangement_id=arrangement.id))
+    arrangement.is_active = True
+    db.session.commit()
+    log_action('activate', 'special_arrangement', arrangement.id, arrangement.name)
+    flash('Special arrangement activated.', 'success')
     return redirect(url_for('app_settings.arrangements'))
 
 
@@ -161,6 +207,11 @@ def system_settings():
     cert = get_certificate_settings()
     form = SystemSettingsForm(
         auto_email_on_approval=str(SystemSetting.get('auto_email_on_approval', 'true')).lower() in ('1', 'true', 'yes', 'on'),
+        sms_notifications_enabled=str(SystemSetting.get('sms_notifications_enabled', 'false')).lower() in ('1', 'true', 'yes', 'on'),
+        notify_management_on_review=str(SystemSetting.get('notify_management_on_review', 'true')).lower() in ('1', 'true', 'yes', 'on'),
+        email_portal_credentials=str(SystemSetting.get('email_portal_credentials', 'true')).lower() in ('1', 'true', 'yes', 'on'),
+        email_staff_invite=str(SystemSetting.get('email_staff_invite', 'true')).lower() in ('1', 'true', 'yes', 'on'),
+        email_password_change=str(SystemSetting.get('email_password_change', 'true')).lower() in ('1', 'true', 'yes', 'on'),
         report_delivery_day=SystemSetting.get('report_delivery_day'),
         mail_from=SystemSetting.get('mail_from'),
         mail_server=SystemSetting.get('mail_server'),
@@ -197,6 +248,11 @@ def system_settings():
 
     if form.validate_on_submit():
         SystemSetting.set('auto_email_on_approval', 'true' if form.auto_email_on_approval.data else 'false')
+        SystemSetting.set('sms_notifications_enabled', 'true' if form.sms_notifications_enabled.data else 'false')
+        SystemSetting.set('notify_management_on_review', 'true' if form.notify_management_on_review.data else 'false')
+        SystemSetting.set('email_portal_credentials', 'true' if form.email_portal_credentials.data else 'false')
+        SystemSetting.set('email_staff_invite', 'true' if form.email_staff_invite.data else 'false')
+        SystemSetting.set('email_password_change', 'true' if form.email_password_change.data else 'false')
         for key in (
             'report_delivery_day',
             'mail_from',
@@ -363,3 +419,125 @@ def preview_certificate():
 def audit_log():
     logs = AuditLog.query.order_by(AuditLog.created_at.desc()).limit(200).all()
     return render_template('settings/audit_log.html', logs=logs, segment='audit-log')
+
+
+@blueprint.route('/images', methods=['GET', 'POST'])
+@management_required
+def manage_images():
+    """Central admin page for all application images."""
+    from apps.services.brand_service import clear_brand_logo, ensure_default_logo, save_brand_logo
+    from apps.services.certificate_settings_service import clear_signature_image, save_signature_image
+    from apps.services.media_service import (
+        get_application_images,
+        upload_library_image,
+    )
+
+    logo_form = BrandLogoForm(prefix='logo')
+    signature_form = CertificateSignatureImageForm(prefix='sig')
+    upload_form = MediaLibraryUploadForm(prefix='upload')
+
+    action = None
+    if logo_form.validate_on_submit() and logo_form.submit.data:
+        action = 'logo'
+    elif signature_form.validate_on_submit() and signature_form.submit.data:
+        action = 'signature'
+    elif upload_form.validate_on_submit() and upload_form.submit.data:
+        action = 'upload'
+
+    try:
+        if action == 'logo':
+            if logo_form.remove_brand_logo.data:
+                clear_brand_logo()
+                flash('Brand logo cleared. Default logo restored.', 'success')
+            elif logo_form.brand_logo.data:
+                save_brand_logo(logo_form.brand_logo.data)
+                flash('Brand logo updated. It now appears across login, emails, and certificates.', 'success')
+            else:
+                flash('Choose a logo file or tick remove.', 'warning')
+                return redirect(url_for('app_settings.manage_images'))
+            log_action('update', 'media_image', None, 'Updated brand logo')
+            return redirect(url_for('app_settings.manage_images'))
+
+        if action == 'signature':
+            if signature_form.remove_cert_signature.data:
+                clear_signature_image()
+                flash('Certificate signature image removed.', 'success')
+            elif signature_form.cert_signature_image.data:
+                save_signature_image(signature_form.cert_signature_image.data)
+                flash('Certificate signature image updated.', 'success')
+            else:
+                flash('Choose a signature file or tick remove.', 'warning')
+                return redirect(url_for('app_settings.manage_images'))
+            log_action('update', 'media_image', None, 'Updated certificate signature image')
+            return redirect(url_for('app_settings.manage_images'))
+
+        if action == 'upload':
+            item = upload_library_image(
+                upload_form.image.data,
+                title=upload_form.title.data,
+                slot=(upload_form.slot.data or None) or None,
+            )
+            log_action('create', 'media_image', None, f'Uploaded {item.get("title")}')
+            flash(f'Image “{item.get("title")}” uploaded.', 'success')
+            return redirect(url_for('app_settings.manage_images'))
+    except ValueError as exc:
+        flash(str(exc), 'danger')
+        return redirect(url_for('app_settings.manage_images'))
+
+    ensure_default_logo()
+    images = get_application_images()
+    return render_template(
+        'settings/images.html',
+        segment='images',
+        images=images,
+        logo_form=logo_form,
+        signature_form=signature_form,
+        upload_form=upload_form,
+    )
+
+
+@blueprint.route('/images/library/<image_id>/assign', methods=['POST'])
+@management_required
+def assign_media_image(image_id):
+    from apps.services.media_service import IMAGE_SLOTS, assign_slot
+    from flask import request
+
+    slot = (request.form.get('slot') or '').strip()
+    if slot not in IMAGE_SLOTS or IMAGE_SLOTS[slot]['managed'] != 'library':
+        flash('Choose a valid application image slot.', 'danger')
+        return redirect(url_for('app_settings.manage_images'))
+    try:
+        item = assign_slot(slot, image_id)
+        log_action('update', 'media_image', None, f'Assigned {item.get("title")} to {slot}')
+        flash('Image assigned to application slot.', 'success')
+    except ValueError as exc:
+        flash(str(exc), 'danger')
+    return redirect(url_for('app_settings.manage_images'))
+
+
+@blueprint.route('/images/library/<image_id>/delete', methods=['POST'])
+@management_required
+def delete_media_image(image_id):
+    from apps.services.media_service import delete_library_image
+
+    try:
+        deleted = delete_library_image(image_id)
+        log_action('delete', 'media_image', None, f'Deleted {deleted.get("title")}')
+        flash('Image deleted from the media library.', 'success')
+    except ValueError as exc:
+        flash(str(exc), 'danger')
+    return redirect(url_for('app_settings.manage_images'))
+
+
+@blueprint.route('/images/slots/<slot>/clear', methods=['POST'])
+@management_required
+def clear_media_slot(slot):
+    from apps.services.media_service import IMAGE_SLOTS, clear_slot
+
+    if slot not in IMAGE_SLOTS or IMAGE_SLOTS[slot]['managed'] != 'library':
+        flash('That image slot cannot be cleared here.', 'danger')
+        return redirect(url_for('app_settings.manage_images'))
+    clear_slot(slot)
+    log_action('update', 'media_image', None, f'Cleared slot {slot}')
+    flash('Image slot cleared.', 'success')
+    return redirect(url_for('app_settings.manage_images'))

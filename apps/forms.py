@@ -13,9 +13,9 @@ from wtforms import (
     TextAreaField,
     widgets,
 )
-from wtforms.validators import DataRequired, Email, Length, NumberRange, Optional, Regexp
+from wtforms.validators import DataRequired, Email, InputRequired, Length, NumberRange, Optional, Regexp
 
-from apps.services.period_service import MONTH_CHOICES, compute_net_from_breakdown
+from apps.services.period_service import MONTH_CHOICES
 
 
 class ShareholderForm(FlaskForm):
@@ -39,15 +39,8 @@ class ShareholderForm(FlaskForm):
 
 
 class PeriodForm(FlaskForm):
-    entry_mode = SelectField(
-        'How to enter profit / loss',
-        choices=[
-            ('breakdown', 'Calculate from P&L breakdown (Odoo figures)'),
-            ('manual', 'Enter net profit / loss directly'),
-        ],
-        default='breakdown',
-        validators=[DataRequired()],
-    )
+    """Manual Profit & Loss statement — Net Profit drives shareholder distribution."""
+
     year = IntegerField('Year', validators=[DataRequired(), NumberRange(min=2000, max=2100)])
     month = SelectField(
         'Month',
@@ -55,36 +48,38 @@ class PeriodForm(FlaskForm):
         coerce=int,
         validators=[DataRequired()],
     )
-    total_revenues = DecimalField(
-        'Total revenues',
+    income = DecimalField(
+        'Income',
         places=2,
-        validators=[Optional(), NumberRange(min=0)],
-        default=0,
+        validators=[InputRequired(message='Enter Income from your P&L.')],
     )
-    cost_of_goods = DecimalField(
-        'Cost of goods sold',
+    gross_profit = DecimalField(
+        'Gross Profit',
         places=2,
-        validators=[Optional(), NumberRange(min=0)],
-        default=0,
+        validators=[InputRequired(message='Enter Gross Profit.')],
+    )
+    total_gross_profit = DecimalField(
+        'Total Gross Profit',
+        places=2,
+        validators=[InputRequired(message='Enter Total Gross Profit.')],
+    )
+    total_income = DecimalField(
+        'Total Income',
+        places=2,
+        validators=[InputRequired(message='Enter Total Income.')],
     )
     total_expenses = DecimalField(
-        'Operating expenses',
+        'Total Operating Expenses',
         places=2,
-        validators=[Optional(), NumberRange(min=0)],
-        default=0,
-    )
-    other_income = DecimalField(
-        'Other income',
-        places=2,
-        validators=[Optional(), NumberRange(min=0)],
-        default=0,
+        validators=[InputRequired(message='Enter Total Operating Expenses.')],
     )
     total_profit_loss = DecimalField(
-        'Net profit / loss',
+        'Net Profit',
         places=2,
-        validators=[Optional()],
+        validators=[InputRequired(message='Enter Net Profit (negative for a loss).')],
+        description='This amount is distributed to shareholders.',
     )
-    odoo_reference = StringField('Odoo reference', validators=[Optional(), Length(max=255)])
+    odoo_reference = StringField('Odoo / source reference', validators=[Optional(), Length(max=255)])
     notes = TextAreaField('Internal notes', validators=[Optional(), Length(max=5000)])
     submit = SubmitField('Save & Calculate Distribution')
 
@@ -92,22 +87,21 @@ class PeriodForm(FlaskForm):
         if not super().validate(extra_validators):
             return False
 
-        if self.entry_mode.data == 'manual':
-            if self.total_profit_loss.data is None:
-                self.total_profit_loss.errors.append('Enter the net profit or loss amount.')
-                return False
-            return True
-
-        revenues = self.total_revenues.data or 0
-        cogs = self.cost_of_goods.data or 0
-        expenses = self.total_expenses.data or 0
-        other = self.other_income.data or 0
-        if revenues == 0 and cogs == 0 and expenses == 0 and other == 0:
-            self.total_revenues.errors.append('Enter at least one P&L figure from Odoo.')
-            return False
-
-        self.total_profit_loss.data = compute_net_from_breakdown(revenues, cogs, expenses, other)
-        return True
+        required_lines = (
+            ('income', 'Income'),
+            ('gross_profit', 'Gross Profit'),
+            ('total_gross_profit', 'Total Gross Profit'),
+            ('total_income', 'Total Income'),
+            ('total_expenses', 'Total Operating Expenses'),
+            ('total_profit_loss', 'Net Profit'),
+        )
+        ok = True
+        for field_name, label in required_lines:
+            field = getattr(self, field_name)
+            if field.data is None:
+                field.errors.append(f'Enter {label} manually from your accounting records.')
+                ok = False
+        return ok
 
 
 class AdjustmentForm(FlaskForm):
@@ -125,7 +119,11 @@ class MultiCheckboxField(SelectMultipleField):
 class ArrangementForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired(), Length(max=120)])
     recipient_shareholder_id = SelectField('Recipient', coerce=int, validators=[DataRequired()])
-    bonus_percent = DecimalField('Bonus %', places=4, validators=[DataRequired(), NumberRange(min=0, max=100)])
+    bonus_percent = DecimalField(
+        'Bonus %',
+        places=4,
+        validators=[DataRequired(), NumberRange(min=0.0001, max=100)],
+    )
     applies_to_all_others = BooleanField('Apply to all other shareholders', default=True)
     source_shareholder_ids = MultiCheckboxField(
         'Source shareholders',
@@ -142,6 +140,11 @@ class ArrangementForm(FlaskForm):
     def validate(self, extra_validators=None):
         if not super().validate(extra_validators=extra_validators):
             return False
+
+        if self.effective_to.data and self.effective_from.data:
+            if self.effective_to.data < self.effective_from.data:
+                self.effective_to.errors.append('Effective to must be on or after effective from.')
+                return False
 
         if not self.applies_to_all_others.data:
             sources = list(self.source_shareholder_ids.data or [])
@@ -166,6 +169,26 @@ class ArrangementForm(FlaskForm):
 class SystemSettingsForm(FlaskForm):
     auto_email_on_approval = BooleanField(
         'Automatically email shareholders with certificates when a period is approved',
+        default=True,
+    )
+    sms_notifications_enabled = BooleanField(
+        'Also queue SMS/WhatsApp stubs when a phone number is on file (provider not wired yet — logs only)',
+        default=False,
+    )
+    notify_management_on_review = BooleanField(
+        'Email owners/admins when a period is submitted for review',
+        default=True,
+    )
+    email_portal_credentials = BooleanField(
+        'Email shareholders their portal login details when access is granted or reset',
+        default=True,
+    )
+    email_staff_invite = BooleanField(
+        'Email new staff users their account credentials',
+        default=True,
+    )
+    email_password_change = BooleanField(
+        'Email confirmation when a shareholder changes their password',
         default=True,
     )
     report_delivery_day = IntegerField('Report delivery day of month', validators=[Optional(), NumberRange(min=1, max=28)])
@@ -241,6 +264,44 @@ class SystemSettingsForm(FlaskForm):
     remove_cert_signature = BooleanField('Remove signature image')
 
     submit = SubmitField('Save Settings')
+
+
+class BrandLogoForm(FlaskForm):
+    brand_logo = FileField(
+        'Brand / company logo',
+        validators=[Optional(), FileAllowed(['png', 'jpg', 'jpeg', 'webp', 'gif'], 'Images only!')],
+    )
+    remove_brand_logo = BooleanField('Remove current logo (restore default)')
+    submit = SubmitField('Save brand logo')
+
+
+class CertificateSignatureImageForm(FlaskForm):
+    cert_signature_image = FileField(
+        'Certificate signature image',
+        validators=[Optional(), FileAllowed(['png', 'jpg', 'jpeg', 'webp', 'gif'], 'Images only!')],
+    )
+    remove_cert_signature = BooleanField('Remove signature image')
+    submit = SubmitField('Save signature image')
+
+
+class MediaLibraryUploadForm(FlaskForm):
+    image = FileField(
+        'Image file',
+        validators=[DataRequired(), FileAllowed(['png', 'jpg', 'jpeg', 'webp', 'gif'], 'Images only!')],
+    )
+    title = StringField('Title', validators=[Optional(), Length(max=120)])
+    slot = SelectField(
+        'Assign to',
+        choices=[
+            ('', 'Media library only'),
+            ('login_background', 'Login page background'),
+            ('email_header', 'Email header image'),
+            ('dashboard_banner', 'Dashboard banner'),
+        ],
+        validators=[Optional()],
+        default='',
+    )
+    submit = SubmitField('Upload image')
 
 
 class DashboardSettingsForm(FlaskForm):

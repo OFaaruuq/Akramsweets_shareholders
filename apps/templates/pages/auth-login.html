@@ -105,10 +105,12 @@
       </div>
 
       <div class="col-xl-7 d-none d-xl-inline-block">
-        <div class="account-page-bg rounded-4">
+        <div class="account-page-bg rounded-4"{% if login_background_url %} style="background-image:url('{{ login_background_url }}');background-size:cover;background-position:center;"{% endif %}>
           <div class="text-center">
             <div class="auth-image">
+              {% if not login_background_url %}
               <img src="{{ config.ASSETS_ROOT }}/images/auth-images.svg" class="mx-auto img-fluid" alt="images">
+              {% endif %}
             </div>
           </div>
         </div>

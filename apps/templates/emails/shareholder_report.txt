@@ -1,4 +1,4 @@
-{{ company_name or (certificate.company_name if certificate.company_name else 'Akram Sweets') }} Shareholder Update
+{{ company_name or (certificate.company_name if certificate.company_name else 'Company') }} Shareholder Update
 Period: {{ report.period_label }}
 Certificate: {{ certificate.certificate_number }}
 
@@ -6,28 +6,28 @@ Dear {{ report.shareholder_name }},
 
 Your monthly shareholder distribution has been approved and your official Shareholder Certificate has been generated automatically with the company brand and logo.
 
-Company total profit/loss for the month: {{ '%.2f'|format(report.company_total) }}
+Company total profit/loss for the month: {{ currency_symbol }}{{ '%.2f'|format(report.company_total) }}
 {% if report.odoo_reference %}Odoo reference: {{ report.odoo_reference }}{% endif %}
 
 Your ownership percentage: {{ '%.2f'|format(report.ownership_percent) }}%
-Base share: {{ '%.2f'|format(report.base_share) }}
+Base share: {{ currency_symbol }}{{ '%.2f'|format(report.base_share) }}
 
 Special arrangements applied:
 {% for item in report.arrangements_applied -%}
-- {{ item.name }} ({{ '%.2f'|format(item.percent) }}%): {{ '%.2f'|format(item.amount) }} — {{ item.description }}
+- {{ item.name }} ({{ '%.2f'|format(item.percent) }}%): {{ currency_symbol }}{{ '%.2f'|format(item.amount) }} — {{ item.description }}
 {% else -%}
 - None
 {% endfor %}
 
 Manual adjustments:
 {% for item in report.adjustment_lines -%}
-- {{ '%.2f'|format(item.amount) }} — {{ item.reason }}
+- {{ currency_symbol }}{{ '%.2f'|format(item.amount) }} — {{ item.reason }}
 {% else -%}
 - None
 {% endfor %}
 
-FINAL AMOUNT FOR THIS MONTH: {{ '%.2f'|format(report.final_amount) }}
-Year-to-date total: {{ '%.2f'|format(report.ytd_total) }}
+FINAL AMOUNT FOR THIS MONTH: {{ currency_symbol }}{{ '%.2f'|format(report.final_amount) }}
+Year-to-date total: {{ currency_symbol }}{{ '%.2f'|format(report.ytd_total) }}
 
 Attached documents (branded with company logo):
 1. Shareholder Profit Report (PDF)
@@ -35,4 +35,4 @@ Attached documents (branded with company logo):
 
 {% if certificate.approved_at %}Approved on {{ certificate.approved_at.strftime('%Y-%m-%d %H:%M') }} by {{ certificate.approved_by }}.{% endif %}
 
-This notification was sent automatically by the {{ company_name or (certificate.company_name if certificate.company_name else 'Akram Sweets') }} Shareholders Profit Calculation System.
+This notification was sent automatically by the {{ company_name or (certificate.company_name if certificate.company_name else 'Company') }} Shareholders Profit Calculation System.

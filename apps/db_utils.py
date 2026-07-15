@@ -1,7 +1,7 @@
 """Ensure database schema matches current models.
 
-Prefer Alembic migrations when available. Additive `create_all()` fills missing
-tables. Destructive reset only when DEBUG and ALLOW_SCHEMA_RESET=true.
+Prefer Alembic migrations. Additive create_all fills gaps on first boot.
+Destructive reset only when DEBUG and ALLOW_SCHEMA_RESET=true.
 """
 
 from __future__ import annotations
@@ -9,7 +9,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from sqlalchemy import inspect
+from sqlalchemy import inspect, text
+from sqlalchemy.exc import OperationalError
 
 
 REQUIRED_TABLES = {
@@ -30,7 +31,8 @@ REQUIRED_TABLES = {
 
 REQUIRED_COLUMNS = {
     'monthly_periods': {
-        'year', 'month', 'total_profit_loss', 'total_revenues', 'cost_of_goods',
+        'year', 'month', 'total_profit_loss', 'income', 'gross_profit',
+        'total_gross_profit', 'total_income', 'total_revenues', 'cost_of_goods',
         'total_expenses', 'other_income', 'entry_mode', 'status', 'calculated_at',
         'approved_at', 'approved_by_id', 'reports_sent_at',
     },
@@ -66,15 +68,16 @@ def migrations_dir():
     return Path(__file__).resolve().parent.parent / 'migrations'
 
 
+def allow_schema_reset(app):
+    flag = os.getenv('ALLOW_SCHEMA_RESET', 'false').strip().lower()
+    return app.debug and flag in ('1', 'true', 'yes', 'on')
+
+
 def _try_alembic_upgrade(app):
-    """Apply pending Alembic revisions when a migrations folder exists."""
     versions_dir = migrations_dir() / 'versions'
     if not migrations_dir().is_dir():
         return False
-    version_files = [
-        path for path in versions_dir.glob('*.py')
-        if path.name != '__init__.py'
-    ]
+    version_files = [p for p in versions_dir.glob('*.py') if p.name != '__init__.py']
     if not version_files:
         return False
     if 'migrate' not in app.extensions:
@@ -87,12 +90,13 @@ def _try_alembic_upgrade(app):
         return True
     except Exception as exc:
         app.logger.warning('Alembic upgrade skipped: %s', exc)
+        if not app.debug:
+            raise
         return False
 
 
 def _try_stamp_head(app):
-    """Mark an already-created schema as current without re-running DDL."""
-    if not migrations_dir().is_dir():
+    if not migrations_dir().is_dir() or 'migrate' not in app.extensions:
         return
     try:
         from flask_migrate import stamp
@@ -102,33 +106,120 @@ def _try_stamp_head(app):
         app.logger.warning('Alembic stamp skipped: %s', exc)
 
 
-def allow_schema_reset(app):
-    flag = os.getenv('ALLOW_SCHEMA_RESET', 'false').strip().lower()
-    return app.debug and flag in ('1', 'true', 'yes', 'on')
+def _current_alembic_revision(db):
+    try:
+        tables = set(inspect(db.engine).get_table_names())
+        if 'alembic_version' not in tables:
+            return None
+        with db.engine.connect() as conn:
+            row = conn.execute(text('SELECT version_num FROM alembic_version')).fetchone()
+        return row[0] if row else None
+    except Exception:
+        return None
+
+
+def _set_alembic_revision(db, revision):
+    """Force alembic_version to a known revision (used to repair renamed history)."""
+    with db.engine.begin() as conn:
+        tables = set(inspect(db.engine).get_table_names())
+        if 'alembic_version' not in tables:
+            conn.execute(text('CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL)'))
+            conn.execute(
+                text('INSERT INTO alembic_version (version_num) VALUES (:rev)'),
+                {'rev': revision},
+            )
+            return
+        conn.execute(text('DELETE FROM alembic_version'))
+        conn.execute(
+            text('INSERT INTO alembic_version (version_num) VALUES (:rev)'),
+            {'rev': revision},
+        )
+
+
+def _known_migration_revisions():
+    """Revision ids present under migrations/versions (basename ids)."""
+    versions = migrations_dir() / 'versions'
+    if not versions.is_dir():
+        return set()
+    ids = set()
+    for path in versions.glob('*.py'):
+        if path.name.startswith('_'):
+            continue
+        try:
+            text_src = path.read_text(encoding='utf-8')
+        except OSError:
+            continue
+        for line in text_src.splitlines():
+            if line.startswith('revision') and '=' in line:
+                # revision = '20260715_0003_pnl'
+                value = line.split('=', 1)[1].strip().strip("'\"")
+                if value and value != 'None':
+                    ids.add(value)
+                break
+    return ids
+
+
+def _repair_orphaned_revision(app, db):
+    """
+    Older installs may be stamped with a pre-baseline / renamed revision id.
+    If the live schema matches models, move alembic_version to head.
+    """
+    current = _current_alembic_revision(db)
+    known = _known_migration_revisions()
+    if current in known:
+        return
+    if not schema_is_current(db):
+        return
+    app.logger.warning(
+        'Repairing Alembic revision %r → head (schema already matches models).',
+        current,
+    )
+    try:
+        _try_stamp_head(app)
+        # Fallback if stamp is unavailable: write the newest known revision.
+        repaired = _current_alembic_revision(db)
+        if repaired not in known and known:
+            head = sorted(known)[-1]
+            _set_alembic_revision(db, head)
+    except Exception as exc:
+        app.logger.warning('Alembic revision repair skipped: %s', exc)
 
 
 def ensure_schema(app, db, seed_callback):
     with app.app_context():
-        inspector = inspect(db.engine)
-        existing_tables = set(inspector.get_table_names())
+        try:
+            inspector = inspect(db.engine)
+            existing_tables = set(inspector.get_table_names())
+        except OperationalError as exc:
+            raise RuntimeError(
+                'Cannot connect to the database. Check DATABASE_URL / DB_* settings, '
+                'that PostgreSQL is running, and that credentials are correct.'
+            ) from exc
 
         if not existing_tables:
-            db.create_all()
-            _try_alembic_upgrade(app)
-            _try_stamp_head(app)
+            upgraded = _try_alembic_upgrade(app)
+            if not upgraded or not schema_is_current(db):
+                db.create_all()
+                _try_stamp_head(app)
             seed_callback()
             return
 
-        # Additive: create any newly added tables (e.g. junction tables).
+        # Repair renamed revision ids before upgrade so flask db upgrade works.
+        _repair_orphaned_revision(app, db)
         db.create_all()
-        _try_alembic_upgrade(app)
+        try:
+            _try_alembic_upgrade(app)
+        except Exception:
+            if not app.debug:
+                raise
+        _repair_orphaned_revision(app, db)
 
         if schema_is_current(db):
             seed_callback()
             return
 
         if allow_schema_reset(app):
-            print('> Database schema outdated — resetting because ALLOW_SCHEMA_RESET=true.')
+            app.logger.warning('Schema outdated — resetting because ALLOW_SCHEMA_RESET=true.')
             reset_database(db)
             _try_stamp_head(app)
             seed_callback()
@@ -142,9 +233,7 @@ def ensure_schema(app, db, seed_callback):
             f'Missing tables: {", ".join(missing_tables) or "column mismatch"}.'
         )
         if app.debug:
-            print(f'> WARNING: {hint}')
-            # Soft-continue in DEBUG after create_all so local work is not blocked
-            # when only optional columns differ — still seed.
+            app.logger.warning(hint)
             seed_callback()
             return
 

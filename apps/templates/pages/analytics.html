@@ -39,7 +39,7 @@
     </a>
     {% endif %}
     <ol class="breadcrumb m-0 py-0">
-      <li class="breadcrumb-item"><a href="{{ url_for('pages.dashboard') }}" class="text-primary">AKRAM SWEET</a></li>
+      <li class="breadcrumb-item"><a href="{{ url_for('pages.dashboard') }}" class="text-primary">{{ brand.company_name if brand else 'Home' }}</a></li>
       <li class="breadcrumb-item active">Analytics{% if selected_year %} ({{ selected_year }}){% endif %}</li>
     </ol>
   </div>
@@ -52,7 +52,7 @@
         <div class="d-flex align-content-center justify-content-between">
           <div class="d-flex align-items-start flex-column">
             <h3 class="text-white fw-medium fs-20 lh-base">
-              {% if is_shareholder_view %}Welcome, {{ shareholder.name }}{% else %}Akram Sweets Profit Calculation{% endif %}
+              {% if is_shareholder_view %}Welcome, {{ shareholder.name }}{% else %}{{ brand.company_name if brand else 'Company' }} Profit Calculation{% endif %}
             </h3>
             <p class="mb-3 text-white opacity-90">
               {% if is_shareholder_view %}
@@ -82,7 +82,7 @@
       </div>
       <div class="d-flex align-items-center mb-2">
         <h3 class="text-dark fs-24 mb-0 fw-semibold me-2">
-          {% if is_shareholder_view %}${{ '%.2f'|format(latest_profit) }}{% else %}${{ '{:,.2f}'.format(manual_kpis.total_revenues) }}{% endif %}
+          {% if is_shareholder_view %}{{ currency_symbol }}{{ '%.2f'|format(latest_profit) }}{% else %}{{ currency_symbol }}{{ '{:,.2f}'.format(manual_kpis.total_revenues) }}{% endif %}
         </h3>
         {% if not is_shareholder_view and profit_change_pct is not none %}
         <span class="badge bg-{{ 'success' if profit_change_pct >= 0 else 'danger' }}-subtle text-{{ 'success' if profit_change_pct >= 0 else 'danger' }} rounded-2 fs-14">
@@ -117,7 +117,7 @@
       </div>
       <div class="d-flex align-items-center mb-2">
         <h3 class="text-dark fs-24 mb-0 fw-semibold me-2">
-          {% if is_shareholder_view %}${{ '%.2f'|format(ytd_total) }}{% else %}${{ '%.2f'|format(latest_profit) }}{% endif %}
+          {% if is_shareholder_view %}{{ currency_symbol }}{{ '%.2f'|format(ytd_total) }}{% else %}{{ currency_symbol }}{{ '%.2f'|format(latest_profit) }}{% endif %}
         </h3>
       </div>
       <p class="text-muted fs-14 mb-3">{% if latest_period %}{{ latest_period.period_label }}{% else %}No period data{% endif %}</p>
@@ -157,7 +157,7 @@
       </div>
       <div class="d-flex align-items-center mb-2">
         <h3 class="text-dark fs-24 mb-0 fw-semibold me-2">
-          {% if is_shareholder_view %}${{ '%.2f'|format(lifetime_total) }}{% else %}${{ '%.2f'|format(ytd_company_profit) }}{% endif %}
+          {% if is_shareholder_view %}{{ currency_symbol }}{{ '%.2f'|format(lifetime_total) }}{% else %}{{ currency_symbol }}{{ '%.2f'|format(ytd_company_profit) }}{% endif %}
         </h3>
       </div>
       <p class="text-muted fs-14 mb-3">
@@ -187,7 +187,7 @@
   <div class="col-md-6 col-xl-3">
     <div class="card"><div class="card-body">
       <p class="text-muted fs-13 mb-1">{% if is_shareholder_view %}Average Payout{% else %}Avg Monthly P/L{% endif %}</p>
-      <h4 class="mb-0">${{ '%.2f'|format(analytics_summary.avg_monthly_profit) }}</h4>
+      <h4 class="mb-0">{{ currency_symbol }}{{ '%.2f'|format(analytics_summary.avg_monthly_profit) }}</h4>
     </div></div>
   </div>
   <div class="col-md-6 col-xl-3">
@@ -196,7 +196,7 @@
       {% if is_shareholder_view and analytics_summary.best_period %}
       <h4 class="text-success mb-0 fs-16">{{ analytics_summary.best_period.period_label }}</h4>
       {% elif not is_shareholder_view %}
-      <h4 class="mb-0">${{ '%.2f'|format(analytics_summary.total_distributed) }}</h4>
+      <h4 class="mb-0">{{ currency_symbol }}{{ '%.2f'|format(analytics_summary.total_distributed) }}</h4>
       {% else %}
       <h4 class="mb-0 text-muted">—</h4>
       {% endif %}
@@ -230,7 +230,7 @@
                 <small class="text-dark fw-medium text-truncate fs-14">{{ row.name }}</small>
               </div>
               <div class="d-flex align-items-center justify-content-between">
-                <h6 class="mb-0 fs-14 fw-semibold text-dark">${{ '%.2f'|format(row.amount) }}</h6>
+                <h6 class="mb-0 fs-14 fw-semibold text-dark">{{ currency_symbol }}{{ '%.2f'|format(row.amount) }}</h6>
                 <small class="text-muted">{{ '%.2f'|format(row.percent) }}%</small>
               </div>
             </div>
@@ -272,13 +272,13 @@
             {% if is_shareholder_view %}
             <tr><td class="ps-3">Approved reports</td><td>{{ approved_report_count }}</td><td><div class="progress progress-sm"><div class="progress-bar bg-success" style="width:100%"></div></div></td></tr>
             <tr><td class="ps-3">Ownership</td><td>{{ '%.2f'|format(ownership_percent) }}%</td><td><div class="progress progress-sm"><div class="progress-bar bg-primary" style="width:{{ ownership_percent }}%"></div></div></td></tr>
-            <tr><td class="ps-3">YTD payout</td><td>${{ '%.2f'|format(ytd_total) }}</td><td><div class="progress progress-sm"><div class="progress-bar bg-warning" style="width:75%"></div></div></td></tr>
+            <tr><td class="ps-3">YTD payout</td><td>{{ currency_symbol }}{{ '%.2f'|format(ytd_total) }}</td><td><div class="progress progress-sm"><div class="progress-bar bg-warning" style="width:{{ [[((ytd_total / lifetime_total) * 100) if lifetime_total else 0, 0]|max, 100]|min }}%"></div></div></td></tr>
             {% else %}
             {% set total_periods = draft_periods + review_periods + approved_periods %}
             <tr><td class="ps-3">Draft</td><td>{{ draft_periods }}</td><td><div class="progress progress-sm"><div class="progress-bar bg-warning" style="width:{{ (draft_periods * 100 / total_periods) if total_periods else 0 }}%"></div></div></td></tr>
             <tr><td class="ps-3">In Review</td><td>{{ review_periods }}</td><td><div class="progress progress-sm"><div class="progress-bar bg-primary" style="width:{{ (review_periods * 100 / total_periods) if total_periods else 0 }}%"></div></div></td></tr>
             <tr><td class="ps-3">Approved</td><td>{{ approved_periods }}</td><td><div class="progress progress-sm"><div class="progress-bar bg-success" style="width:{{ (approved_periods * 100 / total_periods) if total_periods else 0 }}%"></div></div></td></tr>
-            <tr><td class="ps-3">Active arrangements</td><td>{{ active_arrangements }}</td><td><div class="progress progress-sm"><div class="progress-bar bg-info" style="width:60%"></div></div></td></tr>
+            <tr><td class="ps-3">Active arrangements</td><td>{{ active_arrangements }}</td><td><div class="progress progress-sm"><div class="progress-bar bg-info" style="width:{{ [[((active_arrangements * 100 / active_shareholders) if active_shareholders else 0), 0]|max, 100]|min }}%"></div></div></td></tr>
             {% endif %}
             </tbody>
           </table>
@@ -302,19 +302,19 @@
       <div class="card-body">
         <ul class="list-group list-group-flush list-group-no-gutters">
           {% if is_shareholder_view %}
-          <li class="list-group-item px-0 d-flex justify-content-between"><span>Latest payout</span><strong>${{ '%.2f'|format(latest_profit) }}</strong></li>
-          <li class="list-group-item px-0 d-flex justify-content-between"><span>Year-to-date</span><strong>${{ '%.2f'|format(ytd_total) }}</strong></li>
-          <li class="list-group-item px-0 d-flex justify-content-between"><span>Lifetime total</span><strong>${{ '%.2f'|format(lifetime_total) }}</strong></li>
+          <li class="list-group-item px-0 d-flex justify-content-between"><span>Latest payout</span><strong>{{ currency_symbol }}{{ '%.2f'|format(latest_profit) }}</strong></li>
+          <li class="list-group-item px-0 d-flex justify-content-between"><span>Year-to-date</span><strong>{{ currency_symbol }}{{ '%.2f'|format(ytd_total) }}</strong></li>
+          <li class="list-group-item px-0 d-flex justify-content-between"><span>Lifetime total</span><strong>{{ currency_symbol }}{{ '%.2f'|format(lifetime_total) }}</strong></li>
           {% if analytics_summary and analytics_summary.worst_period %}
           <li class="list-group-item px-0 d-flex justify-content-between"><span>Lowest payout period</span><strong class="text-danger">{{ analytics_summary.worst_period.period_label }}</strong></li>
           {% endif %}
           {% else %}
-          <li class="list-group-item px-0 d-flex justify-content-between"><span>Total revenues</span><strong>${{ '{:,.2f}'.format(manual_kpis.total_revenues) }}</strong></li>
-          <li class="list-group-item px-0 d-flex justify-content-between"><span>Total expenses</span><strong>${{ '{:,.2f}'.format(manual_kpis.total_expenses) }}</strong></li>
-          <li class="list-group-item px-0 d-flex justify-content-between"><span>Cost of goods</span><strong>${{ '{:,.2f}'.format(manual_kpis.cost_of_goods) }}</strong></li>
-          <li class="list-group-item px-0 d-flex justify-content-between"><span>Other income</span><strong>${{ '{:,.2f}'.format(manual_kpis.other_income) }}</strong></li>
-          <li class="list-group-item px-0 d-flex justify-content-between"><span>Net operating profit</span><strong class="{{ 'text-success' if net_operating_profit >= 0 else 'text-danger' }}">${{ '%.2f'|format(net_operating_profit) }}</strong></li>
-          <li class="list-group-item px-0 d-flex justify-content-between"><span>Latest distributed</span><strong>${{ '%.2f'|format(latest_distributed) }}</strong></li>
+          <li class="list-group-item px-0 d-flex justify-content-between"><span>Total revenues</span><strong>{{ currency_symbol }}{{ '{:,.2f}'.format(manual_kpis.total_revenues) }}</strong></li>
+          <li class="list-group-item px-0 d-flex justify-content-between"><span>Total expenses</span><strong>{{ currency_symbol }}{{ '{:,.2f}'.format(manual_kpis.total_expenses) }}</strong></li>
+          <li class="list-group-item px-0 d-flex justify-content-between"><span>Cost of goods</span><strong>{{ currency_symbol }}{{ '{:,.2f}'.format(manual_kpis.cost_of_goods) }}</strong></li>
+          <li class="list-group-item px-0 d-flex justify-content-between"><span>Other income</span><strong>{{ currency_symbol }}{{ '{:,.2f}'.format(manual_kpis.other_income) }}</strong></li>
+          <li class="list-group-item px-0 d-flex justify-content-between"><span>Net operating profit</span><strong class="{{ 'text-success' if net_operating_profit >= 0 else 'text-danger' }}">{{ currency_symbol }}{{ '%.2f'|format(net_operating_profit) }}</strong></li>
+          <li class="list-group-item px-0 d-flex justify-content-between"><span>Latest distributed</span><strong>{{ currency_symbol }}{{ '%.2f'|format(latest_distributed) }}</strong></li>
           <li class="list-group-item px-0 d-flex justify-content-between"><span>Operating margin</span><strong>{% if analytics_summary and analytics_summary.operating_margin is not none %}{{ '%.1f'|format(analytics_summary.operating_margin) }}%{% else %}—{% endif %}</strong></li>
           {% if analytics_summary and analytics_summary.best_period %}
           <li class="list-group-item px-0 d-flex justify-content-between"><span>Best period</span><strong class="text-success">{{ analytics_summary.best_period.period_label }}</strong></li>
@@ -384,7 +384,7 @@
                   <a href="{{ url_for('portal.report_detail', period_id=trend.period_id) }}" class="text-dark">{{ trend.label }}</a>
                 </td>
                 <td>{{ '%.2f'|format(sh.get('ownership_percent', 0)) }}%</td>
-                <td class="{{ 'text-success' if sh.get('final_amount', 0) >= 0 else 'text-danger' }}">${{ '%.2f'|format(sh.get('final_amount', 0)) }}</td>
+                <td class="{{ 'text-success' if sh.get('final_amount', 0) >= 0 else 'text-danger' }}">{{ currency_symbol }}{{ '%.2f'|format(sh.get('final_amount', 0)) }}</td>
                 <td>
                   <span class="badge bg-success-subtle text-success">Approved</span>
                   {% if trend.reports_sent %}<span class="badge bg-info-subtle text-info ms-1">Sent</span>{% endif %}
@@ -405,14 +405,14 @@
                 <td class="fw-semibold text-dark">
                   <a href="{{ url_for('periods.detail_period', period_id=trend.period_id) }}" class="text-dark">{{ trend.label }}</a>
                 </td>
-                <td class="{{ 'text-success' if trend.company_total >= 0 else 'text-danger' }}">${{ '%.2f'|format(trend.company_total) }}</td>
-                <td>${{ '%.2f'|format(trend.distributed_total) }}</td>
+                <td class="{{ 'text-success' if trend.company_total >= 0 else 'text-danger' }}">{{ currency_symbol }}{{ '%.2f'|format(trend.company_total) }}</td>
+                <td>{{ currency_symbol }}{{ '%.2f'|format(trend.distributed_total) }}</td>
                 <td>
                   <span class="badge bg-{{ 'success' if trend.is_profit else 'danger' }}-subtle text-{{ 'success' if trend.is_profit else 'danger' }}">{{ 'Profit' if trend.is_profit else 'Loss' }}</span>
                   {% if trend.reports_sent %}<span class="badge bg-info-subtle text-info ms-1">Sent</span>{% endif %}
                 </td>
                 <td class="text-muted fs-13">
-                  {% for sh in trend.shareholders %}{{ sh.name }}: ${{ '%.2f'|format(sh.final_amount) }}{% if not loop.last %} · {% endif %}{% endfor %}
+                  {% for sh in trend.shareholders %}{{ sh.name }}: {{ currency_symbol }}{{ '%.2f'|format(sh.final_amount) }}{% if not loop.last %} · {% endif %}{% endfor %}
                 </td>
                 <td>
                   <a href="{{ url_for('periods.detail_period', period_id=trend.period_id) }}" class="btn btn-icon btn-sm bg-primary-subtle" title="Open period"><i class="mdi mdi-eye-outline text-primary fs-14"></i></a>
@@ -434,7 +434,7 @@
 
 {% block extra_javascript %}
 <script src="{{ config.ASSETS_ROOT }}/libs/apexcharts/apexcharts.min.js"></script>
-<script>window.AKRAM_ANALYTICS = {{ chart_data_json|safe }};</script>
+<script>window.AKRAM_CURRENCY_SYMBOL = {{ (currency_symbol or '$')|tojson }}; window.AKRAM_BRAND_PRIMARY = {{ (brand.primary_color if brand else '#8A1B24')|tojson }}; window.AKRAM_ANALYTICS = {{ chart_data_json|safe }};</script>
 <script src="{{ config.ASSETS_ROOT }}/js/pages/akram-analytics.init.js"></script>
 <script src="{{ config.ASSETS_ROOT }}/js/app.js"></script>
 {% endblock extra_javascript %}

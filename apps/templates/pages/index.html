@@ -12,13 +12,19 @@
 
 {% block page_content %}
 
+{% if dashboard_banner_url and not is_shareholder_view %}
+<div class="mb-3 rounded overflow-hidden" style="max-height:180px;">
+  <img src="{{ dashboard_banner_url }}" alt="Dashboard banner" class="w-100" style="max-height:180px;object-fit:cover;">
+</div>
+{% endif %}
+
 <div class="py-3 d-flex align-items-sm-center flex-sm-row flex-column">
   <div class="flex-grow-1">
     <h4 class="fs-18 fw-semibold m-0">
       {% if is_shareholder_view %}My Shareholder Dashboard{% else %}Shareholders Dashboard{% endif %}
     </h4>
     {% if not is_shareholder_view %}
-    <p class="text-muted mb-0 fs-13">Akram Sweets profit calculation, distribution, and monthly reporting overview.</p>
+    <p class="text-muted mb-0 fs-13">{{ brand.company_name if brand else 'Company' }} profit calculation, distribution, and monthly reporting overview.</p>
     {% endif %}
   </div>
 
@@ -29,7 +35,7 @@
     </a>
     {% endif %}
     <ol class="breadcrumb m-0 py-0">
-      <li class="breadcrumb-item"><a href="{{ url_for('pages.dashboard') }}" class="text-primary">AKRAM SWEET</a></li>
+      <li class="breadcrumb-item"><a href="{{ url_for('pages.dashboard') }}" class="text-primary">{{ brand.company_name if brand else 'Home' }}</a></li>
       <li class="breadcrumb-item active">Dashboard</li>
     </ol>
   </div>
@@ -60,9 +66,9 @@
           <div class="d-flex justify-content-between align-items-center mb-2">
             <h3 class="mb-0 fs-24 text-dark me-4">
               {% if is_shareholder_view %}
-                ${{ '%.2f'|format(latest_profit) }}
+                {{ currency_symbol }}{{ '%.2f'|format(latest_profit) }}
               {% else %}
-                ${{ '{:,.2f}'.format(manual_kpis.total_revenues) }}
+                {{ currency_symbol }}{{ '{:,.2f}'.format(manual_kpis.total_revenues) }}
               {% endif %}
             </h3>
             <div id="total_sales" class="apex-charts"></div>
@@ -97,9 +103,9 @@
           <div class="d-flex justify-content-between align-items-center mb-2">
             <h3 class="mb-0 fs-24 text-dark me-4">
               {% if is_shareholder_view %}
-                ${{ '%.2f'|format(ytd_total) }}
+                {{ currency_symbol }}{{ '%.2f'|format(ytd_total) }}
               {% else %}
-                ${{ '%.2f'|format(latest_profit) }}
+                {{ currency_symbol }}{{ '%.2f'|format(latest_profit) }}
               {% endif %}
             </h3>
             <div id="total_orders" class="apex-charts"></div>
@@ -165,9 +171,9 @@
           <div class="d-flex justify-content-between align-items-center mb-2">
             <h3 class="mb-0 fs-24 text-dark me-4">
               {% if is_shareholder_view %}
-                ${{ '%.2f'|format(lifetime_total) }}
+                {{ currency_symbol }}{{ '%.2f'|format(lifetime_total) }}
               {% else %}
-                ${{ '%.2f'|format(latest_distributed) }}
+                {{ currency_symbol }}{{ '%.2f'|format(latest_distributed) }}
               {% endif %}
             </h3>
             <div id="total_income" class="apex-charts"></div>
@@ -238,9 +244,9 @@
           </p>
           <h3 class="mb-0 text-dark fw-semibold">
             {% if is_shareholder_view %}
-              ${{ '%.2f'|format(latest_profit) }}
+              {{ currency_symbol }}{{ '%.2f'|format(latest_profit) }}
             {% else %}
-              ${{ '%.2f'|format(latest_distributed) }}
+              {{ currency_symbol }}{{ '%.2f'|format(latest_distributed) }}
             {% endif %}
           </h3>
           {% if distribution_period and not is_shareholder_view %}
@@ -324,7 +330,7 @@
                       <span class="fs-14 text-muted">Approved report</span>
                     </div>
                     <div class="col-6 col-md-4 text-end mt-2 mt-md-0">
-                      <h6 class="mb-1 text-success fs-14">${{ '%.2f'|format(row.calculation.final_amount) }}</h6>
+                      <h6 class="mb-1 text-success fs-14">{{ currency_symbol }}{{ '%.2f'|format(row.calculation.final_amount) }}</h6>
                       <a href="{{ url_for('portal.report_detail', period_id=row.period.id) }}" class="fs-13 text-primary">View</a>
                     </div>
                   </div>
@@ -351,7 +357,7 @@
                     </div>
                     <div class="col-6 col-md-4 text-end mt-2 mt-md-0">
                       <h6 class="mb-1 {{ 'text-success' if calc.final_amount >= 0 else 'text-danger' }} fs-14">
-                        ${{ '%.2f'|format(calc.final_amount) }}
+                        {{ currency_symbol }}{{ '%.2f'|format(calc.final_amount) }}
                       </h6>
                       <span class="fs-13 text-muted">Final amount</span>
                     </div>
@@ -408,19 +414,19 @@
           <div class="py-2 px-3 rounded-2 bg-primary-subtle w-100 me-3">
             <span class="text-dark fs-16">Latest payout</span>
           </div>
-          <span class="text-muted fs-15 fw-medium">${{ '%.2f'|format(latest_profit) }}</span>
+          <span class="text-muted fs-15 fw-medium">{{ currency_symbol }}{{ '%.2f'|format(latest_profit) }}</span>
         </div>
         <div class="d-flex align-items-center justify-content-between mb-2">
           <div class="py-2 px-3 rounded-2 bg-primary-subtle w-75 me-3">
             <span class="text-dark fs-16">Year-to-date</span>
           </div>
-          <span class="text-muted fs-15 fw-medium">${{ '%.2f'|format(ytd_total) }}</span>
+          <span class="text-muted fs-15 fw-medium">{{ currency_symbol }}{{ '%.2f'|format(ytd_total) }}</span>
         </div>
         <div class="d-flex align-items-center justify-content-between mb-2">
           <div class="py-2 px-3 rounded-2 bg-primary-subtle w-50 me-3">
             <span class="text-dark fs-16">Lifetime total</span>
           </div>
-          <span class="text-muted fs-15 fw-medium">${{ '%.2f'|format(lifetime_total) }}</span>
+          <span class="text-muted fs-15 fw-medium">{{ currency_symbol }}{{ '%.2f'|format(lifetime_total) }}</span>
         </div>
         <div class="d-flex align-items-center justify-content-between">
           <div class="py-2 px-3 rounded-2 bg-primary-subtle w-50 me-3">
@@ -487,9 +493,9 @@
             <div class="p-2 border-end border-inline-end-dashed text-center">
               <h3 class="mb-0 fs-18 text-dark me-1">
                 {% if is_shareholder_view %}
-                  ${{ '%.2f'|format(ytd_total) }}
+                  {{ currency_symbol }}{{ '%.2f'|format(ytd_total) }}
                 {% else %}
-                  ${{ '{:,.2f}'.format(manual_kpis.total_revenues) }}
+                  {{ currency_symbol }}{{ '{:,.2f}'.format(manual_kpis.total_revenues) }}
                 {% endif %}
               </h3>
               <div class="d-flex align-items-center justify-content-center mt-2">
@@ -504,9 +510,9 @@
             <div class="p-2 text-center">
               <h3 class="mb-0 fs-18 text-dark me-1">
                 {% if is_shareholder_view %}
-                  ${{ '%.2f'|format(latest_profit) }}
+                  {{ currency_symbol }}{{ '%.2f'|format(latest_profit) }}
                 {% else %}
-                  ${{ '%.2f'|format(net_operating_profit) }}
+                  {{ currency_symbol }}{{ '%.2f'|format(net_operating_profit) }}
                 {% endif %}
               </h3>
               <div class="d-flex align-items-center justify-content-center mt-2">
@@ -576,7 +582,7 @@
                 <td>
                   <span class="badge bg-success-subtle px-3 py-1 text-success fw-medium fs-13 rounded-4">Approved</span>
                 </td>
-                <td class="text-dark">${{ '%.2f'|format(row.calculation.final_amount) }}</td>
+                <td class="text-dark">{{ currency_symbol }}{{ '%.2f'|format(row.calculation.final_amount) }}</td>
                 <td>{{ '%.2f'|format(row.calculation.ownership_percent) }}%</td>
                 <td>
                   <a href="{{ url_for('portal.report_detail', period_id=row.period.id) }}" class="btn btn-icon btn-sm bg-primary-subtle" title="View report">
@@ -609,7 +615,7 @@
                   {% endif %}
                 </td>
                 <td class="{{ 'text-success' if period.total_profit_loss >= 0 else 'text-danger' }}">
-                  ${{ '%.2f'|format(period.total_profit_loss) }}
+                  {{ currency_symbol }}{{ '%.2f'|format(period.total_profit_loss) }}
                 </td>
                 <td>
                   <span class="text-muted fs-13">{{ period.odoo_reference or '-' }}</span>
@@ -640,7 +646,7 @@
 {% block extra_javascript %}
 
 <script src="{{ config.ASSETS_ROOT }}/libs/apexcharts/apexcharts.min.js"></script>
-<script>window.AKRAM_DASHBOARD = {{ chart_data_json|safe }};</script>
+<script>window.AKRAM_CURRENCY_SYMBOL = {{ (currency_symbol or '$')|tojson }}; window.AKRAM_BRAND_PRIMARY = {{ (brand.primary_color if brand else '#8A1B24')|tojson }}; window.AKRAM_BRAND_SECONDARY = {{ (brand.secondary_color if brand else '#C8924B')|tojson }}; window.AKRAM_DASHBOARD = {{ chart_data_json|safe }};</script>
 <script src="{{ config.ASSETS_ROOT }}/js/pages/akram-dashboard.init.js"></script>
 <script src="{{ config.ASSETS_ROOT }}/js/app.js"></script>
 

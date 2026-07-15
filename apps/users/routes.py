@@ -54,7 +54,13 @@ def create_user():
                 db.session.add(user)
                 db.session.commit()
                 log_action('create', 'staff_user', user.id, user.email)
-                flash('Staff user created.', 'success')
+                try:
+                    from apps.services.notification_service import notify_staff_invite
+
+                    notify_staff_invite(user, form.password.data, created_by=current_user)
+                except Exception:
+                    pass
+                flash('Staff user created. An invite email was queued if SMTP is configured.', 'success')
                 return redirect(url_for('users.list_users'))
 
     return render_template('users/form.html', form=form, title='Add Staff User', segment='users')
@@ -90,8 +96,11 @@ def edit_user(user_id):
             user.email = new_email
         if form.password.data:
             user.set_password(form.password.data)
+            details = f'{user.email} (password reset)'
+        else:
+            details = user.email
         db.session.commit()
-        log_action('update', 'staff_user', user.id, user.email)
+        log_action('update', 'staff_user', user.id, details)
         flash('Staff user updated.', 'success')
         return redirect(url_for('users.list_users'))
 

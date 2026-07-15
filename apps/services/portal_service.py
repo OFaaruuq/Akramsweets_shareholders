@@ -17,6 +17,7 @@ def create_shareholder_portal_user(shareholder, email, full_name, password, acto
         user.shareholder_id = shareholder.id
         user.is_active = True
         action = 'update'
+        created = False
     else:
         user = User(
             email=email,
@@ -27,10 +28,17 @@ def create_shareholder_portal_user(shareholder, email, full_name, password, acto
         )
         db.session.add(user)
         action = 'create'
+        created = True
 
     user.set_password(password)
     db.session.commit()
     log_action(action, 'shareholder_portal_user', user.id, f'{shareholder.name} portal access')
+    try:
+        from apps.services.notification_service import notify_portal_credentials
+
+        notify_portal_credentials(user, shareholder, password, created=created)
+    except Exception:
+        pass
     return user
 
 

@@ -35,12 +35,28 @@ def issue_shareholder_certificate(period, calculation):
     return certificate
 
 
-def issue_period_certificates(period):
+def issue_period_certificates(period, *, audit=False):
     """Generate a certificate record for every current shareholder in an approved period."""
     certificates = []
+    newly_issued = 0
     for calculation in period.calculations:
+        existing = ShareholderCertificate.query.filter_by(
+            period_id=period.id,
+            shareholder_id=calculation.shareholder_id,
+        ).first()
         certificates.append(issue_shareholder_certificate(period, calculation))
+        if not existing:
+            newly_issued += 1
     db.session.commit()
+    if audit and newly_issued:
+        from apps.services.audit_service import log_action
+
+        log_action(
+            'issue',
+            'certificate',
+            period.id,
+            f'{period.period_label}: issued {newly_issued} certificate(s)',
+        )
     return certificates
 
 

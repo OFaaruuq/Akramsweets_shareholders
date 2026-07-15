@@ -2,7 +2,7 @@
 {% block title %}{{ title }}{% endblock title %}
 {% block css %}{% include 'partials/head-css.html' %}
 <style>
-  .akram-step { border-left: 3px solid #8A1B24; padding-left: 1rem; }
+  .akram-step { border-left: 3px solid {{ brand.primary_color if brand else '#8A1B24' }}; padding-left: 1rem; }
   .akram-net-positive { color: #46B277; }
   .akram-net-negative { color: #E7366B; }
   .period-preview-table td, .period-preview-table th { white-space: nowrap; }
@@ -15,7 +15,7 @@
   <div class="flex-grow-1">
     <h4 class="fs-18 fw-semibold m-0">{{ title }}</h4>
     <p class="text-muted mb-0 fs-13">
-      Enter monthly Odoo figures, validate ownership, preview shareholder distribution, then save as draft.
+      Enter the full monthly Profit &amp; Loss statement manually. Shareholder distribution uses <strong>Net Profit</strong>.
     </p>
   </div>
   <div class="text-end">
@@ -46,7 +46,7 @@
               {% for error in form.month.errors %}<div class="text-danger fs-13">{{ error }}</div>{% endfor %}
             </div>
             <div class="col-md-4 mb-3">
-              <label class="form-label">Odoo reference</label>
+              <label class="form-label">Odoo / source reference</label>
               {{ form.odoo_reference(class='form-control', placeholder='e.g. INV/2026/06 or journal entry ID') }}
             </div>
           </div>
@@ -56,48 +56,68 @@
 
       <div class="card mb-3">
         <div class="card-header d-flex align-items-center">
-          <h5 class="card-title mb-0">2. Enter Profit / Loss</h5>
-          <span class="badge bg-primary-subtle text-primary ms-2">From Odoo</span>
+          <h5 class="card-title mb-0">2. Profit &amp; Loss Statement</h5>
+          <span class="badge bg-primary-subtle text-primary ms-2">Manual entry required</span>
         </div>
         <div class="card-body">
-          <div class="mb-3">
-            <label class="form-label">Entry method</label>
-            {{ form.entry_mode(class='form-select', id='entry-mode') }}
+          <p class="text-muted fs-13 mb-3">
+            Enter every line from your accounting records. Do not leave Net Profit blank —
+            that figure is what gets distributed to shareholders.
+          </p>
+          <div class="table-responsive">
+            <table class="table align-middle mb-0">
+              <tbody>
+                <tr>
+                  <td class="fw-medium" style="width:45%">Income</td>
+                  <td>
+                    {{ form.income(class='form-control pnl-input', step='0.01', id='pnl-income', placeholder='Enter amount', required=True) }}
+                    {% for error in form.income.errors %}<div class="text-danger fs-13">{{ error }}</div>{% endfor %}
+                  </td>
+                </tr>
+                <tr>
+                  <td class="fw-medium">Gross Profit</td>
+                  <td>
+                    {{ form.gross_profit(class='form-control pnl-input', step='0.01', id='pnl-gross-profit', placeholder='Enter amount', required=True) }}
+                    {% for error in form.gross_profit.errors %}<div class="text-danger fs-13">{{ error }}</div>{% endfor %}
+                  </td>
+                </tr>
+                <tr>
+                  <td class="fw-medium">Total Gross Profit</td>
+                  <td>
+                    {{ form.total_gross_profit(class='form-control pnl-input', step='0.01', id='pnl-total-gross-profit', placeholder='Enter amount', required=True) }}
+                    {% for error in form.total_gross_profit.errors %}<div class="text-danger fs-13">{{ error }}</div>{% endfor %}
+                  </td>
+                </tr>
+                <tr>
+                  <td class="fw-medium">Total Income</td>
+                  <td>
+                    {{ form.total_income(class='form-control pnl-input', step='0.01', id='pnl-total-income', placeholder='Enter amount', required=True) }}
+                    {% for error in form.total_income.errors %}<div class="text-danger fs-13">{{ error }}</div>{% endfor %}
+                  </td>
+                </tr>
+                <tr>
+                  <td class="fw-medium">Total Operating Expenses</td>
+                  <td>
+                    {{ form.total_expenses(class='form-control pnl-input', step='0.01', id='pnl-total-expenses', placeholder='Enter amount', required=True) }}
+                    {% for error in form.total_expenses.errors %}<div class="text-danger fs-13">{{ error }}</div>{% endfor %}
+                  </td>
+                </tr>
+                <tr class="table-light">
+                  <td class="fw-semibold">Net Profit <span class="text-muted fw-normal fs-12">(distributed to shareholders)</span></td>
+                  <td>
+                    {{ form.total_profit_loss(class='form-control pnl-input fw-semibold', step='0.01', id='pnl-net-profit', placeholder='Enter Net Profit', required=True) }}
+                    <div class="form-text">Use a negative value for a loss month (e.g. -50000.00).</div>
+                    {% for error in form.total_profit_loss.errors %}<div class="text-danger fs-13">{{ error }}</div>{% endfor %}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-
-          <div id="breakdown-fields">
-            <div class="row">
-              <div class="col-md-6 mb-3">
-                <label class="form-label">Total revenues</label>
-                {{ form.total_revenues(class='form-control breakdown-input', step='0.01', id='total-revenues') }}
-                {% for error in form.total_revenues.errors %}<div class="text-danger fs-13">{{ error }}</div>{% endfor %}
-              </div>
-              <div class="col-md-6 mb-3">
-                <label class="form-label">Cost of goods sold</label>
-                {{ form.cost_of_goods(class='form-control breakdown-input', step='0.01', id='cost-of-goods') }}
-              </div>
-              <div class="col-md-6 mb-3">
-                <label class="form-label">Operating expenses</label>
-                {{ form.total_expenses(class='form-control breakdown-input', step='0.01', id='total-expenses') }}
-              </div>
-              <div class="col-md-6 mb-3">
-                <label class="form-label">Other income</label>
-                {{ form.other_income(class='form-control breakdown-input', step='0.01', id='other-income') }}
-              </div>
-            </div>
-            <div class="alert alert-light border py-2 mb-0">
-              <strong>Formula:</strong> Net P/L = Revenues − COGS − Expenses + Other Income
-              <div class="mt-2 fs-18 fw-semibold" id="computed-net-display">$0.00</div>
-            </div>
-          </div>
-
-          <div id="manual-fields" class="d-none">
-            <div class="mb-3">
-              <label class="form-label">Net profit / loss (single figure from Odoo)</label>
-              {{ form.total_profit_loss(class='form-control', step='0.01', id='manual-total') }}
-              <div class="form-text">Use negative values for a loss month (e.g. -50000.00).</div>
-              {% for error in form.total_profit_loss.errors %}<div class="text-danger fs-13">{{ error }}</div>{% endfor %}
-            </div>
+          <div class="alert alert-light border py-2 mt-3 mb-0 fs-13">
+            <strong>Reference check (not used for distribution):</strong>
+            Total Income − Total Operating Expenses =
+            <span id="pnl-reference-net" class="fw-semibold">{{ currency_symbol }}0.00</span>
+            <div class="text-muted mt-1">If this differs from Net Profit, double-check your manual figures before saving.</div>
           </div>
         </div>
       </div>
@@ -110,7 +130,7 @@
             {{ form.notes(class='form-control', rows='3', placeholder='Optional context for finance or management review.') }}
           </div>
           <div class="alert alert-info py-2 fs-13 mb-3">
-            Saving creates a <strong>draft</strong> period, calculates shareholder payouts, and lets you submit for management approval.
+            Saving creates a <strong>draft</strong> period, calculates shareholder payouts from <strong>Net Profit</strong>, and lets you submit for management approval.
           </div>
           <div class="d-flex flex-wrap gap-2">
             <button type="button" class="btn btn-soft-primary" id="preview-distribution-btn">
@@ -128,8 +148,8 @@
       <div class="card-header"><h5 class="card-title mb-0">Workflow</h5></div>
       <div class="card-body">
         <ol class="mb-0 ps-3 fs-13">
-          <li class="mb-2 akram-step">Enter Odoo monthly figures</li>
-          <li class="mb-2 akram-step">Preview shareholder split</li>
+          <li class="mb-2 akram-step">Enter full P&amp;L statement manually</li>
+          <li class="mb-2 akram-step">Preview shareholder split from Net Profit</li>
           <li class="mb-2 akram-step">Save as draft &amp; review calculations</li>
           <li class="mb-2 akram-step">Submit for management approval</li>
           <li class="akram-step">Approve → lock → email PDF reports</li>
@@ -227,7 +247,7 @@
         <tfoot>
           <tr class="table-light fw-semibold">
             <td colspan="5">Company total / distributed</td>
-            <td class="text-end" id="preview-company-total">$0.00</td>
+            <td class="text-end" id="preview-company-total">{{ currency_symbol }}0.00</td>
           </tr>
         </tfoot>
       </table>
@@ -246,6 +266,7 @@
     csrfToken: {{ csrf_token()|tojson }},
     warnings: {{ create_context.warnings|tojson }},
     ownershipValid: {{ create_context.ownership_valid|tojson }},
+    currencySymbol: {{ (currency_symbol or '$')|tojson }},
   };
 </script>
 <script src="{{ config.ASSETS_ROOT }}/js/pages/akram-period-form.init.js"></script>

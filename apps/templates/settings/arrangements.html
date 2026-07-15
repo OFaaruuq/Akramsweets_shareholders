@@ -6,53 +6,66 @@
 <div class="py-3">
   <h4 class="fs-18 fw-semibold m-0">Special Arrangements</h4>
   <p class="text-muted mb-0 fs-13">
-    Redirect a bonus % of selected shareholders’ base shares to a recipient.
-    Use <em>all other shareholders</em>, or pick specific sources.
+    Dynamically redirect a bonus % of selected shareholders’ <strong>base shares</strong> to a recipient
+    when a monthly period is calculated. New shareholders are included automatically when
+    “all other shareholders” is enabled.
   </p>
 </div>
 <div class="row">
 <div class="col-xl-5"><div class="card"><div class="card-body"><h5 class="mb-3">Add Arrangement</h5>
 <form method="post" id="arrangement-form">{{ form.hidden_tag() }}
-<div class="mb-3"><label class="form-label">Name</label>{{ form.name(class='form-control') }}</div>
-<div class="mb-3"><label class="form-label">Recipient</label>{{ form.recipient_shareholder_id(class='form-select') }}</div>
+<div class="mb-3"><label class="form-label">Name</label>{{ form.name(class='form-control') }}
+  {% for err in form.name.errors %}<div class="text-danger fs-12">{{ err }}</div>{% endfor %}
+</div>
+<div class="mb-3"><label class="form-label">Recipient</label>{{ form.recipient_shareholder_id(class='form-select', id='recipient-select') }}</div>
 <div class="mb-3"><label class="form-label">Bonus %</label>{{ form.bonus_percent(class='form-control') }}
   <div class="form-text">Percent of each source shareholder’s base share redirected to the recipient.</div>
+  {% for err in form.bonus_percent.errors %}<div class="text-danger fs-12">{{ err }}</div>{% endfor %}
 </div>
 <div class="mb-3"><label class="form-label">Effective from</label>{{ form.effective_from(class='form-control', type='date') }}</div>
-<div class="mb-3"><label class="form-label">Effective to</label>{{ form.effective_to(class='form-control', type='date') }}</div>
+<div class="mb-3"><label class="form-label">Effective to</label>{{ form.effective_to(class='form-control', type='date') }}
+  {% for err in form.effective_to.errors %}<div class="text-danger fs-12">{{ err }}</div>{% endfor %}
+</div>
 <div class="form-check mb-2">
   {{ form.applies_to_all_others(class='form-check-input', id='applies-all') }}
   <label class="form-check-label" for="applies-all">Apply to all other shareholders</label>
 </div>
 <div class="mb-3 border rounded p-2" id="source-shareholders" {% if form.applies_to_all_others.data %}style="display:none"{% endif %}>
   <label class="form-label mb-1">Source shareholders</label>
-  <div class="form-text mb-2">Bonus is taken only from these shareholders (not the recipient).</div>
+  <div class="form-text mb-2">Bonus is taken only from these shareholders (recipient is excluded).</div>
   {% for value, label in form.source_shareholder_ids.choices %}
-  <div class="form-check">
+  <div class="form-check source-option" data-shareholder-id="{{ value }}">
     <input class="form-check-input" type="checkbox" name="source_shareholder_ids" value="{{ value }}" id="src-{{ value }}"
       {% if form.source_shareholder_ids.data and value in form.source_shareholder_ids.data %}checked{% endif %}>
     <label class="form-check-label" for="src-{{ value }}">{{ label }}</label>
   </div>
+  {% else %}
+  <div class="text-muted fs-13">Add active shareholders first.</div>
   {% endfor %}
   {% for err in form.source_shareholder_ids.errors %}<div class="text-danger fs-12">{{ err }}</div>{% endfor %}
 </div>
 <div class="form-check mb-2">{{ form.apply_on_profit(class='form-check-input') }}<label class="form-check-label">Apply on profit</label></div>
-<div class="form-check mb-3">{{ form.apply_on_loss(class='form-check-input') }}<label class="form-check-label">Apply on loss</label></div>
+<div class="form-check mb-3">{{ form.apply_on_loss(class='form-check-input') }}<label class="form-check-label">Apply on loss</label>
+  {% for err in form.apply_on_profit.errors %}<div class="text-danger fs-12">{{ err }}</div>{% endfor %}
+</div>
 <div class="mb-3">{{ form.notes(class='form-control', rows='3', placeholder='Notes') }}</div>
 {{ form.submit(class='btn btn-primary') }}
 </form></div></div></div>
 <div class="col-xl-7"><div class="card"><div class="card-body"><div class="table-responsive">
 <table class="table mb-0 align-middle">
-<thead><tr><th>Name</th><th>Recipient</th><th>Bonus</th><th>Sources</th><th>From</th><th>Active</th><th></th></tr></thead>
+<thead><tr><th>Name</th><th>Recipient</th><th>Bonus</th><th>Sources</th><th>Applies</th><th>From</th><th>Active</th><th></th></tr></thead>
 <tbody>
 {% for row in rows %}
 <tr>
   <td>{{ row.name }}</td>
-  <td>{{ row.recipient.name }}</td>
+  <td>{{ row.recipient.name if row.recipient else '—' }}</td>
   <td>{{ '%.2f'|format(row.bonus_percent) }}%</td>
   <td class="fs-13">{{ row.source_label() }}</td>
+  <td class="fs-12">
+    {% if row.apply_on_profit %}Profit{% endif %}{% if row.apply_on_profit and row.apply_on_loss %} · {% endif %}{% if row.apply_on_loss %}Loss{% endif %}
+  </td>
   <td>{{ row.effective_from }}{% if row.effective_to %} → {{ row.effective_to }}{% endif %}</td>
-  <td>{% if row.is_active %}Yes{% else %}No{% endif %}</td>
+  <td>{% if row.is_active %}<span class="text-success">Yes</span>{% else %}<span class="text-muted">No</span>{% endif %}</td>
   <td class="text-end text-nowrap">
     <a href="{{ url_for('app_settings.edit_arrangement', arrangement_id=row.id) }}" class="btn btn-sm btn-soft-primary">Edit</a>
     {% if row.is_active %}
@@ -60,11 +73,16 @@
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button class="btn btn-sm btn-soft-danger">Deactivate</button>
     </form>
+    {% else %}
+    <form method="post" action="{{ url_for('app_settings.activate_arrangement', arrangement_id=row.id) }}" class="d-inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-sm btn-soft-success">Activate</button>
+    </form>
     {% endif %}
   </td>
 </tr>
 {% else %}
-<tr><td colspan="7" class="text-muted text-center">No arrangements yet.</td></tr>
+<tr><td colspan="8" class="text-muted text-center">No arrangements yet.</td></tr>
 {% endfor %}
 </tbody>
 </table></div></div></div></div></div>
@@ -75,10 +93,26 @@
 (function () {
   var all = document.getElementById('applies-all');
   var box = document.getElementById('source-shareholders');
-  if (!all || !box) return;
-  function sync() { box.style.display = all.checked ? 'none' : 'block'; }
-  all.addEventListener('change', sync);
-  sync();
+  var recipient = document.getElementById('recipient-select');
+  function syncSourcesBox() {
+    if (all && box) box.style.display = all.checked ? 'none' : 'block';
+  }
+  function hideRecipientAsSource() {
+    if (!recipient) return;
+    var rid = String(recipient.value || '');
+    document.querySelectorAll('.source-option').forEach(function (row) {
+      var isRecipient = String(row.getAttribute('data-shareholder-id')) === rid;
+      row.style.display = isRecipient ? 'none' : '';
+      if (isRecipient) {
+        var input = row.querySelector('input[type="checkbox"]');
+        if (input) input.checked = false;
+      }
+    });
+  }
+  if (all) all.addEventListener('change', syncSourcesBox);
+  if (recipient) recipient.addEventListener('change', hideRecipientAsSource);
+  syncSourcesBox();
+  hideRecipientAsSource();
 })();
 </script>
 {% endblock extra_javascript %}

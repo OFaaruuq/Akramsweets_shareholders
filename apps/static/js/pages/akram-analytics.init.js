@@ -4,6 +4,8 @@ Akram Sweets Shareholders Analytics charts
 
 (function () {
   const data = window.AKRAM_ANALYTICS || {};
+  const currencySymbol = window.AKRAM_CURRENCY_SYMBOL || '$';
+  const brandPrimary = window.AKRAM_BRAND_PRIMARY || '#8A1B24';
   const analytics = data.analytics || {};
   const earning = analytics.earning_reports || { labels: [], profits: [], distributed: [], expenses: [], revenues: [] };
   const growth = analytics.growth_rate || { labels: [], company: [], distributed: [] };
@@ -11,8 +13,8 @@ Akram Sweets Shareholders Analytics charts
   const shareholderSeries = analytics.shareholder_series || { labels: [], series: [] };
   const isShareholderView = !!analytics.is_shareholder_view;
 
-  const currency = (value) => '$' + Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const palette = ['#8A1B24', '#C8924B', '#46B277', '#01D4FF', '#E77636', '#E7366B', '#522c8f'];
+  const currency = (value) => currencySymbol + Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const palette = [brandPrimary, '#C8924B', '#46B277', '#01D4FF', '#E77636', '#E7366B', '#522c8f'];
 
   function renderChart(selector, options) {
     const el = document.querySelector(selector);
@@ -42,8 +44,8 @@ Akram Sweets Shareholders Analytics charts
     yaxis: {
       labels: {
         formatter: function (value) {
-          if (Math.abs(value) >= 1000) return '$' + (value / 1000).toFixed(1) + 'K';
-          return '$' + value.toFixed(0);
+          if (Math.abs(value) >= 1000) return currencySymbol + (value / 1000).toFixed(1) + 'K';
+          return currencySymbol + value.toFixed(0);
         },
       },
     },

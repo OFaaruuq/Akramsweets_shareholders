@@ -48,6 +48,7 @@ def login():
                     )
                 return render_template('pages/auth-login.html', form=form, segment='auth-login')
 
+            log_action('otp_sent', 'user', user.id, f'OTP emailed to {mask_email(user.email)}', user=user)
             flash(f'A verification code was sent to {mask_email(user.email)}.', 'success')
             next_page = request.args.get('next')
             if next_page:
@@ -125,6 +126,15 @@ def resend_otp():
 
     ok, reason = send_new_otp()
     if ok:
+        user = pending_otp_user()
+        if user:
+            log_action(
+                'otp_resend',
+                'user',
+                user.id,
+                f'OTP resent to {mask_email(user.email)}',
+                user=user,
+            )
         flash('A new verification code has been sent to your email.', 'success')
     elif reason == 'smtp_not_configured':
         flash('SMTP is not configured — cannot resend the verification code.', 'danger')

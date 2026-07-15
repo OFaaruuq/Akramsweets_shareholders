@@ -56,7 +56,7 @@ def certificates_register():
     if period:
         missing = any(row['calculation'] and not row['certificate'] for row in register['rows'])
         if missing:
-            issue_period_certificates(period)
+            issue_period_certificates(period, audit=True)
             register = get_monthly_certificate_register(period)
             flash('Missing certificates were generated for this month.', 'success')
 
