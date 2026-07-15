@@ -105,6 +105,28 @@
 <tr><td>{{ row.shareholder.name }}</td><td>{{ '%.2f'|format(row.amount) }}</td><td>{{ row.reason }}</td><td>{{ row.created_by.full_name if row.created_by else '-' }}</td><td>{{ row.created_at.strftime('%Y-%m-%d %H:%M') }}</td></tr>
 {% endfor %}</tbody></table></div></div></div>
 {% endif %}
+
+{% if calculations and current_user.can_enter_financials() %}
+<div class="card mt-3">
+  <div class="card-header"><h5 class="card-title mb-0">Send update to shareholders</h5></div>
+  <div class="card-body">
+    <p class="text-muted fs-13 mb-3">
+      Emails every shareholder on this period with the current Net Profit and their distribution amount.
+      Use this anytime (draft, review, or approved). Formal PDF reports/certificates still use
+      <strong>Approve</strong> or <strong>Send Reports</strong>.
+    </p>
+    <form method="post" action="{{ url_for('periods.send_shareholder_update', period_id=period.id) }}">
+      {{ update_form.hidden_tag() }}
+      <div class="mb-3">
+        <label class="form-label">Optional message</label>
+        {{ update_form.message(class='form-control', rows='3', placeholder='e.g. June figures were corrected after Odoo reconciliation.') }}
+      </div>
+      {{ update_form.submit(class='btn btn-soft-primary') }}
+    </form>
+  </div>
+</div>
+{% endif %}
+
 {% if period.is_editable and current_user.can_enter_financials() %}
 <div class="card mt-3"><div class="card-body"><h5 class="mb-3">Add Manual Adjustment</h5>
 <form method="post" action="{{ url_for('periods.add_adjustment', period_id=period.id) }}">

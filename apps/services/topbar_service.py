@@ -93,6 +93,8 @@ def _notification_url(action, entity_type, entity_id):
         if entity_type in ('monthly_period', 'certificate') and entity_id:
             return url_for('periods.detail_period', period_id=entity_id)
         if entity_type == 'manual_adjustment' and entity_id:
+            return url_for('periods.list_periods')
+        if entity_type == 'manual_adjustment' and entity_id:
             from apps.models.period import ManualAdjustment
 
             adjustment = ManualAdjustment.query.get(entity_id)
@@ -143,6 +145,7 @@ def _format_notification(entry, unread_cutoff):
         ('submit_review', 'monthly_period'): f'Submitted for review — {details}',
         ('approve', 'monthly_period'): f'Period approved — {details}',
         ('send_reports', 'monthly_period'): f'Reports & certificates emailed — {details}',
+        ('notify_update', 'monthly_period'): f'Shareholder update emailed — {details}',
         ('correction_reopen', 'monthly_period'): f'Period reopened — {details}',
         ('adjustment', 'manual_adjustment'): f'Manual adjustment — {details}',
         ('issue', 'certificate'): f'Certificates issued — {details}',

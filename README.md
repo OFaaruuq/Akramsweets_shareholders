@@ -9,7 +9,7 @@ Flask web app for **Akram Sweets** shareholder management: profit periods, share
 - Shareholder portal for viewing personal statements
 - Brand settings (logo, company details)
 - Dynamic certificate content settings
-- Selective special arrangements (all others or chosen sources)
+- Selective special arrangements (all others or chosen sources) — see [docs/SPECIAL_ARRANGEMENTS.md](docs/SPECIAL_ARRANGEMENTS.md)
 - Login email OTP verification (requires SMTP)
 - Alembic database migrations (`flask db upgrade`)
 - Scheduled email report delivery

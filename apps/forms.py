@@ -191,6 +191,10 @@ class SystemSettingsForm(FlaskForm):
         'Email confirmation when a shareholder changes their password',
         default=True,
     )
+    notify_shareholders_on_profit_update = BooleanField(
+        'Automatically email all shareholders when monthly profit figures are updated',
+        default=True,
+    )
     report_delivery_day = IntegerField('Report delivery day of month', validators=[Optional(), NumberRange(min=1, max=28)])
     mail_from = StringField('From email', validators=[Optional(), Email()])
     mail_server = StringField('SMTP server', validators=[Optional(), Length(max=120)])
@@ -342,3 +346,12 @@ class CorrectionReopenForm(FlaskForm):
         validators=[DataRequired(), Length(min=10, max=2000)],
     )
     submit = SubmitField('Reopen for Correction')
+
+
+class ShareholderUpdateForm(FlaskForm):
+    message = TextAreaField(
+        'Optional message to shareholders',
+        validators=[Optional(), Length(max=2000)],
+        description='Included in the email update to every shareholder on this period.',
+    )
+    submit = SubmitField('Send Update to Shareholders')

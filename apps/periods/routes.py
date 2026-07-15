@@ -3,7 +3,7 @@ from flask_login import current_user
 
 from apps import db
 from apps.auth.decorators import finance_or_management_required, management_required
-from apps.forms import AdjustmentForm, CorrectionReopenForm, PeriodForm
+from apps.forms import AdjustmentForm, CorrectionReopenForm, PeriodForm, ShareholderUpdateForm
 from apps.models.period import ManualAdjustment, MonthlyPeriod, ShareholderCalculation
 from apps.models.shareholder import Shareholder
 from apps.periods import blueprint
@@ -183,6 +183,7 @@ def detail_period(period_id):
         (sh.id, sh.name) for sh in Shareholder.query.filter_by(is_active=True).order_by(Shareholder.name)
     ]
     correction_form = CorrectionReopenForm()
+    update_form = ShareholderUpdateForm()
 
     from apps.models.certificate import ShareholderCertificate
 
@@ -199,6 +200,7 @@ def detail_period(period_id):
         adjustments=adjustments,
         adjustment_form=adjustment_form,
         correction_form=correction_form,
+        update_form=update_form,
         report_delivery_day=get_report_delivery_day(),
         can_send_reports_now=can_send_reports_now(),
         segment='periods',
@@ -231,6 +233,7 @@ def edit_period(period_id):
     create_context = get_period_create_context(period.year, period.month)
 
     if form.validate_on_submit():
+        previous_net = period.total_profit_loss
         _update_period_from_form(period, form)
         db.session.commit()
         try:
@@ -248,6 +251,31 @@ def edit_period(period_id):
 
         log_action('update', 'monthly_period', period.id, period.period_label)
         flash('Period updated and recalculated.', 'success')
+
+        # Notify shareholders when Net Profit changed (or any update after review / prior send).
+        net_changed = previous_net != period.total_profit_loss
+        should_notify = net_changed or period.status == MonthlyPeriod.STATUS_REVIEW or bool(period.reports_sent_at)
+        if should_notify and period.calculations.count():
+            try:
+                from apps.services.notification_service import notify_shareholders_period_update
+
+                result = notify_shareholders_period_update(
+                    period,
+                    reason='profit_update',
+                    actor=current_user,
+                    respect_setting=True,
+                )
+                if result.get('mode') == 'disabled':
+                    pass
+                elif result.get('ok'):
+                    flash(
+                        f'Shareholders notified of the profit update ({result.get("sent", 0)} of '
+                        f'{result.get("total", 0)}).',
+                        'info',
+                    )
+            except Exception:
+                flash('Period saved, but shareholder update emails could not be sent. Check SMTP.', 'warning')
+
         return redirect(url_for('periods.detail_period', period_id=period.id))
 
     return render_template(
@@ -430,6 +458,59 @@ def send_reports_view(period_id):
             flash('Shareholder reports processed.', 'success')
     except ValueError as exc:
         flash(str(exc), 'danger')
+    return redirect(url_for('periods.detail_period', period_id=period.id))
+
+
+@blueprint.route('/<int:period_id>/send-update', methods=['POST'])
+@finance_or_management_required
+def send_shareholder_update(period_id):
+    """Manually email all shareholders on this period with a profit / distribution update."""
+    period = MonthlyPeriod.query.get_or_404(period_id)
+    form = ShareholderUpdateForm()
+    if not form.validate_on_submit():
+        flash('Could not send update. Check the message and try again.', 'danger')
+        return redirect(url_for('periods.detail_period', period_id=period.id))
+
+    if not period.calculations.count():
+        flash('Calculate the period before sending shareholder updates.', 'warning')
+        return redirect(url_for('periods.detail_period', period_id=period.id))
+
+    try:
+        from apps.services.notification_service import notify_shareholders_period_update
+
+        result = notify_shareholders_period_update(
+            period,
+            message=form.message.data,
+            reason='manual_update',
+            actor=current_user,
+            respect_setting=False,  # manual send always allowed
+        )
+        if not result.get('ok'):
+            flash('No shareholder updates were sent.', 'warning')
+        else:
+            smtp_ok = sum(
+                1 for r in result.get('results', []) if (r.get('email') or {}).get('sent')
+            )
+            logged = sum(
+                1 for r in result.get('results', []) if (r.get('email') or {}).get('mode') == 'log'
+            )
+            if smtp_ok:
+                flash(f'Update emailed to {smtp_ok} shareholder(s).', 'success')
+            elif logged:
+                flash(
+                    'Update logged for shareholders, but SMTP is not configured. '
+                    'Add SMTP under Settings → System.',
+                    'warning',
+                )
+            else:
+                flash(
+                    'Update processed, but no valid shareholder emails were delivered. '
+                    'Check shareholder email addresses.',
+                    'warning',
+                )
+    except Exception as exc:
+        flash(f'Could not send shareholder update: {exc}', 'danger')
+
     return redirect(url_for('periods.detail_period', period_id=period.id))
 
 

@@ -212,6 +212,10 @@ def system_settings():
         email_portal_credentials=str(SystemSetting.get('email_portal_credentials', 'true')).lower() in ('1', 'true', 'yes', 'on'),
         email_staff_invite=str(SystemSetting.get('email_staff_invite', 'true')).lower() in ('1', 'true', 'yes', 'on'),
         email_password_change=str(SystemSetting.get('email_password_change', 'true')).lower() in ('1', 'true', 'yes', 'on'),
+        notify_shareholders_on_profit_update=str(
+            SystemSetting.get('notify_shareholders_on_profit_update', 'true')
+        ).lower()
+        in ('1', 'true', 'yes', 'on'),
         report_delivery_day=SystemSetting.get('report_delivery_day'),
         mail_from=SystemSetting.get('mail_from'),
         mail_server=SystemSetting.get('mail_server'),
@@ -253,6 +257,10 @@ def system_settings():
         SystemSetting.set('email_portal_credentials', 'true' if form.email_portal_credentials.data else 'false')
         SystemSetting.set('email_staff_invite', 'true' if form.email_staff_invite.data else 'false')
         SystemSetting.set('email_password_change', 'true' if form.email_password_change.data else 'false')
+        SystemSetting.set(
+            'notify_shareholders_on_profit_update',
+            'true' if form.notify_shareholders_on_profit_update.data else 'false',
+        )
         for key in (
             'report_delivery_day',
             'mail_from',

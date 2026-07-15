@@ -241,10 +241,16 @@
       {{ form.email_password_change(class='form-check-input', id='email-password') }}
       <label class="form-check-label" for="email-password">{{ form.email_password_change.label.text }}</label>
     </div>
+    <div class="mb-3 form-check">
+      {{ form.notify_shareholders_on_profit_update(class='form-check-input', id='notify-profit-update') }}
+      <label class="form-check-label" for="notify-profit-update">{{ form.notify_shareholders_on_profit_update.label.text }}</label>
+    </div>
     <div class="alert alert-info py-2 fs-13">
       <strong>Certificates</strong> always use your company name, brand colors, logo, and the certificate wording above when a period is approved.
       Configure SMTP below and keep <em>auto email on approval</em> enabled so each shareholder receives an email
       with the branded certificate PDF and profit report attached.
+      When profit figures change, shareholders also get an update notice if that option is enabled.
+      You can send a manual update anytime from the period page.
       Use port <strong>587</strong> (STARTTLS) or <strong>465</strong> (SSL).
       SMS/WhatsApp is optional and currently logs only until a provider is connected.
       Staff topbar notifications follow the audit trail for period, shareholder, arrangement, certificate, and settings activity.

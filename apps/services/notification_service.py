@@ -184,3 +184,93 @@ def notify_password_changed(user):
         cta_label='Open account',
         cta_endpoint='auth.account',
     )
+
+
+def notify_shareholders_period_update(
+    period,
+    *,
+    message=None,
+    reason='profit_update',
+    actor=None,
+    respect_setting=True,
+):
+    """
+    Email every shareholder on a period with a profit / distribution update.
+
+    Used automatically when Net Profit changes (if enabled in settings),
+    and manually via “Send update to shareholders”.
+    """
+    if respect_setting and not notification_flag('notify_shareholders_on_profit_update', True):
+        return {'ok': False, 'mode': 'disabled', 'sent': 0, 'results': []}
+
+    from apps.services.audit_service import log_action
+    from apps.services.display_settings_service import money_label
+    from apps.services.email_service import send_system_notice
+
+    calculations = list(period.calculations)
+    if not calculations:
+        return {'ok': False, 'mode': 'no_calculations', 'sent': 0, 'results': []}
+
+    company_total = money_label(period.total_profit_loss)
+    is_profit = (period.total_profit_loss or 0) >= 0
+    result_word = 'profit' if is_profit else 'loss'
+    note = (message or '').strip()
+    reason_label = {
+        'profit_update': 'monthly profit figures were updated',
+        'manual_update': 'management sent you an update',
+        'recalculate': 'the monthly distribution was recalculated',
+    }.get(reason, 'there is an update on your monthly distribution')
+
+    sms_enabled = notification_flag('sms_notifications_enabled', False)
+    results = []
+    sent_count = 0
+
+    for calc in calculations:
+        shareholder = calc.shareholder
+        if not shareholder:
+            continue
+        recipient = (shareholder.email or '').strip()
+        your_share = money_label(calc.final_amount)
+        paragraphs = [
+            f'Hello {shareholder.name},',
+            f'This is a notice that {reason_label} for period {period.period_label}.',
+            f'Company net {result_word}: {company_total}.',
+            f'Your distribution amount: {your_share}.',
+        ]
+        if note:
+            paragraphs.append(f'Message from management: {note}')
+        paragraphs.append(
+            'Sign in to the shareholder portal for full details. '
+            'A formal report and certificate are emailed when the period is approved '
+            '(or when reports are sent again).'
+        )
+
+        email_result = send_system_notice(
+            recipient,
+            f'Profit update — {period.period_label}',
+            title=f'Update for {period.period_label}',
+            paragraphs=paragraphs,
+            cta_label='Open portal',
+            cta_endpoint='pages.dashboard',
+        )
+        entry = {
+            'shareholder': shareholder.name,
+            'email': email_result,
+        }
+        if sms_enabled and shareholder.phone:
+            entry['sms'] = send_sms_notification(
+                shareholder.phone,
+                f'{period.period_label} update: your share {your_share}. Details by email.',
+            )
+        if email_result.get('sent') or email_result.get('mode') == 'log':
+            sent_count += 1
+        results.append(entry)
+
+    log_action(
+        'notify_update',
+        'monthly_period',
+        period.id,
+        f'{period.period_label} shareholder update ({reason}): {sent_count}/{len(results)}',
+        user=actor,
+    )
+    return {'ok': True, 'sent': sent_count, 'total': len(results), 'results': results}
