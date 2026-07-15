@@ -22,15 +22,9 @@ ALLOWED_STATIC_PAGES = {
 @blueprint.route('/')
 @login_required
 def dashboard():
+    # Shareholders use the portal as their single home (avoid duplicate dashboards).
     if current_user.is_shareholder():
-        metrics = get_shareholder_dashboard_metrics(current_user.shareholder_id)
-        return render_template(
-            'pages/index.html',
-            segment='index',
-            can_edit_dashboard=False,
-            is_shareholder_view=True,
-            **metrics,
-        )
+        return redirect(url_for('portal.dashboard'))
 
     metrics = get_dashboard_metrics()
     return render_template(

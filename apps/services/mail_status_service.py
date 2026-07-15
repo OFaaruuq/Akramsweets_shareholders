@@ -18,8 +18,11 @@ def _setting_or_config(setting_key, config_key=None):
 
 
 def otp_is_enabled():
-    if has_app_context() and 'LOGIN_OTP_ENABLED' in current_app.config:
-        return bool(current_app.config.get('LOGIN_OTP_ENABLED'))
+    """Same rules as otp_service.otp_enabled — string-safe config parsing."""
+    from apps.services.otp_service import otp_enabled
+
+    if has_app_context():
+        return otp_enabled()
     return True
 
 

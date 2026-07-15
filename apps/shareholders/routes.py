@@ -21,6 +21,7 @@ from apps.services.shareholder_service import (
     COUNTRY_CHOICES,
     country_flag_filename,
     country_label,
+    effective_shares_and_capital,
     get_ownership_history,
     get_ownership_percent,
     normalize_email,
@@ -28,6 +29,7 @@ from apps.services.shareholder_service import (
     proposed_ownership_total,
     registration_stats,
     shareholder_email_taken,
+    validate_capital_against_ownership,
     validate_ownership_totals,
 )
 from apps.shareholders import blueprint
@@ -137,6 +139,14 @@ def _validate_registration(form, *, exclude_id=None, require_active_ownership=Tr
             form.ownership_percent.errors.append(ownership_error)
             ok = False
 
+        for msg in validate_capital_against_ownership(
+            form.ownership_percent.data,
+            share_count=form.share_count.data,
+            investment_amount=form.investment_amount.data,
+        ):
+            form.share_count.errors.append(msg)
+            ok = False
+
     if getattr(form, 'create_portal', None) and form.create_portal.data:
         if not form.portal_password.data:
             form.portal_password.errors.append('Portal password is required when creating portal login.')
@@ -153,7 +163,6 @@ def _validate_registration(form, *, exclude_id=None, require_active_ownership=Tr
 @finance_or_management_required
 def list_shareholders():
     from apps.services.certificate_service import get_latest_approved_period, get_shareholder_certificate
-    from apps.services.share_value_service import capital_for_ownership, shares_for_ownership
 
     shareholders = Shareholder.query.order_by(Shareholder.name).all()
     latest_period = get_latest_approved_period()
@@ -193,21 +202,18 @@ def list_shareholders():
         certificate = (
             get_shareholder_certificate(latest_period.id, shareholder.id) if latest_period else None
         )
-        derived_shares = shares_for_ownership(ownership)
-        derived_capital = capital_for_ownership(ownership)
+        capital_info = effective_shares_and_capital(shareholder, ownership)
         rows.append({
             'shareholder': shareholder,
             'ownership_percent': float(ownership),
-            'share_units': float(shareholder.share_count or 0) or (
-                float(derived_shares) if derived_shares is not None else None
-            ),
-            'registered_shares': float(shareholder.share_count or 0),
-            'registered_investment': float(shareholder.investment_amount or 0),
-            'capital': float(shareholder.investment_amount or 0) or (
-                float(derived_capital) if derived_capital is not None else None
-            ),
-            'derived_shares': float(derived_shares) if derived_shares is not None else None,
-            'derived_capital': float(derived_capital) if derived_capital is not None else None,
+            'share_units': capital_info['shares'] or None,
+            'registered_shares': capital_info['registered_shares'],
+            'registered_investment': capital_info['registered_investment'],
+            'capital': capital_info['investment'] or None,
+            'derived_shares': capital_info['shares'] if capital_info['source'] == 'derived' else None,
+            'derived_capital': capital_info['investment'] if capital_info['source'] == 'derived' else None,
+            'capital_source': capital_info['source'],
+            'capital_mismatch': capital_info['mismatch'],
             'flag': country_flag_filename(shareholder.country_code),
             'country_name': shareholder.country or country_label(shareholder.country_code),
             'latest_period': latest_period,

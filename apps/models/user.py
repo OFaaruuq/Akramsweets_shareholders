@@ -113,4 +113,7 @@ class User(UserMixin, db.Model):
         return self.role == self.ROLE_SHAREHOLDER and self.shareholder_id is not None
 
     def home_endpoint(self):
+        """Canonical post-login home: portal for shareholders, staff dashboard otherwise."""
+        if self.is_shareholder():
+            return 'portal.dashboard'
         return 'pages.dashboard'

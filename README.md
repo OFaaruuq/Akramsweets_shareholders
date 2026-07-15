@@ -9,8 +9,8 @@ Flask web app for **Akram Sweets** shareholder management: profit periods, share
 - Shareholder portal for viewing personal statements
 - Brand settings (logo, company details)
 - Dynamic certificate content settings
-- Selective special arrangements (all others or chosen sources) — see [docs/SPECIAL_ARRANGEMENTS.md](docs/SPECIAL_ARRANGEMENTS.md)
-- Monthly distribution from Odoo **Net Profit × ownership %** — see [docs/NET_PROFIT_DISTRIBUTION.md](docs/NET_PROFIT_DISTRIBUTION.md)
+- Monthly **Mudarabah** distribution from Odoo Net Profit (configurable pool % × ownership %) — see [docs/MUDARABAH.md](docs/MUDARABAH.md) and [docs/NET_PROFIT_DISTRIBUTION.md](docs/NET_PROFIT_DISTRIBUTION.md)
+- Special arrangements on the shareholders’ pool — see [docs/SPECIAL_ARRANGEMENTS.md](docs/SPECIAL_ARRANGEMENTS.md)
 - Dynamic **share value** (e.g. 1 share = 1000) — see [docs/SHARE_VALUE.md](docs/SHARE_VALUE.md)
 - Login email OTP verification (requires SMTP)
 - Alembic database migrations (`flask db upgrade`)
@@ -71,14 +71,17 @@ python scripts/create_super_admin.py --email you@company.com --name "Your Name" 
 apps/
   auth/           Login & access
   shareholders/   Shareholder CRUD
-  periods/        Profit periods
-  reports/        Report generation
-  portal/         Shareholder self-service
-  users/          User management
-  app_settings/   System & brand settings
+  periods/        Monthly Mudarabah profit periods
+  reports/        Certificates & distribution reports
+  portal/         Shareholder self-service home
+  contacts/       Staff directory (people contacts)
+  users/          User & role management
+  app_settings/   System, brand, arrangements, display KPIs
+  services/       Domain logic (calc, ownership, OTP, mail, …)
   static/         CSS, JS, images
   templates/      Jinja templates
-scripts/          DB setup & scheduled reports
+docs/             Mudarabah, arrangements, distribution guides
+scripts/          DB setup, verify_app, scheduled reports
 ```
 
 ## Environment

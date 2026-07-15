@@ -2,9 +2,7 @@ from decimal import Decimal, InvalidOperation
 
 from apps.models.arrangement import SpecialArrangement
 from apps.models.shareholder import OwnershipRecord, Shareholder
-
-
-OWNERSHIP_TOLERANCE = Decimal('0.01')
+from apps.services.decimal_utils import OWNERSHIP_TOLERANCE
 
 
 COUNTRY_CHOICES = [
@@ -142,6 +140,82 @@ def ownership_fits_or_error(ownership_percent, as_of_date, exclude_shareholder_i
             f'(maximum allowed is 100%). Reduce the percentage or adjust other shareholders first.'
         )
     return None
+
+
+def validate_capital_against_ownership(ownership_percent, share_count=None, investment_amount=None):
+    """
+    When company total shares are configured, registered shares/investment must match
+    values derived from ownership %. Empty/zero register fields are allowed (display falls back).
+    """
+    from apps.services.share_value_service import capital_for_ownership, get_share_settings, shares_for_ownership
+
+    settings = get_share_settings()
+    if not settings.get('has_total_shares'):
+        return []
+
+    errors = []
+    expected_shares = shares_for_ownership(ownership_percent)
+    expected_capital = capital_for_ownership(ownership_percent)
+    registered_shares = _as_decimal(share_count)
+    registered_investment = _as_decimal(investment_amount)
+
+    if registered_shares > 0 and expected_shares is not None:
+        if abs(registered_shares - expected_shares) > Decimal('0.0001'):
+            errors.append(
+                f'Registered shares ({registered_shares}) must match ownership-derived '
+                f'{expected_shares} (ownership % × company total shares). '
+                f'Use “Auto-fill shares from ownership %” or clear the shares field.'
+            )
+    if registered_investment > 0 and expected_capital is not None:
+        if abs(registered_investment - expected_capital) > Decimal('0.01'):
+            errors.append(
+                f'Registered investment ({registered_investment}) must match ownership-derived '
+                f'{expected_capital} (shares × share value). '
+                f'Use auto-fill or clear the investment field.'
+            )
+    return errors
+
+
+def effective_shares_and_capital(shareholder, ownership_percent):
+    """
+    Canonical display values: prefer ownership-derived when company totals are set;
+    otherwise use registered fields.
+    """
+    from apps.services.share_value_service import capital_for_ownership, get_share_settings, shares_for_ownership
+
+    settings = get_share_settings()
+    registered_shares = float(shareholder.share_count or 0) if shareholder else 0.0
+    registered_investment = float(shareholder.investment_amount or 0) if shareholder else 0.0
+    derived_shares = shares_for_ownership(ownership_percent)
+    derived_capital = capital_for_ownership(ownership_percent)
+
+    if settings.get('has_total_shares') and derived_shares is not None:
+        return {
+            'shares': float(derived_shares),
+            'investment': float(derived_capital) if derived_capital is not None else registered_investment,
+            'source': 'derived',
+            'registered_shares': registered_shares,
+            'registered_investment': registered_investment,
+            'mismatch': (
+                (registered_shares > 0 and abs(registered_shares - float(derived_shares)) > 0.0001)
+                or (
+                    registered_investment > 0
+                    and derived_capital is not None
+                    and abs(registered_investment - float(derived_capital)) > 0.01
+                )
+            ),
+        }
+
+    return {
+        'shares': registered_shares or (float(derived_shares) if derived_shares is not None else 0.0),
+        'investment': registered_investment or (
+            float(derived_capital) if derived_capital is not None else 0.0
+        ),
+        'source': 'registered' if registered_shares or registered_investment else 'derived',
+        'registered_shares': registered_shares,
+        'registered_investment': registered_investment,
+        'mismatch': False,
+    }
 
 
 def get_ownership_history(shareholder, limit=20):

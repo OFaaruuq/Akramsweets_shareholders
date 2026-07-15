@@ -4,6 +4,7 @@ from decimal import Decimal
 
 from apps.models.period import MonthlyPeriod
 from apps.services.dashboard_service import get_dashboard_manual_kpis
+from apps.services.decimal_utils import OWNERSHIP_TOLERANCE, money_value
 from apps.services.shareholder_service import (
     get_active_arrangements,
     get_active_shareholders,
@@ -12,11 +13,6 @@ from apps.services.shareholder_service import (
 )
 
 MONTH_CHOICES = [(i, month_name[i]) for i in range(1, 13)]
-OWNERSHIP_TOLERANCE = Decimal('0.01')
-
-
-def money_value(value):
-    return Decimal(value or 0)
 
 
 def resolve_period_totals(
@@ -93,27 +89,21 @@ def get_period_readiness(year, month):
 
     ownership_total, shareholders = validate_ownership_totals(as_of_date)
     ownership_rows = []
-    from apps.services.share_value_service import capital_for_ownership, shares_for_ownership
+    from apps.services.shareholder_service import effective_shares_and_capital
 
     for shareholder in shareholders:
         percent = get_ownership_percent(shareholder, as_of_date)
-        registered_shares = float(shareholder.share_count or 0)
-        registered_investment = float(shareholder.investment_amount or 0)
-        derived_shares = shares_for_ownership(percent)
-        derived_capital = capital_for_ownership(percent)
+        capital_info = effective_shares_and_capital(shareholder, percent)
         ownership_rows.append({
             'id': shareholder.id,
             'name': shareholder.name,
             'is_owner': shareholder.is_owner,
             'ownership_percent': float(percent),
-            'investment': registered_investment or (
-                float(derived_capital) if derived_capital is not None else 0.0
-            ),
-            'shares': registered_shares or (
-                float(derived_shares) if derived_shares is not None else 0.0
-            ),
-            'registered_investment': registered_investment,
-            'registered_shares': registered_shares,
+            'investment': capital_info['investment'],
+            'shares': capital_info['shares'],
+            'registered_investment': capital_info['registered_investment'],
+            'registered_shares': capital_info['registered_shares'],
+            'capital_source': capital_info['source'],
         })
 
     ownership_valid = bool(shareholders) and abs(ownership_total - Decimal('100')) <= OWNERSHIP_TOLERANCE

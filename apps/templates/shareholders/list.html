@@ -149,21 +149,21 @@
             </td>
             <td>{{ '%.2f'|format(row.ownership_percent) }}%</td>
             <td>
-              {% if row.registered_shares %}
+              {% if row.capital_source == 'derived' and row.derived_shares is not none %}
+              <span title="From ownership × company total shares">{{ '%.4f'|format(row.derived_shares) }}</span>
+              {% if row.capital_mismatch %}<div class="fs-11 text-warning">register mismatch</div>{% endif %}
+              {% elif row.registered_shares %}
               {{ '%.4f'|format(row.registered_shares) }}
-              {% elif row.derived_shares is not none %}
-              <span title="Derived from ownership × company total shares">{{ '%.4f'|format(row.derived_shares) }}</span>
-              <div class="fs-11 text-muted">derived</div>
               {% else %}
               <span class="text-muted">—</span>
               {% endif %}
             </td>
             <td>
-              {% if row.registered_investment %}
+              {% if row.capital_source == 'derived' and row.derived_capital is not none %}
+              <span title="From ownership × share value">{{ currency_symbol }}{{ '{:,.2f}'.format(row.derived_capital) }}</span>
+              {% if row.capital_mismatch %}<div class="fs-11 text-warning">register mismatch</div>{% endif %}
+              {% elif row.registered_investment %}
               {{ currency_symbol }}{{ '{:,.2f}'.format(row.registered_investment) }}
-              {% elif row.derived_capital is not none %}
-              <span title="Derived from ownership × share value">{{ currency_symbol }}{{ '{:,.2f}'.format(row.derived_capital) }}</span>
-              <div class="fs-11 text-muted">derived</div>
               {% else %}
               <span class="text-muted">—</span>
               {% endif %}

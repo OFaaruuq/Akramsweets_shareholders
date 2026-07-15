@@ -4,7 +4,7 @@
         <div id="sidebar-menu">
 
             <div class="logo-box">
-                <a href="{{ url_for('pages.dashboard') }}" class="logo logo-light text-decoration-none">
+                <a href="{{ url_for(current_user.home_endpoint() if current_user.is_authenticated else 'pages.dashboard') }}" class="logo logo-light text-decoration-none">
                     {% if brand and brand.logo_url %}
                     <span class="logo-sm"><img src="{{ brand.logo_url }}" alt="{{ brand.company_name }}" style="max-height:28px;max-width:120px;width:auto;"></span>
                     <span class="logo-lg"><img src="{{ brand.logo_url }}" alt="{{ brand.company_name }}" style="max-height:44px;max-width:180px;width:auto;"></span>
@@ -13,7 +13,7 @@
                     <span class="logo-lg"><img src="{{ config.ASSETS_ROOT }}/images/akram-sweets-logo.png" alt="{{ brand.company_name if brand else company_name or 'Company' }}" style="max-height:44px;max-width:180px;width:auto;"></span>
                     {% endif %}
                 </a>
-                <a href="{{ url_for('pages.dashboard') }}" class="logo logo-dark text-decoration-none">
+                <a href="{{ url_for(current_user.home_endpoint() if current_user.is_authenticated else 'pages.dashboard') }}" class="logo logo-dark text-decoration-none">
                     {% if brand and brand.logo_url %}
                     <span class="logo-sm"><img src="{{ brand.logo_url }}" alt="{{ brand.company_name }}" style="max-height:28px;max-width:120px;width:auto;"></span>
                     <span class="logo-lg"><img src="{{ brand.logo_url }}" alt="{{ brand.company_name }}" style="max-height:44px;max-width:180px;width:auto;"></span>
@@ -26,28 +26,19 @@
 
             <ul id="side-menu">
 
-                <li class="menu-title">Menu</li>
-
+                {% if current_user.is_authenticated and current_user.is_shareholder() %}
+                {# —— Shareholder portal (single home) —— #}
+                <li class="menu-title">My Portal</li>
                 <li>
-                    <a href="{{ url_for('pages.dashboard') }}" class="tp-link">
+                    <a href="{{ url_for('portal.dashboard') }}" class="tp-link">
                         <span class="nav-icon"><iconify-icon icon="solar:home-2-bold-duotone"></iconify-icon></span>
                         <span> Dashboard </span>
                     </a>
                 </li>
-
                 <li>
                     <a href="{{ url_for('pages.analytics') }}" class="tp-link">
                         <span class="nav-icon"><iconify-icon icon="solar:chart-2-bold-duotone"></iconify-icon></span>
-                        <span> Analytics </span>
-                    </a>
-                </li>
-
-                {% if current_user.is_authenticated and current_user.is_shareholder() %}
-                <li class="menu-title mt-2">My Portal</li>
-                <li>
-                    <a href="{{ url_for('portal.dashboard') }}" class="tp-link">
-                        <span class="nav-icon"><iconify-icon icon="solar:user-rounded-bold-duotone"></iconify-icon></span>
-                        <span> My Overview </span>
+                        <span> Charts &amp; Trends </span>
                     </a>
                 </li>
                 <li>
@@ -74,53 +65,54 @@
                         <span> Account Settings </span>
                     </a>
                 </li>
-                {% endif %}
 
-                {% if current_user.is_authenticated and not current_user.is_shareholder() %}
-                <li class="menu-title mt-2">Operations</li>
-
+                {% elif current_user.is_authenticated %}
+                {# —— Staff (finance / admin / owner) —— #}
+                <li class="menu-title">Menu</li>
                 <li>
-                    <a href="{{ url_for('auth.account') }}" class="tp-link">
-                        <span class="nav-icon"><iconify-icon icon="solar:user-circle-bold-duotone"></iconify-icon></span>
-                        <span> My Profile </span>
+                    <a href="{{ url_for('pages.dashboard') }}" class="tp-link">
+                        <span class="nav-icon"><iconify-icon icon="solar:home-2-bold-duotone"></iconify-icon></span>
+                        <span> Dashboard </span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('pages.analytics') }}" class="tp-link">
+                        <span class="nav-icon"><iconify-icon icon="solar:chart-2-bold-duotone"></iconify-icon></span>
+                        <span> Analytics </span>
                     </a>
                 </li>
 
+                <li class="menu-title mt-2">Operations</li>
                 <li>
                     <a href="{{ url_for('periods.list_periods') }}" class="tp-link">
                         <span class="nav-icon"><iconify-icon icon="solar:calendar-bold-duotone"></iconify-icon></span>
                         <span> Monthly Periods </span>
                     </a>
                 </li>
-
                 <li>
                     <a href="{{ url_for('periods.approvals_inbox') }}" class="tp-link">
                         <span class="nav-icon"><iconify-icon icon="solar:check-circle-bold-duotone"></iconify-icon></span>
                         <span> Approvals </span>
                     </a>
                 </li>
-
-                <li>
-                    <a href="{{ url_for('contacts.list_contacts') }}" class="tp-link">
-                        <span class="nav-icon"><iconify-icon icon="solar:shield-user-bold-duotone"></iconify-icon></span>
-                        <span> Contacts </span>
-                    </a>
-                </li>
-
                 <li>
                     <a href="{{ url_for('shareholders.list_shareholders') }}" class="tp-link">
                         <span class="nav-icon"><iconify-icon icon="solar:users-group-rounded-bold-duotone"></iconify-icon></span>
                         <span> Shareholders </span>
                     </a>
                 </li>
-
+                <li>
+                    <a href="{{ url_for('contacts.list_contacts') }}" class="tp-link">
+                        <span class="nav-icon"><iconify-icon icon="solar:book-bold-duotone"></iconify-icon></span>
+                        <span> Directory </span>
+                    </a>
+                </li>
                 <li>
                     <a href="{{ url_for('shareholders.list_withdrawals') }}" class="tp-link">
                         <span class="nav-icon"><iconify-icon icon="solar:wallet-money-bold-duotone"></iconify-icon></span>
                         <span> Capital Withdrawals </span>
                     </a>
                 </li>
-
                 {% if current_user.is_management() %}
                 <li>
                     <a href="{{ url_for('app_settings.arrangements') }}" class="tp-link">
@@ -129,21 +121,18 @@
                     </a>
                 </li>
                 {% endif %}
-
                 <li>
                     <a href="{{ url_for('reports.certificates_register') }}" class="tp-link">
                         <span class="nav-icon"><iconify-icon icon="solar:diploma-verified-bold-duotone"></iconify-icon></span>
                         <span> Certificates </span>
                     </a>
                 </li>
-
                 <li>
                     <a href="{{ url_for('reports.mudarabah_summary') }}" class="tp-link">
                         <span class="nav-icon"><iconify-icon icon="solar:chart-square-bold-duotone"></iconify-icon></span>
                         <span> Mudarabah Summary </span>
                     </a>
                 </li>
-
                 <li>
                     <a href="{{ url_for('reports.history') }}" class="tp-link">
                         <span class="nav-icon"><iconify-icon icon="solar:history-bold-duotone"></iconify-icon></span>
@@ -155,16 +144,6 @@
                 <li class="menu-title mt-2">
                   {% if current_user.is_superadmin() %}Super Admin{% else %}Administration{% endif %}
                 </li>
-
-                {% if current_user.is_superadmin() %}
-                <li>
-                    <a href="{{ url_for('periods.approvals_inbox') }}" class="tp-link">
-                        <span class="nav-icon"><iconify-icon icon="solar:shield-check-bold-duotone"></iconify-icon></span>
-                        <span> Super Admin Queue </span>
-                    </a>
-                </li>
-                {% endif %}
-
                 {% if current_user.can_manage_users() %}
                 <li>
                     <a href="{{ url_for('users.list_users') }}" class="tp-link">
@@ -173,7 +152,6 @@
                     </a>
                 </li>
                 {% endif %}
-
                 {% if current_user.can_view_audit_log() %}
                 <li>
                     <a href="{{ url_for('app_settings.audit_log') }}" class="tp-link">
@@ -182,37 +160,44 @@
                     </a>
                 </li>
                 {% endif %}
-
                 <li>
                     <a href="{{ url_for('app_settings.system_settings') }}" class="tp-link">
                         <span class="nav-icon"><iconify-icon icon="solar:settings-bold-duotone"></iconify-icon></span>
                         <span> System Settings </span>
                     </a>
                 </li>
-
                 <li>
                     <a href="{{ url_for('app_settings.manage_images') }}" class="tp-link">
                         <span class="nav-icon"><iconify-icon icon="solar:gallery-bold-duotone"></iconify-icon></span>
                         <span> Manage Images </span>
                     </a>
                 </li>
-
                 <li>
                     <a href="{{ url_for('app_settings.dashboard_settings') }}" class="tp-link">
                         <span class="nav-icon"><iconify-icon icon="solar:widget-bold-duotone"></iconify-icon></span>
-                        <span> Dashboard KPIs </span>
+                        <span> Display KPIs </span>
                     </a>
                 </li>
                 {% endif %}
                 {% endif %}
 
+                {% if current_user.is_authenticated %}
                 <li class="menu-title mt-2">Account</li>
+                {% if not current_user.is_shareholder() %}
+                <li>
+                    <a href="{{ url_for('auth.account') }}" class="tp-link">
+                        <span class="nav-icon"><iconify-icon icon="solar:user-circle-bold-duotone"></iconify-icon></span>
+                        <span> My Profile </span>
+                    </a>
+                </li>
+                {% endif %}
                 <li>
                     <a href="{{ url_for('auth.logout') }}" class="tp-link">
                         <span class="nav-icon"><iconify-icon icon="solar:logout-2-bold-duotone"></iconify-icon></span>
                         <span> Log Out </span>
                     </a>
                 </li>
+                {% endif %}
 
             </ul>
         </div>

@@ -428,14 +428,18 @@ def main():
     portal_login = login_client(client, app, 'shareholder.a@akramsweets.com', 'shareholder123')
     if portal_login.status_code not in (302, 303):
         errors.append(f'Shareholder login failed status {portal_login.status_code}')
-    elif '/portal/' in portal_login.headers.get('Location', ''):
-        errors.append('Shareholder should land on main dashboard after login')
+    else:
+        loc = portal_login.headers.get('Location', '')
+        if 'portal' not in loc:
+            errors.append(f'Shareholder should land on portal dashboard after login, got {loc}')
 
     with client.session_transaction() as sess:
         with app.app_context():
             user = User.query.filter_by(email='shareholder.a@akramsweets.com').first()
             sess['_user_id'] = str(user.id)
             sess['_fresh'] = True
+            if user.home_endpoint() != 'portal.dashboard':
+                errors.append('Shareholder home_endpoint must be portal.dashboard')
 
     for path in ['/portal/', '/portal/reports', '/portal/ownership', '/portal/withdrawal', '/auth/account']:
         r = client.get(path)
@@ -446,9 +450,9 @@ def main():
     if r.status_code not in (302, 303):
         errors.append(f'/portal/profile should redirect to account, got {r.status_code}')
 
-    r = client.get('/')
-    if r.status_code != 200:
-        errors.append('Shareholder should access main dashboard')
+    r = client.get('/', follow_redirects=False)
+    if r.status_code not in (302, 303) or 'portal' not in (r.headers.get('Location') or ''):
+        errors.append('Shareholder visiting / should redirect to portal dashboard')
 
     r = client.get('/apps-todolist', follow_redirects=False)
     if r.status_code not in (302, 303):

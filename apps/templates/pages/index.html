@@ -131,7 +131,7 @@
 
           <div class="d-flex align-items-center mb-2">
             <p class="mb-0 text-dark fs-16 fw-medium">
-              {% if is_shareholder_view %}My Latest Payout{% else %}Total Revenues{% endif %}
+              {% if is_shareholder_view %}My Latest Payout{% else %}Display: Total Revenues{% endif %}
             </p>
           </div>
 
@@ -152,7 +152,7 @@
               {% if latest_period %}Period {{ latest_period.period_label }}{% else %}No approved reports yet{% endif %}
             </p>
             {% else %}
-            <p class="text-muted fs-13 mb-0">From Odoo — admin editable</p>
+            <p class="text-muted fs-13 mb-0">Display KPI only — not used for Mudarabah distribution</p>
             {% endif %}
           </div>
 

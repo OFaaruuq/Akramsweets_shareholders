@@ -3,6 +3,7 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from apps import db
 from apps.models.period import ManualAdjustment, MonthlyPeriod, ShareholderCalculation
+from apps.services.decimal_utils import OWNERSHIP_TOLERANCE, money
 from apps.services.shareholder_service import (
     get_active_arrangements,
     get_active_shareholders,
@@ -11,12 +12,7 @@ from apps.services.shareholder_service import (
 )
 
 MONEY = Decimal('0.01')
-OWNERSHIP_TOLERANCE = Decimal('0.01')
 RECONCILIATION_TOLERANCE = Decimal('0.01')
-
-
-def money(value):
-    return Decimal(value).quantize(MONEY, rounding=ROUND_HALF_UP)
 
 
 def _assert_ownership_valid(as_of_date):

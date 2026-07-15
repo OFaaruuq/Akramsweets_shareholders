@@ -9,8 +9,8 @@ from apps import db
 from apps.models.settings import SystemSetting
 from apps.models.shareholder import CapitalWithdrawalRequest
 from apps.services.audit_service import log_action
+from apps.services.decimal_utils import money
 
-MONEY = Decimal('0.01')
 BOOTSTRAP_DEADLINE_DAYS = 183  # ~6 calendar months — used only until Settings is configured
 SETTING_KEY = 'capital_return_deadline_days'
 
@@ -52,10 +52,6 @@ def save_capital_return_deadline_days(days):
 def ensure_default_withdrawal_settings():
     if not SystemSetting.get(SETTING_KEY):
         SystemSetting.set(SETTING_KEY, str(BOOTSTRAP_DEADLINE_DAYS))
-
-
-def money(value):
-    return Decimal(value).quantize(MONEY, rounding=ROUND_HALF_UP)
 
 
 def _deadline_from(requested_at=None):
