@@ -8,7 +8,10 @@
     <h4 class="fs-18 fw-semibold m-0">Capital Withdrawal #{{ withdrawal.id }}</h4>
     <p class="text-muted mb-0 fs-13">{{ withdrawal.shareholder.name }}</p>
   </div>
-  <a href="{{ url_for('shareholders.list_withdrawals') }}" class="btn btn-light">Back</a>
+  <div class="text-end d-flex gap-1">
+    <a href="{{ url_for('periods.approvals_inbox') }}" class="btn btn-soft-warning">Approvals</a>
+    <a href="{{ url_for('shareholders.list_withdrawals') }}" class="btn btn-light">All withdrawals</a>
+  </div>
 </div>
 
 <div class="row">
@@ -41,6 +44,12 @@
   <div class="col-xl-7">
     <div class="card"><div class="card-header"><h5 class="card-title mb-0">Workflow actions</h5></div>
     <div class="card-body">
+      {% if not can_act %}
+      <div class="alert alert-warning py-2 fs-13 mb-3">
+        View only — owners/admins can approve, reject, or mark capital returned.
+      </div>
+      {% endif %}
+      {% if can_act %}
       <form method="post">
         {{ form.hidden_tag() }}
         <div class="mb-3">
@@ -65,6 +74,9 @@
           {% endif %}
         </div>
       </form>
+      {% else %}
+      <p class="text-muted mb-0">Status: <strong>{{ withdrawal.status|title }}</strong></p>
+      {% endif %}
     </div></div>
   </div>
 </div>

@@ -213,6 +213,15 @@ def main():
                 errors.append(f'Loss calc mismatch {name}: got {loss_results.get(name)} expected {-val}')
 
         admin = User.query.filter_by(email='admin@akramsweets.com').first()
+        if not admin or not admin.is_superadmin():
+            errors.append('Seed owner admin@akramsweets.com must be Super Admin (owner)')
+        sysadmin = User.query.filter_by(email='sysadmin@akramsweets.com').first()
+        if sysadmin and sysadmin.can_assign_owner_role():
+            errors.append('System admin must not assign Super Admin role')
+        if sysadmin and admin and sysadmin.can_manage_target_user(admin):
+            errors.append('System admin must not manage Super Admin accounts')
+        if admin and sysadmin and not admin.can_manage_target_user(sysadmin):
+            errors.append('Super Admin must be able to manage system admins')
         submit_for_review(period)
         if period.status != MonthlyPeriod.STATUS_REVIEW:
             errors.append('Period not moved to review')
@@ -277,6 +286,8 @@ def main():
         inbox = get_pending_approvals()
         if 'period_count' not in inbox:
             errors.append('Approvals inbox missing period_count')
+        if 'needs_decision' not in inbox or 'pending_withdrawal_count' not in inbox:
+            errors.append('Approvals inbox missing decision/tracking split')
 
         from apps.services.calculation_service import reopen_for_correction
         from apps.services.pdf_service import generate_shareholder_report_pdf

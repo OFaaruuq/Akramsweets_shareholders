@@ -27,6 +27,20 @@ def management_required(view):
     return role_required('owner', 'admin')(view)
 
 
+def owner_required(view):
+    """Super Admin (Owner) only — highest privilege gate."""
+
+    @wraps(view)
+    @login_required
+    def wrapped(*args, **kwargs):
+        if not current_user.is_superadmin():
+            flash('Only the system owner (Super Admin) can access that page.', 'danger')
+            return _redirect_home()
+        return view(*args, **kwargs)
+
+    return wrapped
+
+
 def finance_or_management_required(view):
     @wraps(view)
     @login_required

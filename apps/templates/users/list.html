@@ -3,8 +3,17 @@
 {% block css %}{% include 'partials/head-css.html' %}{% endblock css %}
 {% block body_attribute %}data-menu-color="dark" data-sidebar="default"{% endblock body_attribute %}
 {% block page_content %}
-<div class="py-3 d-flex align-items-sm-center flex-sm-row flex-column">
-  <div class="flex-grow-1"><h4 class="fs-18 fw-semibold m-0">Staff Users</h4></div>
+<div class="py-3 d-flex align-items-sm-center flex-sm-row flex-column gap-2">
+  <div class="flex-grow-1">
+    <h4 class="fs-18 fw-semibold m-0">Staff Users</h4>
+    <p class="text-muted mb-0 fs-13">
+      {% if is_superadmin %}
+      You are signed in as <strong>Super Admin (Owner)</strong> — you can create other Super Admins and manage every staff account.
+      {% else %}
+      System Administrators can manage Finance staff. Only the Super Admin (Owner) can manage Super Admin accounts.
+      {% endif %}
+    </p>
+  </div>
   <div class="text-end"><a href="{{ url_for('users.create_user') }}" class="btn btn-primary">Add Staff User</a></div>
 </div>
 <div class="card"><div class="card-body"><div class="table-responsive">
@@ -16,11 +25,28 @@
   <td style="width:48px">
     <img src="{{ user.avatar_url }}" alt="" class="rounded-circle" width="36" height="36" style="object-fit:cover;">
   </td>
-  <td>{{ user.full_name }}</td>
+  <td>
+    {{ user.full_name }}
+    {% if user.id == current_user.id %}<span class="badge bg-secondary-subtle text-secondary ms-1">You</span>{% endif %}
+  </td>
   <td>{{ user.email }}</td>
-  <td>{{ user.role|replace('_', ' ')|title }}</td>
+  <td>
+    {% if user.role == 'owner' %}
+    <span class="badge bg-danger">{{ user.role_label }}</span>
+    {% elif user.role == 'admin' %}
+    <span class="badge bg-primary">{{ user.role_label }}</span>
+    {% else %}
+    <span class="badge bg-info-subtle text-info">{{ user.role_label }}</span>
+    {% endif %}
+  </td>
   <td>{% if user.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>
-  <td class="text-end"><a href="{{ url_for('users.edit_user', user_id=user.id) }}" class="btn btn-sm btn-soft-primary">Edit</a></td>
+  <td class="text-end">
+    {% if current_user.can_manage_target_user(user) %}
+    <a href="{{ url_for('users.edit_user', user_id=user.id) }}" class="btn btn-sm btn-soft-primary">Edit</a>
+    {% else %}
+    <span class="text-muted fs-12">Protected</span>
+    {% endif %}
+  </td>
 </tr>
 {% else %}
 <tr><td colspan="6" class="text-center text-muted">No staff users yet.</td></tr>

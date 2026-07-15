@@ -19,7 +19,13 @@
           <div>
             <div class="fw-semibold">{{ current_user.full_name }}</div>
             <div class="text-muted fs-13">{{ current_user.email }}</div>
-            <div class="text-muted fs-12 mt-1">{{ current_user.role|replace('_', ' ')|title }}</div>
+            <div class="text-muted fs-12 mt-1">
+              {% if current_user.is_superadmin() %}
+              <span class="badge bg-danger">Super Admin (Owner)</span>
+              {% else %}
+              {{ current_user.role_label }}
+              {% endif %}
+            </div>
           </div>
         </div>
         <form method="post" enctype="multipart/form-data">

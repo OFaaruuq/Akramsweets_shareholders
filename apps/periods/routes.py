@@ -197,9 +197,40 @@ def list_periods():
 def approvals_inbox():
     """Unified pending approvals: periods in review + open capital withdrawals."""
     queue = get_pending_approvals()
+    view = (request.args.get('view') or '').strip().lower() or None
+    if view not in (None, 'decision', 'tracking', 'periods', 'withdrawals'):
+        view = None
+
+    decision_items = list(queue['needs_decision'])
+    tracking_items = list(queue['tracking'])
+
+    if view == 'decision':
+        tracking_items = []
+    elif view == 'tracking':
+        decision_items = []
+    elif view == 'periods':
+        decision_items = [i for i in decision_items if i['kind'] == 'period']
+        tracking_items = []
+    elif view == 'withdrawals':
+        decision_items = [i for i in decision_items if i['kind'] == 'withdrawal']
+        # keep tracking withdrawals visible under withdrawals filter
+        tracking_items = list(queue['tracking'])
+
+    show_decision = view in (None, 'decision', 'periods', 'withdrawals')
+    show_tracking = view in (None, 'tracking', 'withdrawals')
+    if view == 'periods':
+        show_tracking = False
+    if view == 'decision':
+        show_tracking = False
+
     return render_template(
         'periods/approvals.html',
         queue=queue,
+        decision_items=decision_items,
+        tracking_items=tracking_items,
+        show_decision=show_decision,
+        show_tracking=show_tracking,
+        view_filter=view,
         segment='approvals',
     )
 

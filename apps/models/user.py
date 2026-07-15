@@ -16,6 +16,13 @@ class User(UserMixin, db.Model):
 
     ROLES = (ROLE_OWNER, ROLE_FINANCE, ROLE_ADMIN, ROLE_SHAREHOLDER)
 
+    ROLE_LABELS = {
+        ROLE_OWNER: 'Super Admin (Owner)',
+        ROLE_ADMIN: 'System Administrator',
+        ROLE_FINANCE: 'Finance / Accounts',
+        ROLE_SHAREHOLDER: 'Shareholder',
+    }
+
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(256), nullable=False)
@@ -46,6 +53,17 @@ class User(UserMixin, db.Model):
 
         return user_has_custom_avatar(self)
 
+    @property
+    def role_label(self):
+        return self.ROLE_LABELS.get(self.role, (self.role or 'user').replace('_', ' ').title())
+
+    def is_superadmin(self):
+        """System owner — full super-admin privileges above System Administrators."""
+        return self.role == self.ROLE_OWNER
+
+    def is_owner_user(self):
+        return self.is_superadmin()
+
     def is_management(self):
         return self.role in (self.ROLE_OWNER, self.ROLE_ADMIN)
 
@@ -62,10 +80,34 @@ class User(UserMixin, db.Model):
         return self.role in (self.ROLE_OWNER, self.ROLE_ADMIN, self.ROLE_FINANCE)
 
     def can_manage_users(self):
+        """Staff user directory — Owner (super admin) and System Admins."""
+        return self.role in (self.ROLE_OWNER, self.ROLE_ADMIN)
+
+    def can_assign_owner_role(self):
+        """Only the system owner may create or promote Super Admin accounts."""
+        return self.is_superadmin()
+
+    def can_manage_system_settings(self):
+        """Brand, SMTP, Mudarabah %, share value, images — Owner + Admin."""
         return self.role in (self.ROLE_OWNER, self.ROLE_ADMIN)
 
     def can_view_audit_log(self):
         return self.role in (self.ROLE_OWNER, self.ROLE_ADMIN)
+
+    def can_manage_target_user(self, target):
+        """
+        Whether this user may edit/deactivate another staff account.
+
+        - Super Admin (Owner) can manage anyone except removing the last active owner.
+        - System Admin cannot edit Super Admin (Owner) accounts.
+        """
+        if not self.can_manage_users() or not target:
+            return False
+        if target.role == self.ROLE_SHAREHOLDER:
+            return False
+        if target.role == self.ROLE_OWNER and not self.is_superadmin():
+            return False
+        return True
 
     def is_shareholder(self):
         return self.role == self.ROLE_SHAREHOLDER and self.shareholder_id is not None

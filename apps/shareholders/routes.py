@@ -345,7 +345,7 @@ def list_withdrawals():
 
 
 @blueprint.route('/withdrawals/<int:request_id>', methods=['GET', 'POST'])
-@management_required
+@finance_or_management_required
 def review_withdrawal(request_id):
     from apps.forms import CapitalWithdrawalReviewForm
     from apps.models.shareholder import CapitalWithdrawalRequest
@@ -358,11 +358,17 @@ def review_withdrawal(request_id):
 
     withdrawal = CapitalWithdrawalRequest.query.get_or_404(request_id)
     form = CapitalWithdrawalReviewForm()
+    can_act = current_user.is_management()
+
     if request.method == 'GET':
         form.review_notes.data = withdrawal.review_notes
         form.capital_return_date.data = withdrawal.capital_return_date or datetime.utcnow().date()
 
-    if form.validate_on_submit():
+    if request.method == 'POST' and not can_act:
+        flash('Only owners/admins can approve or update capital withdrawal requests.', 'danger')
+        return redirect(url_for('shareholders.review_withdrawal', request_id=withdrawal.id))
+
+    if can_act and form.validate_on_submit():
         try:
             if form.submit_approve.data:
                 approve_withdrawal(withdrawal.id, current_user, form.review_notes.data)
@@ -381,7 +387,7 @@ def review_withdrawal(request_id):
             elif form.submit_cancel.data:
                 cancel_withdrawal(withdrawal.id, current_user, form.review_notes.data)
                 flash('Capital withdrawal cancelled.', 'info')
-            return redirect(url_for('shareholders.list_withdrawals'))
+            return redirect(url_for('periods.approvals_inbox'))
         except ValueError as exc:
             flash(str(exc), 'danger')
 
@@ -389,5 +395,6 @@ def review_withdrawal(request_id):
         'shareholders/withdrawal_detail.html',
         withdrawal=withdrawal,
         form=form,
-        segment='withdrawals',
+        can_act=can_act,
+        segment='approvals',
     )

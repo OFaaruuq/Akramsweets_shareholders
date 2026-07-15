@@ -152,7 +152,18 @@
                 </li>
 
                 {% if current_user.is_management() %}
-                <li class="menu-title mt-2">Administration</li>
+                <li class="menu-title mt-2">
+                  {% if current_user.is_superadmin() %}Super Admin{% else %}Administration{% endif %}
+                </li>
+
+                {% if current_user.is_superadmin() %}
+                <li>
+                    <a href="{{ url_for('periods.approvals_inbox') }}" class="tp-link">
+                        <span class="nav-icon"><iconify-icon icon="solar:shield-check-bold-duotone"></iconify-icon></span>
+                        <span> Super Admin Queue </span>
+                    </a>
+                </li>
+                {% endif %}
 
                 {% if current_user.can_manage_users() %}
                 <li>
