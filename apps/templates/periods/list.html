@@ -4,33 +4,188 @@
 {% block body_attribute %}data-menu-color="dark" data-sidebar="default"{% endblock body_attribute %}
 {% block page_content %}
 <div class="py-3 d-flex align-items-sm-center flex-sm-row flex-column gap-2">
-  <div class="flex-grow-1"><h4 class="fs-18 fw-semibold m-0">Monthly Periods</h4></div>
+  <div class="flex-grow-1">
+    <h4 class="fs-18 fw-semibold m-0">Monthly Periods</h4>
+    <p class="text-muted mb-0 fs-13">
+      Enter Net Profit from Odoo, run Mudarabah distribution, submit for approval, then certify.
+    </p>
+  </div>
   <div class="text-end d-flex flex-wrap gap-1 justify-content-end">
-    <a href="{{ url_for('periods.approvals_inbox') }}" class="btn btn-soft-warning">Approvals inbox</a>
+    <a href="{{ url_for('reports.mudarabah_summary') }}" class="btn btn-soft-secondary">Mudarabah summary</a>
+    <a href="{{ url_for('periods.approvals_inbox') }}" class="btn btn-soft-warning">
+      Approvals
+      {% if approvals_pending %}<span class="badge bg-warning text-dark ms-1">{{ approvals_pending }}</span>{% endif %}
+    </a>
     <a href="{{ url_for('periods.create_period') }}" class="btn btn-primary">Enter Monthly Result</a>
   </div>
 </div>
-<div class="mb-3">
-  <a href="{{ url_for('periods.list_periods') }}" class="btn btn-sm {% if not status_filter %}btn-primary{% else %}btn-light{% endif %}">All</a>
-  {% for st in ['draft', 'review', 'approved'] %}
-  <a href="{{ url_for('periods.list_periods', status=st) }}" class="btn btn-sm {% if status_filter == st %}btn-primary{% else %}btn-light{% endif %}">{{ st|title }}</a>
-  {% endfor %}
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('periods.list_periods') }}" class="card text-decoration-none h-100 {% if not status_filter %}border-primary{% endif %}">
+      <div class="card-body py-3">
+        <p class="text-muted mb-1 fs-13">All periods</p>
+        <h3 class="mb-0 fs-22">{{ status_counts.all }}</h3>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('periods.list_periods', status='draft', year=year_filter, q=q) }}" class="card text-decoration-none h-100 {% if status_filter == 'draft' %}border-warning{% endif %}">
+      <div class="card-body py-3">
+        <p class="text-muted mb-1 fs-13">Draft</p>
+        <h3 class="mb-0 fs-22 text-warning">{{ status_counts.draft }}</h3>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('periods.list_periods', status='review', year=year_filter, q=q) }}" class="card text-decoration-none h-100 {% if status_filter == 'review' %}border-info{% endif %}">
+      <div class="card-body py-3">
+        <p class="text-muted mb-1 fs-13">Awaiting approval</p>
+        <h3 class="mb-0 fs-22 text-info">{{ status_counts.review }}</h3>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('periods.list_periods', status='approved', year=year_filter, q=q) }}" class="card text-decoration-none h-100 {% if status_filter == 'approved' %}border-success{% endif %}">
+      <div class="card-body py-3">
+        <p class="text-muted mb-1 fs-13">Approved</p>
+        <h3 class="mb-0 fs-22 text-success">{{ status_counts.approved }}</h3>
+      </div>
+    </a>
+  </div>
 </div>
-<div class="card"><div class="card-body"><div class="table-responsive">
-<table class="table table-hover mb-0">
-<thead><tr><th>Period</th><th>Net Profit</th><th>SH Pool</th><th>Status</th><th>Calculated</th><th>Approved</th><th></th></tr></thead>
-<tbody>
-{% for period in periods %}
-<tr>
-  <td>{{ period.period_label }}</td>
-  <td>{{ '%.2f'|format(period.total_profit_loss) }}</td>
-  <td>{{ '%.2f'|format(period.shareholders_pool or 0) }}</td>
-  <td><span class="badge {% if period.status == 'approved' %}bg-success{% elif period.status == 'review' %}bg-info{% else %}bg-warning text-dark{% endif %}">{{ period.status|replace('_', ' ')|title }}</span></td>
-  <td>{{ period.calculated_at.strftime('%Y-%m-%d %H:%M') if period.calculated_at else '-' }}</td>
-  <td>{{ period.approved_at.strftime('%Y-%m-%d %H:%M') if period.approved_at else '-' }}</td>
-  <td class="text-end"><a href="{{ url_for('periods.detail_period', period_id=period.id) }}" class="btn btn-sm btn-soft-primary">Open</a></td>
-</tr>
-{% else %}<tr><td colspan="7" class="text-center text-muted">No monthly periods yet.</td></tr>{% endfor %}
-</tbody></table></div></div></div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-5">
+        <label class="form-label fs-13 mb-1">Search</label>
+        <input type="text" name="q" value="{{ q or '' }}" class="form-control" placeholder="Month, year, Odoo ref, notes…">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fs-13 mb-1">Year</label>
+        <select name="year" class="form-select">
+          <option value="">All years</option>
+          {% for y in available_years %}
+          <option value="{{ y }}" {% if year_filter == y %}selected{% endif %}>{{ y }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
+      <div class="col-md-4 d-flex gap-1">
+        <button type="submit" class="btn btn-primary">Filter</button>
+        {% if q or year_filter or status_filter %}
+        <a href="{{ url_for('periods.list_periods') }}" class="btn btn-light">Clear</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if status_counts.review and current_user.can_approve_periods() and not status_filter %}
+<div class="alert alert-info py-2 fs-13 d-flex flex-wrap justify-content-between align-items-center gap-2">
+  <span><strong>{{ status_counts.review }}</strong> period{{ 's' if status_counts.review != 1 else '' }} awaiting your approval.</span>
+  <a href="{{ url_for('periods.list_periods', status='review') }}" class="btn btn-sm btn-primary">Show review queue</a>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Period</th>
+            <th>Net Profit</th>
+            <th>Shareholders' pool</th>
+            <th>Akram Sweets</th>
+            <th>Status</th>
+            <th>Workflow</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for row in rows %}
+        {% set period = row.period %}
+        <tr class="{% if period.status == 'review' %}table-info{% elif period.status == 'draft' and period.rejection_reason %}table-warning{% endif %}">
+          <td>
+            <a href="{{ url_for('periods.detail_period', period_id=period.id) }}" class="fw-semibold text-decoration-none">
+              {{ row.month_name }} {{ period.year }}
+            </a>
+            <div class="text-muted fs-12">{{ period.period_label }}</div>
+            {% if period.odoo_reference %}
+            <div class="text-muted fs-12">Odoo: {{ period.odoo_reference }}</div>
+            {% endif %}
+          </td>
+          <td class="{{ 'text-success' if period.total_profit_loss >= 0 else 'text-danger' }} fw-medium">
+            {{ currency_symbol }}{{ '%.2f'|format(period.total_profit_loss) }}
+          </td>
+          <td class="text-primary">{{ currency_symbol }}{{ '%.2f'|format(row.pool) }}</td>
+          <td>{{ currency_symbol }}{{ '%.2f'|format(row.partner_share) }}</td>
+          <td>
+            <span class="badge {% if period.status == 'approved' %}bg-success{% elif period.status == 'review' %}bg-info{% else %}bg-warning text-dark{% endif %}">
+              {{ period.status|replace('_', ' ')|title }}
+            </span>
+            {% if period.status == 'draft' and period.rejection_reason %}
+            <div class="fs-12 text-warning mt-1">Needs changes</div>
+            {% endif %}
+            {% if not row.has_calcs and period.status == 'draft' %}
+            <div class="fs-12 text-muted mt-1">Not calculated</div>
+            {% endif %}
+          </td>
+          <td class="fs-12 text-muted">
+            {% if period.calculated_at %}
+            <div>Calculated {{ period.calculated_at.strftime('%Y-%m-%d') }}</div>
+            {% endif %}
+            {% if period.submitted_for_review_at %}
+            <div>Submitted {{ period.submitted_for_review_at.strftime('%Y-%m-%d') }}</div>
+            {% endif %}
+            {% if period.approved_at %}
+            <div>Approved {{ period.approved_at.strftime('%Y-%m-%d') }}{% if period.approved_by %} · {{ period.approved_by.full_name }}{% endif %}</div>
+            {% endif %}
+            {% if period.status == 'approved' %}
+              {% if row.reports_sent %}
+              <div class="text-success">Reports sent</div>
+              {% else %}
+              <div class="text-warning">Reports not sent</div>
+              {% endif %}
+            {% endif %}
+          </td>
+          <td class="text-end text-nowrap">
+            {% if period.is_editable %}
+            <a href="{{ url_for('periods.edit_period', period_id=period.id) }}" class="btn btn-sm btn-light">Edit</a>
+            {% endif %}
+            {% if row.next_action %}
+            <a href="{{ row.next_action.url }}" class="btn btn-sm {{ row.next_action.style }}">{{ row.next_action.label }}</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="text-center py-5">
+            <p class="text-muted mb-3">
+              {% if q or year_filter or status_filter %}
+              No periods match these filters.
+              {% else %}
+              No monthly periods yet. Enter Net Profit from Odoo to start distribution.
+              {% endif %}
+            </p>
+            {% if q or year_filter or status_filter %}
+            <a href="{{ url_for('periods.list_periods') }}" class="btn btn-light">Clear filters</a>
+            {% else %}
+            <a href="{{ url_for('periods.create_period') }}" class="btn btn-primary">Enter Monthly Result</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% if rows %}
+<p class="text-muted fs-12 mt-2 mb-0">Showing {{ rows|length }} period{{ 's' if rows|length != 1 else '' }}.</p>
+{% endif %}
 {% endblock page_content %}
 {% block extra_javascript %}{% include 'partials/vendor.html' %}{% endblock extra_javascript %}

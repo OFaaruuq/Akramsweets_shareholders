@@ -76,18 +76,118 @@ def _update_period_from_form(period, form):
 @blueprint.route('/')
 @finance_or_management_required
 def list_periods():
+    from calendar import month_name
+
+    from apps.services.approval_service import get_pending_approvals
+
     status = (request.args.get('status') or '').strip() or None
-    query = MonthlyPeriod.query
-    if status in MonthlyPeriod.STATUSES:
-        query = query.filter_by(status=status)
-    periods = query.order_by(
+    year_raw = (request.args.get('year') or '').strip()
+    q = (request.args.get('q') or '').strip()
+
+    year_filter = None
+    if year_raw.isdigit():
+        year_filter = int(year_raw)
+
+    all_periods = MonthlyPeriod.query.order_by(
         MonthlyPeriod.year.desc(),
         MonthlyPeriod.month.desc(),
     ).all()
+
+    status_counts = {
+        'all': len(all_periods),
+        'draft': sum(1 for p in all_periods if p.status == MonthlyPeriod.STATUS_DRAFT),
+        'review': sum(1 for p in all_periods if p.status == MonthlyPeriod.STATUS_REVIEW),
+        'approved': sum(1 for p in all_periods if p.status == MonthlyPeriod.STATUS_APPROVED),
+    }
+    available_years = sorted({p.year for p in all_periods}, reverse=True)
+
+    periods = list(all_periods)
+    if status in MonthlyPeriod.STATUSES:
+        periods = [p for p in periods if p.status == status]
+    if year_filter:
+        periods = [p for p in periods if p.year == year_filter]
+    if q:
+        q_lower = q.lower().strip()
+        q_compact = q_lower.replace(' ', '-')
+        filtered = []
+        for period in periods:
+            label = period.period_label.lower()
+            name = f'{month_name[period.month]} {period.year}'.lower()
+            hay = ' '.join(
+                [
+                    label,
+                    name,
+                    (period.odoo_reference or '').lower(),
+                    (period.notes or '').lower(),
+                    period.status,
+                ]
+            )
+            if q_lower in hay or q_compact in label:
+                filtered.append(period)
+        periods = filtered
+
+    rows = []
+    for period in periods:
+        has_calcs = period.calculations.count() > 0
+        if period.status == MonthlyPeriod.STATUS_DRAFT:
+            next_action = {
+                'label': 'Submit for review' if has_calcs else 'Continue draft',
+                'url': url_for('periods.detail_period', period_id=period.id),
+                'style': 'btn-warning' if has_calcs else 'btn-soft-warning',
+            }
+        elif period.status == MonthlyPeriod.STATUS_REVIEW:
+            if current_user.can_approve_periods():
+                next_action = {
+                    'label': 'Review & approve',
+                    'url': url_for('periods.detail_period', period_id=period.id),
+                    'style': 'btn-primary',
+                }
+            else:
+                next_action = {
+                    'label': 'Awaiting approval',
+                    'url': url_for('periods.detail_period', period_id=period.id),
+                    'style': 'btn-soft-info',
+                }
+        elif period.status == MonthlyPeriod.STATUS_APPROVED:
+            if not period.reports_sent_at and current_user.can_approve_periods():
+                next_action = {
+                    'label': 'Send reports',
+                    'url': url_for('periods.detail_period', period_id=period.id),
+                    'style': 'btn-soft-primary',
+                }
+            else:
+                next_action = {
+                    'label': 'View',
+                    'url': url_for('periods.detail_period', period_id=period.id),
+                    'style': 'btn-soft-secondary',
+                }
+        else:
+            next_action = {
+                'label': 'Open',
+                'url': url_for('periods.detail_period', period_id=period.id),
+                'style': 'btn-soft-primary',
+            }
+
+        rows.append({
+            'period': period,
+            'month_name': month_name[period.month],
+            'partner_share': period.managing_partner_share or 0,
+            'pool': period.shareholders_pool or 0,
+            'has_calcs': has_calcs,
+            'reports_sent': bool(period.reports_sent_at),
+            'next_action': next_action,
+        })
+
+    inbox = get_pending_approvals()
     return render_template(
         'periods/list.html',
-        periods=periods,
+        rows=rows,
         status_filter=status,
+        year_filter=year_filter,
+        q=q,
+        status_counts=status_counts,
+        available_years=available_years,
+        approvals_pending=inbox.get('period_count', 0),
         segment='periods',
     )
 
