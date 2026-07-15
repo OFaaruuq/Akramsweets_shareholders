@@ -39,7 +39,12 @@ class ShareholderForm(FlaskForm):
 
 
 class PeriodForm(FlaskForm):
-    """Manual Profit & Loss statement — Net Profit drives shareholder distribution."""
+    """
+    Monthly period entry.
+
+    Only Net Profit (from Odoo) is required for shareholder distribution.
+    Optional P&L lines may be stored for reference but are not used in the split.
+    """
 
     year = IntegerField('Year', validators=[DataRequired(), NumberRange(min=2000, max=2100)])
     month = SelectField(
@@ -48,60 +53,38 @@ class PeriodForm(FlaskForm):
         coerce=int,
         validators=[DataRequired()],
     )
-    income = DecimalField(
-        'Income',
-        places=2,
-        validators=[InputRequired(message='Enter Income from your P&L.')],
-    )
-    gross_profit = DecimalField(
-        'Gross Profit',
-        places=2,
-        validators=[InputRequired(message='Enter Gross Profit.')],
-    )
-    total_gross_profit = DecimalField(
-        'Total Gross Profit',
-        places=2,
-        validators=[InputRequired(message='Enter Total Gross Profit.')],
-    )
-    total_income = DecimalField(
-        'Total Income',
-        places=2,
-        validators=[InputRequired(message='Enter Total Income.')],
-    )
-    total_expenses = DecimalField(
-        'Total Operating Expenses',
-        places=2,
-        validators=[InputRequired(message='Enter Total Operating Expenses.')],
-    )
     total_profit_loss = DecimalField(
-        'Net Profit',
+        'Net Profit (from Odoo)',
         places=2,
-        validators=[InputRequired(message='Enter Net Profit (negative for a loss).')],
-        description='This amount is distributed to shareholders.',
+        validators=[InputRequired(message='Enter Net Profit from Odoo (negative for a loss).')],
+        description='Only this amount is distributed to shareholders by ownership %.',
     )
-    odoo_reference = StringField('Odoo / source reference', validators=[Optional(), Length(max=255)])
+    odoo_reference = StringField(
+        'Odoo period / journal reference',
+        validators=[Optional(), Length(max=255)],
+    )
+    # Optional breakdown — not used for shareholder calculation
+    income = DecimalField('Income (optional)', places=2, validators=[Optional()], default=0)
+    gross_profit = DecimalField('Gross Profit (optional)', places=2, validators=[Optional()], default=0)
+    total_gross_profit = DecimalField(
+        'Total Gross Profit (optional)', places=2, validators=[Optional()], default=0
+    )
+    total_income = DecimalField('Total Income (optional)', places=2, validators=[Optional()], default=0)
+    total_expenses = DecimalField(
+        'Total Operating Expenses (optional)', places=2, validators=[Optional()], default=0
+    )
     notes = TextAreaField('Internal notes', validators=[Optional(), Length(max=5000)])
     submit = SubmitField('Save & Calculate Distribution')
 
     def validate(self, extra_validators=None):
         if not super().validate(extra_validators):
             return False
-
-        required_lines = (
-            ('income', 'Income'),
-            ('gross_profit', 'Gross Profit'),
-            ('total_gross_profit', 'Total Gross Profit'),
-            ('total_income', 'Total Income'),
-            ('total_expenses', 'Total Operating Expenses'),
-            ('total_profit_loss', 'Net Profit'),
-        )
-        ok = True
-        for field_name, label in required_lines:
-            field = getattr(self, field_name)
-            if field.data is None:
-                field.errors.append(f'Enter {label} manually from your accounting records.')
-                ok = False
-        return ok
+        if self.total_profit_loss.data is None:
+            self.total_profit_loss.errors.append(
+                'Enter Net Profit from Odoo for this accounting period.'
+            )
+            return False
+        return True
 
 
 class AdjustmentForm(FlaskForm):
@@ -194,6 +177,19 @@ class SystemSettingsForm(FlaskForm):
     notify_shareholders_on_profit_update = BooleanField(
         'Automatically email all shareholders when monthly profit figures are updated',
         default=True,
+    )
+    share_value = DecimalField(
+        'Value of 1 share',
+        places=2,
+        validators=[DataRequired(message='Enter the value of one share.'), NumberRange(min=0)],
+        default=1000,
+        description='Example: 1000 means 1 share = 1000 in your currency.',
+    )
+    total_company_shares = DecimalField(
+        'Total company shares (optional)',
+        places=4,
+        validators=[Optional(), NumberRange(min=0)],
+        description='If set, ownership % is also shown as an equivalent share count and capital.',
     )
     report_delivery_day = IntegerField('Report delivery day of month', validators=[Optional(), NumberRange(min=1, max=28)])
     mail_from = StringField('From email', validators=[Optional(), Email()])

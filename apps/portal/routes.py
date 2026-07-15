@@ -106,13 +106,24 @@ def report_pdf(period_id):
 @blueprint.route('/ownership')
 @shareholder_portal_required
 def ownership():
+    from apps.services.share_value_service import (
+        capital_for_ownership,
+        get_share_settings,
+        shares_for_ownership,
+    )
+
     metrics = get_shareholder_portal_metrics(current_user.shareholder_id)
+    percent = metrics['ownership_percent']
+    share_settings = get_share_settings()
     return render_template(
         'portal/ownership.html',
         segment='portal-ownership',
         shareholder=metrics['shareholder'],
-        ownership_percent=metrics['ownership_percent'],
+        ownership_percent=percent,
         ownership_history=metrics['ownership_history'],
+        share_settings=share_settings,
+        share_units=shares_for_ownership(percent),
+        capital=capital_for_ownership(percent),
     )
 
 

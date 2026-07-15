@@ -4,7 +4,9 @@
 {% block body_attribute %}data-menu-color="dark" data-sidebar="default"{% endblock body_attribute %}
 {% block page_content %}
 <div class="py-3"><h4 class="fs-18 fw-semibold m-0">Ownership History</h4>
-<p class="text-muted mb-0">Your registered ownership percentage over time.</p></div>
+<p class="text-muted mb-0">Your registered ownership percentage over time.
+  {% if share_settings %}<span class="badge bg-primary-subtle text-primary ms-1">{{ share_settings.label }}</span>{% endif %}
+</p></div>
 <div class="row">
   <div class="col-md-4">
     <div class="card"><div class="card-body">
@@ -12,6 +14,22 @@
       <h3 class="mb-0">{{ '%.2f'|format(ownership_percent) }}%</h3>
     </div></div>
   </div>
+  {% if share_units is not none %}
+  <div class="col-md-4">
+    <div class="card"><div class="card-body">
+      <p class="text-muted mb-1">Equivalent shares</p>
+      <h3 class="mb-0">{{ '%.4f'|format(share_units) }}</h3>
+    </div></div>
+  </div>
+  {% endif %}
+  {% if capital is not none %}
+  <div class="col-md-4">
+    <div class="card"><div class="card-body">
+      <p class="text-muted mb-1">Capital (shares × value)</p>
+      <h3 class="mb-0">{{ currency_symbol }}{{ '{:,.2f}'.format(capital) }}</h3>
+    </div></div>
+  </div>
+  {% endif %}
 </div>
 <div class="card"><div class="card-body"><div class="table-responsive">
 <table class="table mb-0">

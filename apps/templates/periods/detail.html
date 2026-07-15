@@ -44,16 +44,16 @@
 </div>
 <div class="row">
   <div class="col-xl-4"><div class="card"><div class="card-body">
-    <p class="text-muted mb-1">Net Profit (distributed)</p>
+    <p class="text-muted mb-1">Net Profit from Odoo (distributed)</p>
     <h3 class="{{ 'text-success' if period.total_profit_loss >= 0 else 'text-danger' }}">{{ currency_symbol }}{{ '%.2f'|format(period.total_profit_loss) }}</h3>
     <hr>
     <ul class="list-unstyled mb-0 fs-13">
-      <li class="d-flex justify-content-between mb-1"><span>Income</span><strong>{{ currency_symbol }}{{ '%.2f'|format(period.income or period.total_revenues) }}</strong></li>
-      <li class="d-flex justify-content-between mb-1"><span>Gross Profit</span><strong>{{ currency_symbol }}{{ '%.2f'|format(period.gross_profit or 0) }}</strong></li>
-      <li class="d-flex justify-content-between mb-1"><span>Total Gross Profit</span><strong>{{ currency_symbol }}{{ '%.2f'|format(period.total_gross_profit or 0) }}</strong></li>
-      <li class="d-flex justify-content-between mb-1"><span>Total Income</span><strong>{{ currency_symbol }}{{ '%.2f'|format(period.total_income or 0) }}</strong></li>
-      <li class="d-flex justify-content-between mb-1"><span>Total Operating Expenses</span><strong>{{ currency_symbol }}{{ '%.2f'|format(period.total_expenses) }}</strong></li>
-      <li class="d-flex justify-content-between"><span>Net Profit</span><strong class="{{ 'text-success' if period.total_profit_loss >= 0 else 'text-danger' }}">{{ currency_symbol }}{{ '%.2f'|format(period.total_profit_loss) }}</strong></li>
+      <li class="d-flex justify-content-between mb-1"><span>Net Profit</span><strong class="{{ 'text-success' if period.total_profit_loss >= 0 else 'text-danger' }}">{{ currency_symbol }}{{ '%.2f'|format(period.total_profit_loss) }}</strong></li>
+      {% if period.income %}<li class="d-flex justify-content-between mb-1"><span>Income (optional)</span><strong>{{ currency_symbol }}{{ '%.2f'|format(period.income) }}</strong></li>{% endif %}
+      {% if period.gross_profit %}<li class="d-flex justify-content-between mb-1"><span>Gross Profit (optional)</span><strong>{{ currency_symbol }}{{ '%.2f'|format(period.gross_profit) }}</strong></li>{% endif %}
+      {% if period.total_gross_profit %}<li class="d-flex justify-content-between mb-1"><span>Total Gross Profit (optional)</span><strong>{{ currency_symbol }}{{ '%.2f'|format(period.total_gross_profit) }}</strong></li>{% endif %}
+      {% if period.total_income %}<li class="d-flex justify-content-between mb-1"><span>Total Income (optional)</span><strong>{{ currency_symbol }}{{ '%.2f'|format(period.total_income) }}</strong></li>{% endif %}
+      {% if period.total_expenses %}<li class="d-flex justify-content-between mb-1"><span>Operating Expenses (optional)</span><strong>{{ currency_symbol }}{{ '%.2f'|format(period.total_expenses) }}</strong></li>{% endif %}
     </ul>
     <p class="text-muted mb-1 mt-3">Distributed total</p>
     <h5 class="mb-0">{{ currency_symbol }}{{ '%.2f'|format(distributed_total) }}</h5>

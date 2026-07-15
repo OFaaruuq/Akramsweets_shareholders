@@ -21,12 +21,12 @@ from apps.services.report_schedule_service import auto_send_period_reports, can_
 
 def _period_from_form(form, created_by_id=None):
     net_total, fields = resolve_period_totals(
+        net_profit=form.total_profit_loss.data,
         income=form.income.data,
         gross_profit=form.gross_profit.data,
         total_gross_profit=form.total_gross_profit.data,
         total_income=form.total_income.data,
         total_operating_expenses=form.total_expenses.data,
-        net_profit=form.total_profit_loss.data,
     )
     period = MonthlyPeriod(
         year=form.year.data,
@@ -51,12 +51,12 @@ def _period_from_form(form, created_by_id=None):
 
 def _update_period_from_form(period, form):
     net_total, fields = resolve_period_totals(
+        net_profit=form.total_profit_loss.data,
         income=form.income.data,
         gross_profit=form.gross_profit.data,
         total_gross_profit=form.total_gross_profit.data,
         total_income=form.total_income.data,
         total_operating_expenses=form.total_expenses.data,
-        net_profit=form.total_profit_loss.data,
     )
     period.total_profit_loss = net_total
     period.income = fields['income']
@@ -146,12 +146,12 @@ def preview_period():
         year = int(payload.get('year'))
         month = int(payload.get('month'))
         net_total, _ = resolve_period_totals(
+            net_profit=payload.get('total_profit_loss'),
             income=payload.get('income'),
             gross_profit=payload.get('gross_profit'),
             total_gross_profit=payload.get('total_gross_profit'),
             total_income=payload.get('total_income'),
             total_operating_expenses=payload.get('total_expenses'),
-            net_profit=payload.get('total_profit_loss'),
         )
         readiness = get_period_readiness(year, month)
         preview = preview_period_distribution(net_total, period_as_of_date(year, month))

@@ -1,5 +1,5 @@
 /*
-Monthly period entry — full manual P&L statement
+Monthly period entry — Net Profit from Odoo drives ownership distribution
 */
 
 (function () {
@@ -15,7 +15,6 @@ Monthly period entry — full manual P&L statement
   const previewReconcile = document.getElementById('preview-reconcile');
   const previewError = document.getElementById('preview-error');
   const warningsBox = document.getElementById('period-warnings');
-  const referenceNet = document.getElementById('pnl-reference-net');
 
   const currencySymbol = (config.currencySymbol || window.AKRAM_CURRENCY_SYMBOL || '$');
   const currency = (value) => {
@@ -34,14 +33,6 @@ Monthly period entry — full manual P&L statement
     return Number.isFinite(value) ? value : 0;
   };
 
-  function updateReferenceNet() {
-    if (!referenceNet) return;
-    const net = parseNumber('pnl-total-income') - parseNumber('pnl-total-expenses');
-    referenceNet.textContent = currency(net);
-    referenceNet.className =
-      'fw-semibold ' + (net >= 0 ? 'akram-net-positive' : 'akram-net-negative');
-  }
-
   function renderWarnings(warnings) {
     if (!warningsBox) return;
     if (!warnings || !warnings.length) {
@@ -58,12 +49,12 @@ Monthly period entry — full manual P&L statement
     return {
       year: document.getElementById('period-year').value,
       month: document.getElementById('period-month').value,
+      total_profit_loss: parseNumber('pnl-net-profit'),
       income: parseNumber('pnl-income'),
       gross_profit: parseNumber('pnl-gross-profit'),
       total_gross_profit: parseNumber('pnl-total-gross-profit'),
       total_income: parseNumber('pnl-total-income'),
       total_expenses: parseNumber('pnl-total-expenses'),
-      total_profit_loss: parseNumber('pnl-net-profit'),
     };
   }
 
@@ -138,11 +129,6 @@ Monthly period entry — full manual P&L statement
     }
   }
 
-  document.querySelectorAll('.pnl-input').forEach((input) => {
-    input.addEventListener('input', updateReferenceNet);
-  });
   if (previewBtn) previewBtn.addEventListener('click', previewDistribution);
-
   renderWarnings(config.warnings || []);
-  updateReferenceNet();
 })();

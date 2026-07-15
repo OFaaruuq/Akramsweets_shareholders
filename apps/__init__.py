@@ -120,12 +120,16 @@ def create_app(config):
                 'display': display,
                 'currency_symbol': display['currency_symbol'],
                 'company_name': display['company_name'],
+                'share_value': display.get('share_value'),
+                'share_value_label': display.get('share_value_label'),
             }
         except Exception:
             return {
                 'display': None,
                 'currency_symbol': '$',
                 'company_name': 'Akram Sweets',
+                'share_value': None,
+                'share_value_label': None,
             }
 
     @app.context_processor

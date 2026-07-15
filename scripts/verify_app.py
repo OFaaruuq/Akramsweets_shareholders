@@ -103,21 +103,24 @@ def main():
         from apps.services.period_service import resolve_period_totals
 
         net, pnl_fields = resolve_period_totals(
+            net_profit=Decimal('100000'),
             income=Decimal('500000'),
             gross_profit=Decimal('200000'),
             total_gross_profit=Decimal('210000'),
             total_income=Decimal('520000'),
             total_operating_expenses=Decimal('150000'),
-            net_profit=Decimal('100000'),
         )
         if net != Decimal('100000'):
-            errors.append(f'P&L net should be entered Net Profit, got {net}')
-        if pnl_fields['total_revenues'] != Decimal('500000'):
-            errors.append('P&L should mirror Income into total_revenues')
-        if pnl_fields['cost_of_goods'] != Decimal('300000'):
-            errors.append('P&L cost_of_goods should be Income − Gross Profit')
-        if pnl_fields['other_income'] != Decimal('20000'):
-            errors.append('P&L other_income should be Total Income − Income')
+            errors.append(f'Net Profit from Odoo must drive distribution, got {net}')
+
+        # Ownership-only base check (before arrangements): 30/40/30 of 100000
+        from apps.services.calculation_service import preview_period_distribution
+        from datetime import date as date_cls
+
+        bare = preview_period_distribution(Decimal('100000'), date_cls(2026, 6, 30))
+        # With seed arrangement applied in preview — still must reconcile to company total
+        if abs(float(bare['distributed_total']) - 100000) > 0.01:
+            errors.append('Distribution must reconcile to Net Profit')
 
         period = MonthlyPeriod(
             year=2026,

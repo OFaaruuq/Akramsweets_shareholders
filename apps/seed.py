@@ -116,8 +116,10 @@ def seed_if_empty():
     _create_portal_users([shareholder_a, shareholder_b])
     SystemSetting.set('auto_email_on_approval', 'true')
     from apps.services.brand_service import ensure_default_brand_settings
+    from apps.services.share_value_service import ensure_default_share_settings
 
     ensure_default_brand_settings()
+    ensure_default_share_settings()
     db.session.commit()
 
 

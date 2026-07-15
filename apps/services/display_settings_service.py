@@ -6,10 +6,12 @@ from __future__ import annotations
 def get_display_settings():
     from apps.services.brand_service import get_brand_settings
     from apps.services.certificate_settings_service import get_certificate_settings
+    from apps.services.share_value_service import get_share_settings
 
     brand = get_brand_settings()
     cert = get_certificate_settings()
     currency = cert.get('currency_symbol') or '$'
+    share = get_share_settings()
     return {
         'company_name': brand['company_name'],
         'currency_symbol': currency,
@@ -17,6 +19,10 @@ def get_display_settings():
         'secondary_color': brand['secondary_color'],
         'accent_color': brand['accent_color'],
         'logo_url': brand.get('logo_url'),
+        'share_value': share['share_value'],
+        'total_company_shares': share['total_company_shares'],
+        'share_value_label': share['label'],
+        'has_total_shares': share['has_total_shares'],
     }
 
 

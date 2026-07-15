@@ -21,29 +21,27 @@ def money_value(value):
 
 def resolve_period_totals(
     *,
-    income,
-    gross_profit,
-    total_gross_profit,
-    total_income,
-    total_operating_expenses,
     net_profit,
+    income=None,
+    gross_profit=None,
+    total_gross_profit=None,
+    total_income=None,
+    total_operating_expenses=None,
 ):
     """
-    Persist the full manual P&L statement.
+    Resolve monthly period amounts.
 
-    Shareholder distribution always uses the entered Net Profit.
-    Legacy columns are kept in sync for charts/reports that still read them.
+    Shareholder distribution always uses the entered Net Profit (from Odoo).
+    Optional P&L lines are stored for reference only; missing values default to 0.
     """
+    net_profit = money_value(net_profit)
     income = money_value(income)
     gross_profit = money_value(gross_profit)
     total_gross_profit = money_value(total_gross_profit)
     total_income = money_value(total_income)
     total_operating_expenses = money_value(total_operating_expenses)
-    net_profit = money_value(net_profit)
 
-    # Implied COGS for compatibility displays (Income − Gross Profit)
     cost_of_goods = income - gross_profit
-    # Other income portion implied by Total Income − Income
     other_income = total_income - income
 
     return net_profit, {
@@ -53,7 +51,6 @@ def resolve_period_totals(
         'total_income': total_income,
         'total_expenses': total_operating_expenses,
         'total_profit_loss': net_profit,
-        # Legacy mirrors
         'total_revenues': income,
         'cost_of_goods': cost_of_goods,
         'other_income': other_income,

@@ -10,6 +10,8 @@ Flask web app for **Akram Sweets** shareholder management: profit periods, share
 - Brand settings (logo, company details)
 - Dynamic certificate content settings
 - Selective special arrangements (all others or chosen sources) — see [docs/SPECIAL_ARRANGEMENTS.md](docs/SPECIAL_ARRANGEMENTS.md)
+- Monthly distribution from Odoo **Net Profit × ownership %** — see [docs/NET_PROFIT_DISTRIBUTION.md](docs/NET_PROFIT_DISTRIBUTION.md)
+- Dynamic **share value** (e.g. 1 share = 1000) — see [docs/SHARE_VALUE.md](docs/SHARE_VALUE.md)
 - Login email OTP verification (requires SMTP)
 - Alembic database migrations (`flask db upgrade`)
 - Scheduled email report delivery

@@ -92,17 +92,21 @@ def list_shareholders():
             continue
         ownership = get_ownership_percent(shareholder, datetime.utcnow().date())
         certificate = (
-            get_shareholder_certificate(latest_period.id, shareholder.id)
-            if latest_period
-            else None
+            get_shareholder_certificate(latest_period.id, shareholder.id) if latest_period else None
         )
+        from apps.services.share_value_service import capital_for_ownership, shares_for_ownership
+
+        share_units = shares_for_ownership(ownership)
+        capital = capital_for_ownership(ownership)
         rows.append({
             'shareholder': shareholder,
-            'ownership_percent': ownership,
-            'latest_certificate': certificate,
-            'latest_period': latest_period,
+            'ownership_percent': float(ownership),
+            'share_units': float(share_units) if share_units is not None else None,
+            'capital': float(capital) if capital is not None else None,
             'flag': country_flag_filename(shareholder.country_code),
             'country_name': shareholder.country or country_label(shareholder.country_code),
+            'latest_period': latest_period,
+            'latest_certificate': certificate,
         })
     return render_template(
         'shareholders/list.html',

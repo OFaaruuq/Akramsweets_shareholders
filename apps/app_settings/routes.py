@@ -200,11 +200,18 @@ def system_settings():
         get_certificate_settings,
         save_certificate_settings,
     )
+    from apps.services.share_value_service import (
+        ensure_default_share_settings,
+        get_share_settings,
+        save_share_settings,
+    )
 
     ensure_default_brand_settings()
     ensure_default_certificate_settings()
+    ensure_default_share_settings()
     brand = get_brand_settings()
     cert = get_certificate_settings()
+    share = get_share_settings()
     form = SystemSettingsForm(
         auto_email_on_approval=str(SystemSetting.get('auto_email_on_approval', 'true')).lower() in ('1', 'true', 'yes', 'on'),
         sms_notifications_enabled=str(SystemSetting.get('sms_notifications_enabled', 'false')).lower() in ('1', 'true', 'yes', 'on'),
@@ -216,6 +223,8 @@ def system_settings():
             SystemSetting.get('notify_shareholders_on_profit_update', 'true')
         ).lower()
         in ('1', 'true', 'yes', 'on'),
+        share_value=share['share_value'],
+        total_company_shares=share['total_company_shares'] if share['has_total_shares'] else None,
         report_delivery_day=SystemSetting.get('report_delivery_day'),
         mail_from=SystemSetting.get('mail_from'),
         mail_server=SystemSetting.get('mail_server'),
@@ -261,6 +270,17 @@ def system_settings():
             'notify_shareholders_on_profit_update',
             'true' if form.notify_shareholders_on_profit_update.data else 'false',
         )
+        try:
+            save_share_settings(form.share_value.data, form.total_company_shares.data)
+        except ValueError as exc:
+            flash(str(exc), 'danger')
+            return render_template(
+                'settings/system.html',
+                form=form,
+                brand=brand,
+                cert=cert,
+                segment='settings',
+            )
         for key in (
             'report_delivery_day',
             'mail_from',
