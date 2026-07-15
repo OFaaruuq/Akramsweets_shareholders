@@ -8,7 +8,7 @@ class Shareholder(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False)
-    email = db.Column(db.String(120), nullable=False)
+    email = db.Column(db.String(120), nullable=False, unique=True, index=True)
     phone = db.Column(db.String(40), nullable=True)
     country = db.Column(db.String(80), nullable=True)
     country_code = db.Column(db.String(8), nullable=True)

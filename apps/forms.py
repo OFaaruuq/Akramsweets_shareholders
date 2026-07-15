@@ -19,13 +19,20 @@ from apps.services.period_service import MONTH_CHOICES
 
 
 class ShareholderForm(FlaskForm):
-    name = StringField('Name', validators=[DataRequired(), Length(max=120)])
+    name = StringField('Name', validators=[DataRequired(), Length(min=2, max=120)])
     email = StringField('Email', validators=[DataRequired(), Email(), Length(max=120)])
-    phone = StringField('Phone', validators=[Optional(), Length(max=40)])
+    phone = StringField(
+        'Phone',
+        validators=[
+            Optional(),
+            Length(max=40),
+            Regexp(r'^[\d\s\+\-\(\)\.]*$', message='Use digits and phone punctuation only.'),
+        ],
+    )
     country_code = SelectField('Country', validators=[DataRequired()], coerce=str)
     is_owner = BooleanField('Company owner')
     is_active = BooleanField('Active', default=True)
-    notes = TextAreaField('Notes', validators=[Optional()])
+    notes = TextAreaField('Notes', validators=[Optional(), Length(max=5000)])
     ownership_percent = DecimalField(
         'Ownership %',
         places=4,
@@ -37,18 +44,27 @@ class ShareholderForm(FlaskForm):
         places=2,
         validators=[Optional(), NumberRange(min=0)],
         default=0,
-        description='Capital invested by this shareholder.',
+        description='Registered capital invested by this shareholder.',
     )
     share_count = DecimalField(
         'Number of shares',
         places=4,
         validators=[Optional(), NumberRange(min=0)],
         default=0,
+        description='Registered share units for this shareholder.',
     )
     investment_date = DateField('Investment date', validators=[Optional()], format='%Y-%m-%d')
     create_portal = BooleanField('Also create portal login for this shareholder')
     portal_email = StringField('Portal login email', validators=[Optional(), Email(), Length(max=120)])
     portal_password = PasswordField('Portal password', validators=[Optional(), Length(min=6, max=128)])
+    sync_portal_email = BooleanField(
+        'Sync portal login email when shareholder email changes',
+        default=False,
+    )
+    suggest_shares = BooleanField(
+        'Auto-fill shares from ownership % (uses company total shares)',
+        default=False,
+    )
     submit = SubmitField('Save Shareholder')
 
 

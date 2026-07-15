@@ -3,34 +3,139 @@
 {% block css %}{% include 'partials/head-css.html' %}{% endblock css %}
 {% block body_attribute %}data-menu-color="dark" data-sidebar="default"{% endblock body_attribute %}
 {% block page_content %}
-<div class="py-3 d-flex align-items-sm-center flex-sm-row flex-column">
+<div class="py-3 d-flex align-items-sm-center flex-sm-row flex-column gap-2">
   <div class="flex-grow-1">
-    <h4 class="fs-18 fw-semibold m-0">Current Shareholders</h4>
+    <h4 class="fs-18 fw-semibold m-0">Shareholder Register</h4>
     <p class="text-muted mb-0 fs-13">
-      Active ownership and latest monthly certificate for each shareholder.
+      Register ownership, capital, and portal access.
       {% if share_value_label %}<span class="badge bg-primary-subtle text-primary ms-1">{{ share_value_label }}</span>{% endif %}
-      {% if country_filter %}<span class="badge bg-primary-subtle text-primary ms-1">Filtered: {{ country_filter|upper }}</span>
-      <a href="{{ url_for('shareholders.list_shareholders') }}" class="ms-1">Clear</a>{% endif %}
     </p>
   </div>
-  <div class="text-end d-flex gap-1 justify-content-end">
+  <div class="text-end d-flex flex-wrap gap-1 justify-content-end">
     <a href="{{ url_for('reports.certificates_register') }}" class="btn btn-soft-danger">Monthly Certificates</a>
+    <a href="{{ url_for('contacts.list_contacts') }}" class="btn btn-soft-secondary">Contacts</a>
     {% if current_user.can_edit_shareholders() %}
-    <a href="{{ url_for('shareholders.create_shareholder') }}" class="btn btn-primary">Add Shareholder</a>
+    <a href="{{ url_for('shareholders.create_shareholder') }}" class="btn btn-primary">Register Shareholder</a>
     {% endif %}
   </div>
 </div>
-<div class="card">
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('shareholders.list_shareholders', status='all', q=q, country=country_filter, portal=portal_filter) }}" class="card text-decoration-none h-100 {% if status_filter == 'all' %}border-primary{% endif %}">
+      <div class="card-body py-3">
+        <p class="text-muted mb-1 fs-13">All registered</p>
+        <h3 class="mb-0 fs-22">{{ stats.total }}</h3>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('shareholders.list_shareholders', status='active', q=q, country=country_filter, portal=portal_filter) }}" class="card text-decoration-none h-100 {% if status_filter == 'active' %}border-success{% endif %}">
+      <div class="card-body py-3">
+        <p class="text-muted mb-1 fs-13">Active</p>
+        <h3 class="mb-0 fs-22 text-success">{{ stats.active }}</h3>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('shareholders.list_shareholders', status='inactive', q=q, country=country_filter, portal=portal_filter) }}" class="card text-decoration-none h-100 {% if status_filter == 'inactive' %}border-secondary{% endif %}">
+      <div class="card-body py-3">
+        <p class="text-muted mb-1 fs-13">Inactive</p>
+        <h3 class="mb-0 fs-22 text-secondary">{{ stats.inactive }}</h3>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card h-100 {% if stats.ownership_ok %}border-success{% else %}border-warning{% endif %}">
+      <div class="card-body py-3">
+        <p class="text-muted mb-1 fs-13">Active ownership</p>
+        <h3 class="mb-0 fs-22 {% if stats.ownership_ok %}text-success{% else %}text-warning{% endif %}">
+          {{ '%.2f'|format(stats.ownership_total) }}%
+        </h3>
+        {% if not stats.ownership_ok %}
+        <div class="fs-12 text-muted mt-1">Remaining {{ '%.2f'|format(stats.remaining) }}%</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if not stats.ownership_ok and current_user.can_edit_shareholders() %}
+<div class="alert alert-warning py-2 fs-13 d-flex flex-wrap justify-content-between align-items-center gap-2">
+  <span>Active ownership is <strong>{{ '%.2f'|format(stats.ownership_total) }}%</strong> (need 100% for monthly distribution).</span>
+  {% if stats.remaining > 0.01 %}
+  <a href="{{ url_for('shareholders.create_shareholder') }}" class="btn btn-sm btn-primary">Register remaining {{ '%.2f'|format(stats.remaining) }}%</a>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="card mb-3">
   <div class="card-body">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label fs-13 mb-1">Search</label>
+        <input type="text" name="q" value="{{ q or '' }}" class="form-control" placeholder="Name, email, phone, country…">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label fs-13 mb-1">Country</label>
+        <select name="country" class="form-select">
+          <option value="">All</option>
+          {% for code, label in country_choices %}
+          <option value="{{ code }}" {% if country_filter == code %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label fs-13 mb-1">Status</label>
+        <select name="status" class="form-select">
+          <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+          <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+          <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label fs-13 mb-1">Portal</label>
+        <select name="portal" class="form-select">
+          <option value="">All</option>
+          <option value="yes" {% if portal_filter == 'yes' %}selected{% endif %}>Has portal</option>
+          <option value="no" {% if portal_filter == 'no' %}selected{% endif %}>No portal</option>
+        </select>
+      </div>
+      <div class="col-md-2 d-flex gap-1">
+        <button type="submit" class="btn btn-primary">Filter</button>
+        {% if q or country_filter or status_filter != 'active' or portal_filter %}
+        <a href="{{ url_for('shareholders.list_shareholders') }}" class="btn btn-light">Clear</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
     <div class="table-responsive">
-      <table class="table table-hover mb-0">
-        <thead><tr><th>Current Shareholder</th><th>Country</th><th>Email</th><th>Ownership %</th><th>Shares</th><th>Capital</th><th>Latest Certificate</th><th>Portal</th><th>Owner</th><th>Status</th><th></th></tr></thead>
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Shareholder</th>
+            <th>Country</th>
+            <th>Ownership %</th>
+            <th>Shares</th>
+            <th>Investment</th>
+            <th>Latest Certificate</th>
+            <th>Portal</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
         <tbody>
         {% for row in rows %}
-          <tr>
+          <tr class="{% if not row.shareholder.is_active %}table-secondary{% endif %}">
             <td>
               <div class="fw-semibold">{{ row.shareholder.name }}</div>
+              <div class="fs-12 text-muted">{{ row.shareholder.email }}</div>
               {% if row.shareholder.phone %}<div class="fs-12 text-muted">{{ row.shareholder.phone }}</div>{% endif %}
+              {% if row.shareholder.is_owner %}<span class="badge bg-primary mt-1">Company owner</span>{% endif %}
             </td>
             <td>
               {% if row.shareholder.country_code %}
@@ -42,10 +147,27 @@
               <span class="text-muted">—</span>
               {% endif %}
             </td>
-            <td>{{ row.shareholder.email }}</td>
             <td>{{ '%.2f'|format(row.ownership_percent) }}%</td>
-            <td>{% if row.share_units is not none %}{{ '%.4f'|format(row.share_units) }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
-            <td>{% if row.capital is not none %}{{ currency_symbol }}{{ '{:,.2f}'.format(row.capital) }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+            <td>
+              {% if row.registered_shares %}
+              {{ '%.4f'|format(row.registered_shares) }}
+              {% elif row.derived_shares is not none %}
+              <span title="Derived from ownership × company total shares">{{ '%.4f'|format(row.derived_shares) }}</span>
+              <div class="fs-11 text-muted">derived</div>
+              {% else %}
+              <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if row.registered_investment %}
+              {{ currency_symbol }}{{ '{:,.2f}'.format(row.registered_investment) }}
+              {% elif row.derived_capital is not none %}
+              <span title="Derived from ownership × share value">{{ currency_symbol }}{{ '{:,.2f}'.format(row.derived_capital) }}</span>
+              <div class="fs-11 text-muted">derived</div>
+              {% else %}
+              <span class="text-muted">—</span>
+              {% endif %}
+            </td>
             <td>
               {% if row.latest_certificate and row.latest_period %}
               <div class="fs-12">{{ row.latest_certificate.certificate_number }}</div>
@@ -54,21 +176,53 @@
               <span class="text-muted">Pending approval</span>
               {% endif %}
             </td>
-            <td>{% if row.shareholder.user_account %}<span class="badge bg-info">Active</span>{% else %}<span class="text-muted">None</span>{% endif %}</td>
-            <td>{% if row.shareholder.is_owner %}<span class="badge bg-primary">Owner</span>{% else %}-{% endif %}</td>
-            <td>{% if row.shareholder.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>
-            <td class="text-end">{% if current_user.can_edit_shareholders() %}
-            <a href="{{ url_for('shareholders.edit_shareholder', shareholder_id=row.shareholder.id) }}" class="btn btn-sm btn-soft-primary">Edit</a>
-            {% if row.shareholder.is_active and not row.shareholder.is_owner %}
-            <form method="post" action="{{ url_for('shareholders.deactivate_shareholder', shareholder_id=row.shareholder.id) }}" class="d-inline">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button type="submit" class="btn btn-sm btn-soft-danger" onclick="return confirm('Deactivate this shareholder?')">Deactivate</button>
-            </form>
-            {% endif %}
-            {% endif %}</td>
+            <td>
+              {% if row.portal_active %}
+              <span class="badge bg-info">Active</span>
+              {% if row.portal_email %}<div class="fs-11 text-muted">{{ row.portal_email }}</div>{% endif %}
+              {% elif row.shareholder.user_account %}
+              <span class="badge bg-secondary">Disabled</span>
+              {% else %}
+              <span class="text-muted">None</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if row.shareholder.is_active %}
+              <span class="badge bg-success">Active</span>
+              {% else %}
+              <span class="badge bg-secondary">Inactive</span>
+              {% endif %}
+            </td>
+            <td class="text-end text-nowrap">
+              {% if current_user.can_edit_shareholders() %}
+              <a href="{{ url_for('shareholders.edit_shareholder', shareholder_id=row.shareholder.id) }}" class="btn btn-sm btn-soft-primary">Edit</a>
+              {% if row.shareholder.is_active and not row.shareholder.is_owner %}
+              <form method="post" action="{{ url_for('shareholders.deactivate_shareholder', shareholder_id=row.shareholder.id) }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-soft-danger" onclick="return confirm('Deactivate this shareholder? Ownership will end and portal access will be disabled.')">Deactivate</button>
+              </form>
+              {% elif not row.shareholder.is_active %}
+              <form method="post" action="{{ url_for('shareholders.reactivate_shareholder', shareholder_id=row.shareholder.id) }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-soft-success" onclick="return confirm('Reactivate this shareholder with their previous ownership %?')">Reactivate</button>
+              </form>
+              {% endif %}
+              {% endif %}
+            </td>
           </tr>
         {% else %}
-          <tr><td colspan="11" class="text-center text-muted">{% if country_filter %}No shareholders in this country.{% else %}No shareholders yet.{% endif %}</td></tr>
+          <tr>
+            <td colspan="9" class="text-center text-muted py-4">
+              {% if q or country_filter or portal_filter or status_filter != 'active' %}
+              No shareholders match these filters.
+              {% else %}
+              No active shareholders yet.
+              {% if current_user.can_edit_shareholders() %}
+              <a href="{{ url_for('shareholders.create_shareholder') }}">Register the first shareholder</a>.
+              {% endif %}
+              {% endif %}
+            </td>
+          </tr>
         {% endfor %}
         </tbody>
       </table>

@@ -7,18 +7,33 @@
   <div class="flex-grow-1">
     <h4 class="fs-18 fw-semibold m-0">{{ title }}</h4>
     <p class="text-muted mb-0 fs-13">
-      {% if is_create %}Register a new shareholder with country, ownership %, and optional portal login.
-      {% else %}Update shareholder details, ownership, and portal access.{% endif %}
+      {% if is_create %}Register a new shareholder with country, ownership %, capital, and optional portal login.
+      {% else %}Update profile, ownership history, investment, and portal access.{% endif %}
     </p>
   </div>
-  <a href="{{ url_for('shareholders.list_shareholders') }}" class="btn btn-light">Back to list</a>
+  <div class="d-flex gap-1">
+    {% if shareholder and not shareholder.is_active and current_user.can_edit_shareholders() %}
+    <form method="post" action="{{ url_for('shareholders.reactivate_shareholder', shareholder_id=shareholder.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-success">Reactivate</button>
+    </form>
+    {% endif %}
+    <a href="{{ url_for('shareholders.list_shareholders') }}" class="btn btn-light">Back to register</a>
+  </div>
 </div>
+
+{% if ownership_ctx and ownership_ctx.proposed_total is not none and ownership_ctx.proposed_total > 100.01 %}
+<div class="alert alert-danger py-2 fs-13">
+  Proposed ownership total would be <strong>{{ '%.2f'|format(ownership_ctx.proposed_total) }}%</strong>. Reduce the percentage before saving.
+</div>
+{% endif %}
 
 <div class="row">
   <div class="col-xl-8">
     <div class="card"><div class="card-body">
-      <form method="post" novalidate>
+      <form method="post" novalidate id="shareholder-form">
         {{ form.hidden_tag() }}
+        <h5 class="fs-15 mb-3">Identity</h5>
         <div class="row">
           <div class="col-md-6 mb-3">
             <label class="form-label">{{ form.name.label.text }} <span class="text-danger">*</span></label>
@@ -32,21 +47,29 @@
           </div>
           <div class="col-md-6 mb-3">
             <label class="form-label">{{ form.phone.label.text }}</label>
-            {{ form.phone(class='form-control', placeholder='+252 ...') }}
+            {{ form.phone(class='form-control' + (' is-invalid' if form.phone.errors else ''), placeholder='+252 ...') }}
+            {% for err in form.phone.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
           </div>
           <div class="col-md-6 mb-3">
             <label class="form-label">{{ form.country_code.label.text }} <span class="text-danger">*</span></label>
             {{ form.country_code(class='form-select' + (' is-invalid' if form.country_code.errors else '')) }}
             {% for err in form.country_code.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
           </div>
+        </div>
+
+        <h5 class="fs-15 mb-3 mt-2">Ownership</h5>
+        <div class="row">
           <div class="col-md-6 mb-3">
             <label class="form-label">{{ form.ownership_percent.label.text }} <span class="text-danger">*</span></label>
-            {{ form.ownership_percent(class='form-control' + (' is-invalid' if form.ownership_percent.errors else ''), placeholder='e.g. 25') }}
+            {{ form.ownership_percent(class='form-control' + (' is-invalid' if form.ownership_percent.errors else ''), placeholder='e.g. 25', id='ownership-percent') }}
             {% for err in form.ownership_percent.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
             {% if ownership_ctx %}
             <div class="form-text">
-              Currently allocated: <strong>{{ '%.2f'|format(ownership_ctx.allocated) }}%</strong>
+              Others allocated: <strong>{{ '%.2f'|format(ownership_ctx.allocated) }}%</strong>
               · Remaining: <strong class="{{ 'text-success' if ownership_ctx.remaining > 0 else 'text-danger' }}">{{ '%.2f'|format(ownership_ctx.remaining) }}%</strong>
+              {% if ownership_ctx.proposed_total is not none %}
+              · After save: <strong id="proposed-total" class="{{ 'text-danger' if ownership_ctx.proposed_total > 100.01 else 'text-success' }}">{{ '%.2f'|format(ownership_ctx.proposed_total) }}%</strong>
+              {% endif %}
             </div>
             {% endif %}
           </div>
@@ -55,23 +78,42 @@
             {{ form.effective_from(class='form-control' + (' is-invalid' if form.effective_from.errors else ''), type='date') }}
             {% for err in form.effective_from.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
           </div>
+        </div>
+
+        <h5 class="fs-15 mb-3 mt-2">Investment &amp; shares</h5>
+        <div class="row">
           <div class="col-md-4 mb-3">
             <label class="form-label">{{ form.investment_amount.label.text }}</label>
             <div class="input-group">
               <span class="input-group-text">{{ currency_symbol }}</span>
-              {{ form.investment_amount(class='form-control', step='0.01', placeholder='0.00') }}
+              {{ form.investment_amount(class='form-control', step='0.01', placeholder='0.00', id='investment-amount') }}
             </div>
             <div class="form-text">{{ form.investment_amount.description }}</div>
           </div>
           <div class="col-md-4 mb-3">
             <label class="form-label">{{ form.share_count.label.text }}</label>
-            {{ form.share_count(class='form-control', step='0.0001', placeholder='0') }}
+            {{ form.share_count(class='form-control', step='0.0001', placeholder='0', id='share-count') }}
+            <div class="form-text">{{ form.share_count.description }}</div>
           </div>
           <div class="col-md-4 mb-3">
             <label class="form-label">{{ form.investment_date.label.text }}</label>
             {{ form.investment_date(class='form-control', type='date') }}
           </div>
-          <div class="col-md-6 mb-3 d-flex align-items-end gap-3">
+          {% if share_settings and share_settings.has_total_shares %}
+          <div class="col-12 mb-3">
+            <div class="form-check">
+              {{ form.suggest_shares(class='form-check-input', id='suggest-shares') }}
+              <label class="form-check-label" for="suggest-shares">{{ form.suggest_shares.label.text }}</label>
+            </div>
+            <div class="form-text">
+              Company total shares: {{ '%.4f'|format(share_settings.total_company_shares) }} · {{ share_settings.label }}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="row">
+          <div class="col-md-6 mb-3 d-flex align-items-end gap-3 flex-wrap">
             <div class="form-check">{{ form.is_owner(class='form-check-input', id='is-owner') }}<label class="form-check-label" for="is-owner">Company owner</label></div>
             <div class="form-check">{{ form.is_active(class='form-check-input', id='is-active') }}<label class="form-check-label" for="is-active">Active</label></div>
           </div>
@@ -100,6 +142,11 @@
             </div>
           </div>
         </div>
+        {% elif shareholder and shareholder.user_account %}
+        <div class="form-check mb-3">
+          {{ form.sync_portal_email(class='form-check-input', id='sync-portal-email') }}
+          <label class="form-check-label" for="sync-portal-email">{{ form.sync_portal_email.label.text }}</label>
+        </div>
         {% endif %}
 
         {{ form.submit(class='btn btn-primary') }}
@@ -110,16 +157,33 @@
     {% if shareholder %}
     <div class="card mt-3"><div class="card-header"><h5 class="card-title mb-0">Shareholder Portal Access</h5></div><div class="card-body">
       {% if shareholder.user_account %}
-      <p class="text-muted">Portal login is active for <strong>{{ shareholder.user_account.email }}</strong>.</p>
-      <p class="mb-3">Updating the form below resets the password and login email.</p>
-      <form method="post" action="{{ url_for('shareholders.deactivate_portal_account', shareholder_id=shareholder.id) }}" class="d-inline">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="btn btn-outline-danger btn-sm">Deactivate portal access</button>
-      </form>
+      <p class="text-muted mb-2">
+        Portal login:
+        <strong>{{ shareholder.user_account.email }}</strong>
+        {% if shareholder.user_account.is_active %}
+        <span class="badge bg-info ms-1">Active</span>
+        {% else %}
+        <span class="badge bg-secondary ms-1">Disabled</span>
+        {% endif %}
+      </p>
+      <p class="mb-3 fs-13">Updating the form below resets the password and login email.</p>
+      <div class="d-flex flex-wrap gap-2 mb-3">
+        {% if shareholder.user_account.is_active %}
+        <form method="post" action="{{ url_for('shareholders.deactivate_portal_account', shareholder_id=shareholder.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-outline-danger btn-sm">Deactivate portal access</button>
+        </form>
+        {% else %}
+        <form method="post" action="{{ url_for('shareholders.reactivate_portal_account', shareholder_id=shareholder.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-outline-success btn-sm">Reactivate portal access</button>
+        </form>
+        {% endif %}
+      </div>
       {% else %}
       <p class="text-muted mb-3">Create a login so this shareholder can view their own reports, ownership, and payouts.</p>
       {% endif %}
-      <form method="post" action="{{ url_for('shareholders.save_portal_account', shareholder_id=shareholder.id) }}" class="mt-3">
+      <form method="post" action="{{ url_for('shareholders.save_portal_account', shareholder_id=shareholder.id) }}" class="mt-2">
         {{ portal_form.hidden_tag() }}
         <div class="row">
           <div class="col-md-4 mb-3"><label class="form-label">Portal login email</label>{{ portal_form.email(class='form-control') }}</div>
@@ -129,6 +193,29 @@
         {{ portal_form.submit(class='btn btn-primary') }}
       </form>
     </div></div>
+
+    {% if ownership_history %}
+    <div class="card mt-3">
+      <div class="card-header"><h5 class="card-title mb-0">Ownership history</h5></div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <thead><tr><th>Effective from</th><th>Effective to</th><th class="text-end">%</th><th>Recorded</th></tr></thead>
+            <tbody>
+            {% for rec in ownership_history %}
+              <tr>
+                <td>{{ rec.effective_from }}</td>
+                <td>{% if rec.effective_to %}{{ rec.effective_to }}{% else %}<span class="badge bg-success">Current</span>{% endif %}</td>
+                <td class="text-end">{{ '%.4f'|format(rec.ownership_percent) }}%</td>
+                <td class="fs-12 text-muted">{{ rec.created_at.strftime('%Y-%m-%d') if rec.created_at else '—' }}</td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    {% endif %}
     {% endif %}
   </div>
 
@@ -156,7 +243,7 @@
                     <span>{{ row.name }}</span>
                   </div>
                 </td>
-                <td class="text-end">{{ '%.2f'|format(row.ownership_percent) }}</td>
+                <td class="text-end">{{ '%.2f'|format(row.ownership_percent) }}%</td>
               </tr>
             {% endfor %}
             </tbody>
@@ -173,7 +260,7 @@
         <p class="text-muted mb-0">No active ownership records yet. This will be the first shareholder.</p>
         {% endif %}
         <div class="alert alert-info py-2 fs-12 mt-3 mb-0">
-          Monthly profit calculation requires total ownership of <strong>100%</strong>.
+          Monthly profit calculation requires total ownership of <strong>100%</strong>. Registration blocks totals above 100%.
         </div>
       </div>
     </div>
@@ -182,21 +269,55 @@
 {% endblock page_content %}
 {% block extra_javascript %}
 {% include 'partials/vendor.html' %}
-{% if is_create %}
 <script>
 (function () {
-  var toggle = document.getElementById('create-portal');
-  var fields = document.getElementById('portal-fields');
-  if (!toggle || !fields) return;
-  function sync() {
-    fields.style.opacity = toggle.checked ? '1' : '0.45';
-    fields.querySelectorAll('input').forEach(function (el) {
-      el.disabled = !toggle.checked;
+  var allocated = {{ ownership_ctx.allocated if ownership_ctx else 0 }};
+  var ownershipInput = document.getElementById('ownership-percent');
+  var proposedEl = document.getElementById('proposed-total');
+  if (ownershipInput && proposedEl) {
+    ownershipInput.addEventListener('input', function () {
+      var pct = parseFloat(ownershipInput.value || '0') || 0;
+      var total = allocated + pct;
+      proposedEl.textContent = total.toFixed(2) + '%';
+      proposedEl.classList.toggle('text-danger', total > 100.01);
+      proposedEl.classList.toggle('text-success', total <= 100.01);
     });
   }
-  toggle.addEventListener('change', sync);
-  sync();
+
+  {% if is_create %}
+  var toggle = document.getElementById('create-portal');
+  var fields = document.getElementById('portal-fields');
+  if (toggle && fields) {
+    function syncPortal() {
+      fields.style.opacity = toggle.checked ? '1' : '0.45';
+      fields.querySelectorAll('input').forEach(function (el) {
+        el.disabled = !toggle.checked;
+      });
+    }
+    toggle.addEventListener('change', syncPortal);
+    syncPortal();
+  }
+  {% endif %}
+
+  {% if share_settings and share_settings.has_total_shares %}
+  var totalShares = {{ share_settings.total_company_shares|float }};
+  var shareValue = {{ share_settings.share_value|float }};
+  var suggest = document.getElementById('suggest-shares');
+  var shareCount = document.getElementById('share-count');
+  var investment = document.getElementById('investment-amount');
+  function fillShares() {
+    if (!suggest || !suggest.checked || !ownershipInput) return;
+    var pct = parseFloat(ownershipInput.value || '0') || 0;
+    var units = totalShares * pct / 100;
+    var capital = units * shareValue;
+    if (shareCount) shareCount.value = units.toFixed(4);
+    if (investment) investment.value = capital.toFixed(2);
+  }
+  if (suggest) {
+    suggest.addEventListener('change', fillShares);
+    if (ownershipInput) ownershipInput.addEventListener('input', fillShares);
+  }
+  {% endif %}
 })();
 </script>
-{% endif %}
 {% endblock extra_javascript %}

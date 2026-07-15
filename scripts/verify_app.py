@@ -84,6 +84,7 @@ def main():
     for path in [
         '/',
         '/shareholders/',
+        '/shareholders/create',
         '/periods/',
         '/periods/create',
         '/settings/arrangements',
@@ -101,6 +102,56 @@ def main():
         r = client.get(path)
         if r.status_code != 200:
             errors.append(f'{path} returned {r.status_code}')
+
+    # Shareholder registration: block ownership over 100%, allow search filters
+    with app.app_context():
+        from apps.services.shareholder_service import ownership_fits_or_error, registration_stats
+        from datetime import date as date_cls
+
+        over_err = ownership_fits_or_error(Decimal('50'), date_cls(2026, 7, 1))
+        if not over_err:
+            errors.append('ownership_fits_or_error should reject adding 50% when seed already totals 100%')
+        stats = registration_stats(date_cls(2026, 7, 1))
+        if abs(stats['ownership_total'] - 100) > 0.01:
+            errors.append(f'Seed ownership should total 100%, got {stats["ownership_total"]}')
+        if stats['active'] != 3:
+            errors.append(f'Expected 3 active shareholders in stats, got {stats["active"]}')
+
+    create_page = client.get('/shareholders/create')
+    if create_page.status_code != 200:
+        errors.append(f'/shareholders/create returned {create_page.status_code}')
+    else:
+        csrf_m = re.search(
+            r'name="csrf_token"[^>]*value="([^"]+)"',
+            create_page.get_data(as_text=True),
+        )
+        if not csrf_m:
+            errors.append('CSRF missing on shareholder create form')
+        else:
+            over_post = client.post(
+                '/shareholders/create',
+                data={
+                    'csrf_token': csrf_m.group(1),
+                    'name': 'Overflow Investor',
+                    'email': 'overflow@akramsweets.com',
+                    'country_code': 'so',
+                    'ownership_percent': '10',
+                    'effective_from': '2026-07-01',
+                    'is_active': 'y',
+                    'investment_amount': '0',
+                    'share_count': '0',
+                },
+                follow_redirects=True,
+            )
+            body = over_post.get_data(as_text=True)
+            if 'maximum allowed is 100%' not in body and 'would make the active total' not in body:
+                errors.append('Create should block ownership that exceeds 100%')
+
+    filtered = client.get('/shareholders/?q=shareholder&status=active')
+    if filtered.status_code != 200:
+        errors.append(f'Shareholder list filter returned {filtered.status_code}')
+    elif 'Shareholder A' not in filtered.get_data(as_text=True):
+        errors.append('Shareholder list search should find Shareholder A')
 
     with app.app_context():
         from apps.services.period_service import resolve_period_totals

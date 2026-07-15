@@ -10,27 +10,49 @@ from apps.auth.forms import ShareholderPortalAccountForm
 from apps.forms import ShareholderForm
 from apps.models.shareholder import OwnershipRecord, Shareholder
 from apps.services.audit_service import log_action
-from apps.services.portal_service import create_shareholder_portal_user, deactivate_shareholder_portal_user
+from apps.services.portal_service import (
+    create_shareholder_portal_user,
+    deactivate_shareholder_portal_user,
+    portal_email_available,
+    reactivate_shareholder_portal_user,
+    sync_portal_profile,
+)
 from apps.services.shareholder_service import (
     COUNTRY_CHOICES,
     country_flag_filename,
     country_label,
+    get_ownership_history,
     get_ownership_percent,
+    normalize_email,
+    ownership_fits_or_error,
+    proposed_ownership_total,
+    registration_stats,
+    shareholder_email_taken,
     validate_ownership_totals,
 )
 from apps.shareholders import blueprint
 
 
-def _prepare_shareholder_form(form, is_create=False, ownership_ctx=None):
+def _prepare_shareholder_form(form, is_create=False, ownership_ctx=None, share_settings=None):
     form.country_code.choices = list(COUNTRY_CHOICES)
     if not form.country_code.data:
         form.country_code.data = 'so'
     if is_create and request.method == 'GET':
         form.effective_from.data = datetime.utcnow().date()
         form.is_active.data = True
+        form.investment_date.data = datetime.utcnow().date()
         # Suggest remaining ownership so totals stay near 100%.
         if ownership_ctx and ownership_ctx.get('remaining', 0) > 0.01:
             form.ownership_percent.data = round(Decimal(str(ownership_ctx['remaining'])), 4)
+            if share_settings and share_settings.get('has_total_shares'):
+                from apps.services.share_value_service import capital_for_ownership, shares_for_ownership
+
+                units = shares_for_ownership(form.ownership_percent.data)
+                capital = capital_for_ownership(form.ownership_percent.data)
+                if units is not None:
+                    form.share_count.data = units
+                if capital is not None:
+                    form.investment_amount.data = capital
 
 
 def _apply_country(shareholder, country_code):
@@ -39,7 +61,7 @@ def _apply_country(shareholder, country_code):
     shareholder.country = country_label(code)
 
 
-def _ownership_context(as_of_date=None, exclude_shareholder_id=None):
+def _ownership_context(as_of_date=None, exclude_shareholder_id=None, proposed_percent=None):
     as_of = as_of_date or datetime.utcnow().date()
     total, shareholders = validate_ownership_totals(as_of)
     rows = []
@@ -58,60 +80,153 @@ def _ownership_context(as_of_date=None, exclude_shareholder_id=None):
         })
     allocated = float(sum(Decimal(str(row['ownership_percent'])) for row in rows))
     remaining = float(Decimal('100') - Decimal(str(allocated)))
+    proposed = None
+    if proposed_percent is not None:
+        proposed = float(
+            proposed_ownership_total(proposed_percent, as_of, exclude_shareholder_id)
+        )
     return {
         'as_of': as_of,
         'rows': rows,
         'allocated': allocated,
         'remaining': remaining,
-        'valid': abs(Decimal(str(allocated)) - Decimal('100')) <= Decimal('0.01') if exclude_shareholder_id else abs(total - Decimal('100')) <= Decimal('0.01'),
+        'proposed_total': proposed,
+        'valid': abs(Decimal(str(allocated)) - Decimal('100')) <= Decimal('0.01')
+        if exclude_shareholder_id
+        else abs(total - Decimal('100')) <= Decimal('0.01'),
         'total_with_all': float(total),
     }
 
 
-def _email_taken(email, exclude_id=None):
-    query = Shareholder.query.filter(Shareholder.email == email.lower())
-    if exclude_id:
-        query = query.filter(Shareholder.id != exclude_id)
-    return query.first() is not None
+def _share_settings():
+    from apps.services.share_value_service import get_share_settings
+
+    return get_share_settings()
+
+
+def _apply_share_suggestions(form):
+    if not form.suggest_shares.data or not form.ownership_percent.data:
+        return
+    from apps.services.share_value_service import capital_for_ownership, shares_for_ownership
+
+    units = shares_for_ownership(form.ownership_percent.data)
+    capital = capital_for_ownership(form.ownership_percent.data)
+    if units is not None:
+        form.share_count.data = units
+    if capital is not None:
+        form.investment_amount.data = capital
+
+
+def _validate_registration(form, *, exclude_id=None, require_active_ownership=True):
+    """Validate email uniqueness, ownership cap, and portal fields. Mutates form errors."""
+    email = normalize_email(form.email.data)
+    ok = True
+
+    if shareholder_email_taken(email, exclude_id=exclude_id):
+        form.email.errors.append('A shareholder with this email already exists.')
+        ok = False
+
+    as_of = form.effective_from.data or datetime.utcnow().date()
+    if require_active_ownership and form.is_active.data and form.ownership_percent.data is not None:
+        ownership_error = ownership_fits_or_error(
+            form.ownership_percent.data,
+            as_of,
+            exclude_shareholder_id=exclude_id,
+        )
+        if ownership_error:
+            form.ownership_percent.errors.append(ownership_error)
+            ok = False
+
+    if getattr(form, 'create_portal', None) and form.create_portal.data:
+        if not form.portal_password.data:
+            form.portal_password.errors.append('Portal password is required when creating portal login.')
+            ok = False
+        portal_email = normalize_email(form.portal_email.data) or email
+        if not portal_email_available(portal_email, shareholder_id=exclude_id):
+            form.portal_email.errors.append('That portal email is already used by another account.')
+            ok = False
+
+    return ok
 
 
 @blueprint.route('/')
 @finance_or_management_required
 def list_shareholders():
     from apps.services.certificate_service import get_latest_approved_period, get_shareholder_certificate
+    from apps.services.share_value_service import capital_for_ownership, shares_for_ownership
 
     shareholders = Shareholder.query.order_by(Shareholder.name).all()
     latest_period = get_latest_approved_period()
     q = (request.args.get('q') or '').strip().lower()
-    country_filter = request.args.get('country')
+    country_filter = (request.args.get('country') or '').strip().lower() or None
+    status_filter = (request.args.get('status') or 'active').strip().lower()
+    portal_filter = (request.args.get('portal') or '').strip().lower() or None
+    as_of = datetime.utcnow().date()
+    stats = registration_stats(as_of)
+    share_settings = _share_settings()
+
     rows = []
     for shareholder in shareholders:
-        if country_filter and (shareholder.country_code or '').lower() != country_filter.lower():
+        if status_filter == 'active' and not shareholder.is_active:
             continue
-        if q and q not in shareholder.name.lower() and q not in (shareholder.email or '').lower():
+        if status_filter == 'inactive' and shareholder.is_active:
             continue
-        ownership = get_ownership_percent(shareholder, datetime.utcnow().date())
+        if country_filter and (shareholder.country_code or '').lower() != country_filter:
+            continue
+        portal = shareholder.user_account
+        portal_active = bool(portal and portal.is_active)
+        if portal_filter == 'yes' and not portal_active:
+            continue
+        if portal_filter == 'no' and portal_active:
+            continue
+        haystack = ' '.join([
+            shareholder.name or '',
+            shareholder.email or '',
+            shareholder.phone or '',
+            shareholder.country or '',
+            shareholder.country_code or '',
+        ]).lower()
+        if q and q not in haystack:
+            continue
+
+        ownership = get_ownership_percent(shareholder, as_of) if shareholder.is_active else Decimal('0')
         certificate = (
             get_shareholder_certificate(latest_period.id, shareholder.id) if latest_period else None
         )
-        from apps.services.share_value_service import capital_for_ownership, shares_for_ownership
-
-        share_units = shares_for_ownership(ownership)
-        capital = capital_for_ownership(ownership)
+        derived_shares = shares_for_ownership(ownership)
+        derived_capital = capital_for_ownership(ownership)
         rows.append({
             'shareholder': shareholder,
             'ownership_percent': float(ownership),
-            'share_units': float(share_units) if share_units is not None else None,
-            'capital': float(capital) if capital is not None else None,
+            'share_units': float(shareholder.share_count or 0) or (
+                float(derived_shares) if derived_shares is not None else None
+            ),
+            'registered_shares': float(shareholder.share_count or 0),
+            'registered_investment': float(shareholder.investment_amount or 0),
+            'capital': float(shareholder.investment_amount or 0) or (
+                float(derived_capital) if derived_capital is not None else None
+            ),
+            'derived_shares': float(derived_shares) if derived_shares is not None else None,
+            'derived_capital': float(derived_capital) if derived_capital is not None else None,
             'flag': country_flag_filename(shareholder.country_code),
             'country_name': shareholder.country or country_label(shareholder.country_code),
             'latest_period': latest_period,
             'latest_certificate': certificate,
+            'portal_active': portal_active,
+            'portal_email': portal.email if portal else None,
         })
+
     return render_template(
         'shareholders/list.html',
         rows=rows,
+        q=request.args.get('q') or '',
         country_filter=country_filter,
+        status_filter=status_filter,
+        portal_filter=portal_filter,
+        country_choices=COUNTRY_CHOICES,
+        stats=stats,
+        share_settings=share_settings,
+        share_value_label=share_settings.get('label'),
         segment='shareholders',
     )
 
@@ -120,20 +235,27 @@ def list_shareholders():
 @management_required
 def create_shareholder():
     form = ShareholderForm()
+    share_settings = _share_settings()
     ownership_ctx = _ownership_context()
-    _prepare_shareholder_form(form, is_create=True, ownership_ctx=ownership_ctx)
+    _prepare_shareholder_form(
+        form, is_create=True, ownership_ctx=ownership_ctx, share_settings=share_settings
+    )
     if form.effective_from.data:
-        ownership_ctx = _ownership_context(form.effective_from.data)
+        ownership_ctx = _ownership_context(
+            form.effective_from.data,
+            proposed_percent=form.ownership_percent.data,
+        )
 
     if form.validate_on_submit():
-        email = form.email.data.strip().lower()
-        if _email_taken(email):
-            form.email.errors.append('A shareholder with this email already exists.')
+        _apply_share_suggestions(form)
+        if not _validate_registration(form, exclude_id=None):
             flash('Please fix the highlighted fields.', 'danger')
-        elif form.create_portal.data and not form.portal_password.data:
-            form.portal_password.errors.append('Portal password is required when creating portal login.')
-            flash('Please fix the highlighted fields.', 'danger')
+            ownership_ctx = _ownership_context(
+                form.effective_from.data,
+                proposed_percent=form.ownership_percent.data,
+            )
         else:
+            email = normalize_email(form.email.data)
             shareholder = Shareholder(
                 name=form.name.data.strip(),
                 email=email,
@@ -159,7 +281,7 @@ def create_shareholder():
             db.session.commit()
 
             if form.create_portal.data:
-                portal_email = (form.portal_email.data or email).strip().lower()
+                portal_email = normalize_email(form.portal_email.data) or email
                 try:
                     create_shareholder_portal_user(
                         shareholder,
@@ -184,13 +306,18 @@ def create_shareholder():
             return redirect(url_for('shareholders.edit_shareholder', shareholder_id=shareholder.id))
     elif request.method == 'POST':
         flash('Please fix the highlighted fields.', 'danger')
-        ownership_ctx = _ownership_context(form.effective_from.data)
+        ownership_ctx = _ownership_context(
+            form.effective_from.data,
+            proposed_percent=form.ownership_percent.data,
+        )
 
     return render_template(
         'shareholders/form.html',
         form=form,
-        title='Add Shareholder',
+        title='Register Shareholder',
         ownership_ctx=ownership_ctx,
+        share_settings=share_settings,
+        ownership_history=[],
         is_create=True,
         segment='shareholders',
     )
@@ -201,6 +328,7 @@ def create_shareholder():
 def edit_shareholder(shareholder_id):
     shareholder = Shareholder.query.get_or_404(shareholder_id)
     form = ShareholderForm(obj=shareholder)
+    share_settings = _share_settings()
     _prepare_shareholder_form(form)
     latest_ownership = shareholder.ownership_records.first()
     if latest_ownership and request.method == 'GET':
@@ -211,14 +339,26 @@ def edit_shareholder(shareholder_id):
     ownership_ctx = _ownership_context(
         form.effective_from.data or datetime.utcnow().date(),
         exclude_shareholder_id=shareholder.id,
+        proposed_percent=form.ownership_percent.data,
     )
 
     if form.validate_on_submit():
-        email = form.email.data.strip().lower()
-        if _email_taken(email, exclude_id=shareholder.id):
-            form.email.errors.append('A shareholder with this email already exists.')
+        _apply_share_suggestions(form)
+        if not _validate_registration(
+            form,
+            exclude_id=shareholder.id,
+            require_active_ownership=bool(form.is_active.data),
+        ):
             flash('Please fix the highlighted fields.', 'danger')
+            ownership_ctx = _ownership_context(
+                form.effective_from.data or datetime.utcnow().date(),
+                exclude_shareholder_id=shareholder.id,
+                proposed_percent=form.ownership_percent.data,
+            )
         else:
+            email = normalize_email(form.email.data)
+            previous_email = shareholder.email
+            was_active = shareholder.is_active
             shareholder.name = form.name.data.strip()
             shareholder.email = email
             shareholder.phone = (form.phone.data or '').strip() or None
@@ -230,13 +370,15 @@ def edit_shareholder(shareholder_id):
             shareholder.investment_date = form.investment_date.data
             _apply_country(shareholder, form.country_code.data)
 
-            if (
+            if form.is_active.data and (
                 not latest_ownership
                 or latest_ownership.ownership_percent != form.ownership_percent.data
                 or latest_ownership.effective_from != form.effective_from.data
             ):
                 if latest_ownership and latest_ownership.effective_from == form.effective_from.data:
                     latest_ownership.ownership_percent = form.ownership_percent.data
+                    if latest_ownership.effective_to is not None and form.is_active.data:
+                        latest_ownership.effective_to = None
                 else:
                     if latest_ownership and latest_ownership.effective_to is None:
                         latest_ownership.effective_to = form.effective_from.data
@@ -249,9 +391,29 @@ def edit_shareholder(shareholder_id):
                         )
                     )
 
+            # Deactivating via edit: close open ownership like deactivate endpoint.
+            if was_active and not form.is_active.data:
+                open_rec = shareholder.ownership_records.filter(
+                    OwnershipRecord.effective_to.is_(None)
+                ).first()
+                if open_rec:
+                    open_rec.effective_to = datetime.utcnow().date()
+                if shareholder.user_account:
+                    shareholder.user_account.is_active = False
+
             db.session.commit()
+
+            try:
+                sync_email = bool(form.sync_portal_email.data) or (
+                    previous_email == (shareholder.user_account.email if shareholder.user_account else None)
+                    and previous_email != email
+                )
+                sync_portal_profile(shareholder, sync_email=sync_email)
+            except ValueError as exc:
+                flash(str(exc), 'warning')
+
             total, _ = validate_ownership_totals(form.effective_from.data)
-            if abs(total - Decimal('100')) > Decimal('0.01'):
+            if form.is_active.data and abs(total - Decimal('100')) > Decimal('0.01'):
                 flash(f'Shareholder updated. Active ownership totals {total:.2f}% (expected 100%).', 'warning')
             else:
                 flash('Shareholder updated successfully.', 'success')
@@ -259,11 +421,18 @@ def edit_shareholder(shareholder_id):
             return redirect(url_for('shareholders.list_shareholders'))
     elif request.method == 'POST':
         flash('Please fix the highlighted fields.', 'danger')
+        ownership_ctx = _ownership_context(
+            form.effective_from.data or datetime.utcnow().date(),
+            exclude_shareholder_id=shareholder.id,
+            proposed_percent=form.ownership_percent.data,
+        )
 
     portal_form = ShareholderPortalAccountForm()
     if request.method == 'GET':
         portal_form.email.data = shareholder.user_account.email if shareholder.user_account else shareholder.email
-        portal_form.full_name.data = shareholder.user_account.full_name if shareholder.user_account else shareholder.name
+        portal_form.full_name.data = (
+            shareholder.user_account.full_name if shareholder.user_account else shareholder.name
+        )
 
     return render_template(
         'shareholders/form.html',
@@ -272,6 +441,8 @@ def edit_shareholder(shareholder_id):
         shareholder=shareholder,
         portal_form=portal_form,
         ownership_ctx=ownership_ctx,
+        share_settings=share_settings,
+        ownership_history=get_ownership_history(shareholder),
         is_create=False,
         segment='shareholders',
     )
@@ -309,6 +480,21 @@ def deactivate_portal_account(shareholder_id):
     return redirect(url_for('shareholders.edit_shareholder', shareholder_id=shareholder.id))
 
 
+@blueprint.route('/<int:shareholder_id>/portal-account/reactivate', methods=['POST'])
+@management_required
+def reactivate_portal_account(shareholder_id):
+    shareholder = Shareholder.query.get_or_404(shareholder_id)
+    if not shareholder.is_active:
+        flash('Reactivate the shareholder before restoring portal access.', 'warning')
+        return redirect(url_for('shareholders.edit_shareholder', shareholder_id=shareholder.id))
+    user = reactivate_shareholder_portal_user(shareholder, current_user.id)
+    if not user:
+        flash('No portal account exists for this shareholder. Create one below.', 'warning')
+    else:
+        flash('Shareholder portal access reactivated.', 'success')
+    return redirect(url_for('shareholders.edit_shareholder', shareholder_id=shareholder.id))
+
+
 @blueprint.route('/<int:shareholder_id>/deactivate', methods=['POST'])
 @management_required
 def deactivate_shareholder(shareholder_id):
@@ -318,15 +504,57 @@ def deactivate_shareholder(shareholder_id):
         return redirect(url_for('shareholders.edit_shareholder', shareholder_id=shareholder.id))
 
     shareholder.is_active = False
-    latest_ownership = shareholder.ownership_records.first()
-    if latest_ownership and latest_ownership.effective_to is None:
+    latest_ownership = shareholder.ownership_records.filter(
+        OwnershipRecord.effective_to.is_(None)
+    ).first()
+    if latest_ownership:
         latest_ownership.effective_to = datetime.utcnow().date()
     if shareholder.user_account:
         shareholder.user_account.is_active = False
     db.session.commit()
     log_action('deactivate', 'shareholder', shareholder.id, shareholder.name)
-    flash('Shareholder deactivated.', 'success')
+    flash('Shareholder deactivated. Ownership ended and portal access disabled.', 'success')
     return redirect(url_for('shareholders.list_shareholders'))
+
+
+@blueprint.route('/<int:shareholder_id>/reactivate', methods=['POST'])
+@management_required
+def reactivate_shareholder(shareholder_id):
+    shareholder = Shareholder.query.get_or_404(shareholder_id)
+    if shareholder.is_active:
+        flash('Shareholder is already active.', 'info')
+        return redirect(url_for('shareholders.edit_shareholder', shareholder_id=shareholder.id))
+
+    # Use last known ownership %, or require edit if none.
+    last = shareholder.ownership_records.first()
+    if not last:
+        flash('Set an ownership % on the edit form before reactivating.', 'warning')
+        return redirect(url_for('shareholders.edit_shareholder', shareholder_id=shareholder.id))
+
+    as_of = datetime.utcnow().date()
+    ownership_error = ownership_fits_or_error(last.ownership_percent, as_of, exclude_shareholder_id=None)
+    if ownership_error:
+        flash(
+            f'Cannot reactivate yet: restoring {last.ownership_percent}% would exceed 100%. '
+            f'Adjust other shareholders first, or edit this record with a lower %.',
+            'danger',
+        )
+        return redirect(url_for('shareholders.edit_shareholder', shareholder_id=shareholder.id))
+
+    shareholder.is_active = True
+    if last.effective_to is not None:
+        db.session.add(
+            OwnershipRecord(
+                shareholder_id=shareholder.id,
+                ownership_percent=last.ownership_percent,
+                effective_from=as_of,
+                created_by_id=current_user.id,
+            )
+        )
+    db.session.commit()
+    log_action('reactivate', 'shareholder', shareholder.id, shareholder.name)
+    flash('Shareholder reactivated with previous ownership %. Review the edit form if needed.', 'success')
+    return redirect(url_for('shareholders.edit_shareholder', shareholder_id=shareholder.id))
 
 
 @blueprint.route('/withdrawals')
