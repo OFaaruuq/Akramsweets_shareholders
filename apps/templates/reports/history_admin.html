@@ -5,8 +5,16 @@
 {% block page_content %}
 <div class="py-3"><h4 class="fs-18 fw-semibold m-0">Approved Period History</h4></div>
 <div class="card"><div class="card-body"><div class="table-responsive">
-<table class="table mb-0"><thead><tr><th>Period</th><th>Total P/L</th><th>Approved</th><th>Reports Sent</th><th></th></tr></thead>
-<tbody>{% for period in periods %}<tr><td>{{ period.period_label }}</td><td>{{ '%.2f'|format(period.total_profit_loss) }}</td><td>{{ period.approved_at.strftime('%Y-%m-%d') if period.approved_at else '-' }}</td><td>{{ period.reports_sent_at.strftime('%Y-%m-%d') if period.reports_sent_at else '-' }}</td><td><a href="{{ url_for('periods.detail_period', period_id=period.id) }}" class="btn btn-sm btn-soft-primary">Open</a></td></tr>{% else %}<tr><td colspan="5" class="text-center text-muted">No approved periods yet.</td></tr>{% endfor %}</tbody>
+<table class="table mb-0"><thead><tr><th>Period</th><th>Net Profit</th><th>SH Pool</th><th>Akram Sweets</th><th>Approved</th><th>Reports Sent</th><th></th></tr></thead>
+<tbody>{% for period in periods %}<tr>
+<td>{{ period.period_label }}</td>
+<td>{{ '%.2f'|format(period.total_profit_loss) }}</td>
+<td>{{ '%.2f'|format(period.shareholders_pool or 0) }}</td>
+<td>{{ '%.2f'|format(period.managing_partner_share or 0) }}</td>
+<td>{{ period.approved_at.strftime('%Y-%m-%d') if period.approved_at else '-' }}</td>
+<td>{{ period.reports_sent_at.strftime('%Y-%m-%d') if period.reports_sent_at else '-' }}</td>
+<td><a href="{{ url_for('periods.detail_period', period_id=period.id) }}" class="btn btn-sm btn-soft-primary">Open</a></td>
+</tr>{% else %}<tr><td colspan="7" class="text-center text-muted">No approved periods yet.</td></tr>{% endfor %}</tbody>
 </table></div></div></div>
 {% endblock page_content %}
 {% block extra_javascript %}{% include 'partials/vendor.html' %}{% endblock extra_javascript %}

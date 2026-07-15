@@ -1,0 +1,72 @@
+{% extends 'layouts/vertical.html' %}
+{% block title %}Withdrawal #{{ withdrawal.id }}{% endblock title %}
+{% block css %}{% include 'partials/head-css.html' %}{% endblock css %}
+{% block body_attribute %}data-menu-color="dark" data-sidebar="default"{% endblock body_attribute %}
+{% block page_content %}
+<div class="py-3 d-flex align-items-sm-center flex-sm-row flex-column gap-2">
+  <div class="flex-grow-1">
+    <h4 class="fs-18 fw-semibold m-0">Capital Withdrawal #{{ withdrawal.id }}</h4>
+    <p class="text-muted mb-0 fs-13">{{ withdrawal.shareholder.name }}</p>
+  </div>
+  <a href="{{ url_for('shareholders.list_withdrawals') }}" class="btn btn-light">Back</a>
+</div>
+
+<div class="row">
+  <div class="col-xl-5">
+    <div class="card"><div class="card-body">
+      <p class="text-muted mb-1">Amount</p>
+      <h3>{{ currency_symbol }}{{ '%.2f'|format(withdrawal.amount) }}</h3>
+      <p class="text-muted mb-1 mt-3">Status</p>
+      <span class="badge
+        {% if withdrawal.status == 'pending' %}bg-warning text-dark
+        {% elif withdrawal.status == 'approved' %}bg-info
+        {% elif withdrawal.status == 'completed' %}bg-success
+        {% elif withdrawal.status == 'rejected' %}bg-danger
+        {% else %}bg-secondary{% endif %}">{{ withdrawal.status|title }}</span>
+      <hr>
+      <ul class="list-unstyled mb-0 fs-13">
+        <li class="d-flex justify-content-between mb-2"><span>Requested</span><strong>{{ withdrawal.requested_at.strftime('%Y-%m-%d %H:%M') }}</strong></li>
+        <li class="d-flex justify-content-between mb-2"><span>Deadline (6 months from approval)</span><strong>{{ withdrawal.deadline_at.strftime('%Y-%m-%d') }}</strong></li>
+        <li class="d-flex justify-content-between mb-2"><span>Capital return date</span><strong>{{ withdrawal.capital_return_date or '—' }}</strong></li>
+        <li class="d-flex justify-content-between mb-2"><span>Reviewed by</span><strong>{{ withdrawal.reviewed_by.full_name if withdrawal.reviewed_by else '—' }}</strong></li>
+      </ul>
+      <p class="text-muted mb-1 mt-3">Reason</p>
+      <p class="mb-0">{{ withdrawal.reason }}</p>
+      {% if withdrawal.review_notes %}
+      <p class="text-muted mb-1 mt-3">Review notes</p>
+      <p class="mb-0">{{ withdrawal.review_notes }}</p>
+      {% endif %}
+    </div></div>
+  </div>
+  <div class="col-xl-7">
+    <div class="card"><div class="card-header"><h5 class="card-title mb-0">Workflow actions</h5></div>
+    <div class="card-body">
+      <form method="post">
+        {{ form.hidden_tag() }}
+        <div class="mb-3">
+          <label class="form-label">{{ form.review_notes.label.text }}</label>
+          {{ form.review_notes(class='form-control', rows='3', placeholder='Required when rejecting') }}
+        </div>
+        <div class="mb-3">
+          <label class="form-label">{{ form.capital_return_date.label.text }}</label>
+          {{ form.capital_return_date(class='form-control', type='date') }}
+          <div class="form-text">Used when marking capital as returned.</div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          {% if withdrawal.status == 'pending' %}
+          {{ form.submit_approve(class='btn btn-primary') }}
+          {{ form.submit_reject(class='btn btn-danger') }}
+          {{ form.submit_cancel(class='btn btn-light') }}
+          {% elif withdrawal.status == 'approved' %}
+          {{ form.submit_complete(class='btn btn-success') }}
+          {{ form.submit_cancel(class='btn btn-light') }}
+          {% else %}
+          <p class="text-muted mb-0">This request is closed ({{ withdrawal.status }}).</p>
+          {% endif %}
+        </div>
+      </form>
+    </div></div>
+  </div>
+</div>
+{% endblock page_content %}
+{% block extra_javascript %}{% include 'partials/vendor.html' %}{% endblock extra_javascript %}

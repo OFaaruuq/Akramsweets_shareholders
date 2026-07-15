@@ -197,20 +197,23 @@
 
           <div class="d-flex align-items-center mb-2">
             <p class="mb-0 text-dark fs-16 fw-medium">
-              {% if is_shareholder_view %}Approved Reports{% else %}Pending Review{% endif %}
+              {% if is_shareholder_view %}Approved Reports{% else %}Pending Approvals{% endif %}
             </p>
           </div>
 
           <div class="d-flex justify-content-between align-items-center mb-2">
             <h3 class="mb-0 fs-24 text-dark me-4">
-              {% if is_shareholder_view %}{{ approved_report_count }}{% else %}{{ pending_approval }}{% endif %}
+              {% if is_shareholder_view %}{{ approved_report_count }}{% else %}{{ approvals_inbox_count }}{% endif %}
             </h3>
             <div id="total_returns" class="apex-charts"></div>
           </div>
 
           <div class="d-flex align-items-center">
             <p class="text-muted fs-13 mb-0">
-              {% if is_shareholder_view %}Available in your portal{% else %}Periods awaiting management approval{% endif %}
+              {% if is_shareholder_view %}Available in your portal{% else %}
+              <a href="{{ url_for('periods.approvals_inbox') }}">Open approvals inbox</a>
+              ({{ pending_approval }} period{{ 's' if pending_approval != 1 else '' }}, {{ pending_withdrawals }} withdrawal{{ 's' if pending_withdrawals != 1 else '' }})
+              {% endif %}
             </p>
           </div>
 

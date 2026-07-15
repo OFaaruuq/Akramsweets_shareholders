@@ -32,6 +32,7 @@ def _assert_ownership_valid(as_of_date):
 
 
 def _build_calculation_rows(total, as_of_date, adjustments=None):
+    """Build per-shareholder rows from the shareholders' profit pool (not full Net Profit)."""
     is_profit = total >= 0
     shareholders = _assert_ownership_valid(as_of_date)
 
@@ -53,7 +54,6 @@ def _build_calculation_rows(total, as_of_date, adjustments=None):
     for arrangement in arrangements:
         bonus_rate = Decimal(arrangement.bonus_percent) / Decimal('100')
         recipient_id = arrangement.recipient_shareholder_id
-        # Recipient must be in the active ownership pool — never deduct without a credit.
         if recipient_id not in rows:
             continue
         source_ids = arrangement.contributing_shareholder_ids(rows.keys())
@@ -85,33 +85,40 @@ def _build_calculation_rows(total, as_of_date, adjustments=None):
 
 
 def _validate_reconciliation(total, rows):
+    """Reconcile distributed shareholder amounts to the shareholders' pool."""
     distributed = money(sum((row['final_amount'] for row in rows), Decimal('0')))
     variance = money(total - distributed)
     if abs(variance) > RECONCILIATION_TOLERANCE:
         raise ValueError(
-            f'Distribution total {distributed} does not reconcile with company P/L {total} '
+            f'Distribution total {distributed} does not reconcile with shareholders\' pool {total} '
             f'(variance {variance}).'
         )
     return distributed, variance
 
 
 def preview_period_distribution(total_profit_loss, as_of_date):
-    total = money(total_profit_loss)
-    rows = _build_calculation_rows(total, as_of_date)
-    distributed, variance = _validate_reconciliation(total, rows)
+    from apps.services.mudarabah_service import split_net_profit
+
+    company_net = money(total_profit_loss)
+    pool, partner_share, shareholder_percent = split_net_profit(company_net)
+    rows = _build_calculation_rows(pool, as_of_date)
+    distributed, variance = _validate_reconciliation(pool, rows)
     return {
-        'company_total': float(total),
+        'company_total': float(company_net),
+        'shareholders_pool': float(pool),
+        'managing_partner_share': float(partner_share),
+        'mudarabah_shareholder_percent': float(shareholder_percent),
         'distributed_total': float(distributed),
         'variance': float(variance),
-        'is_profit': total >= 0,
+        'is_profit': company_net >= 0,
         'shareholders': [
             {
+                'id': row['shareholder_id'],
                 'name': row['shareholder_name'],
                 'ownership_percent': float(row['ownership_percent']),
                 'base_share': float(row['base_share']),
                 'arrangement_deduction': float(row['arrangement_deduction']),
                 'arrangement_received': float(row['arrangement_received']),
-                'manual_adjustment': float(row['manual_adjustment']),
                 'final_amount': float(row['final_amount']),
             }
             for row in rows
@@ -123,11 +130,18 @@ def calculate_period(period: MonthlyPeriod):
     if period.is_locked:
         raise ValueError('Approved periods cannot be recalculated.')
 
+    from apps.services.mudarabah_service import split_net_profit
+
     as_of_date = period.as_of_date
-    total = money(period.total_profit_loss)
+    company_net = money(period.total_profit_loss)
+    pool, partner_share, shareholder_percent = split_net_profit(company_net)
+    period.shareholders_pool = pool
+    period.managing_partner_share = partner_share
+    period.mudarabah_shareholder_percent = shareholder_percent
+
     adjustments = ManualAdjustment.query.filter_by(period_id=period.id).all()
-    rows = _build_calculation_rows(total, as_of_date, adjustments=adjustments)
-    _validate_reconciliation(total, rows)
+    rows = _build_calculation_rows(pool, as_of_date, adjustments=adjustments)
+    _validate_reconciliation(pool, rows)
 
     ShareholderCalculation.query.filter_by(period_id=period.id).delete()
 
@@ -158,6 +172,9 @@ def approve_period(period: MonthlyPeriod, user):
     period.status = MonthlyPeriod.STATUS_APPROVED
     period.approved_at = datetime.utcnow()
     period.approved_by_id = user.id
+    period.rejection_reason = None
+    period.rejected_at = None
+    period.rejected_by_id = None
     db.session.commit()
 
     # Certificates are always generated on approval (independent of email settings).
@@ -167,34 +184,54 @@ def approve_period(period: MonthlyPeriod, user):
     return period
 
 
-def submit_for_review(period: MonthlyPeriod):
+def submit_for_review(period: MonthlyPeriod, user=None):
     if period.status != MonthlyPeriod.STATUS_DRAFT:
         raise ValueError('Only draft periods can be submitted for review.')
     if not period.calculations.count():
         raise ValueError('Calculate the period before submitting for review.')
 
     period.status = MonthlyPeriod.STATUS_REVIEW
+    period.submitted_for_review_at = datetime.utcnow()
+    period.submitted_for_review_by_id = user.id if user else None
+    # Clear prior rejection once resubmitted
+    period.rejection_reason = None
+    period.rejected_at = None
+    period.rejected_by_id = None
     db.session.commit()
     return period
 
 
-def reopen_for_correction(period: MonthlyPeriod, reason: str):
+def reopen_for_correction(period: MonthlyPeriod, reason: str, user=None):
+    """
+    Unlock an approved period for correction.
+
+    Returns the period to **draft** so finance must edit and re-submit for review.
+    """
     if period.status != MonthlyPeriod.STATUS_APPROVED:
         raise ValueError('Only approved periods can be reopened for correction.')
 
+    notes = (reason or '').strip()
+    if len(notes) < 10:
+        raise ValueError('A detailed reason is required to reopen an approved period.')
+
     from apps.models.certificate import ShareholderCertificate
 
-    period.status = MonthlyPeriod.STATUS_REVIEW
+    period.status = MonthlyPeriod.STATUS_DRAFT
     period.approved_at = None
     period.approved_by_id = None
     period.reports_sent_at = None
+    period.submitted_for_review_at = None
+    period.submitted_for_review_by_id = None
+    period.rejection_reason = f'Reopened for correction: {notes}'
+    period.rejected_at = datetime.utcnow()
+    period.rejected_by_id = user.id if user else None
 
     ShareholderCertificate.query.filter_by(period_id=period.id).update(
         {ShareholderCertificate.email_status: 'pending', ShareholderCertificate.emailed_at: None},
         synchronize_session=False,
     )
     db.session.commit()
-    return period, reason.strip()
+    return period, notes
 
 
 def get_ytd_totals(shareholder_id, year, through_month):

@@ -11,6 +11,10 @@ Monthly period entry — Net Profit from Odoo drives ownership distribution
   const previewCard = document.getElementById('preview-card');
   const previewBody = document.getElementById('preview-table-body');
   const previewCompanyTotal = document.getElementById('preview-company-total');
+  const previewCompanyNet = document.getElementById('preview-company-net');
+  const previewPool = document.getElementById('preview-pool');
+  const previewPartner = document.getElementById('preview-partner');
+  const previewPoolPct = document.getElementById('preview-pool-pct');
   const previewTypeBadge = document.getElementById('preview-type-badge');
   const previewReconcile = document.getElementById('preview-reconcile');
   const previewError = document.getElementById('preview-error');
@@ -80,12 +84,18 @@ Monthly period entry — Net Profit from Odoo drives ownership distribution
       )
       .join('');
 
-    previewCompanyTotal.textContent = currency(preview.company_total);
+    previewCompanyTotal.textContent = currency(preview.shareholders_pool != null ? preview.shareholders_pool : preview.distributed_total);
+    if (previewCompanyNet) previewCompanyNet.textContent = currency(preview.company_total);
+    if (previewPool) previewPool.textContent = currency(preview.shareholders_pool);
+    if (previewPartner) previewPartner.textContent = currency(preview.managing_partner_share);
+    if (previewPoolPct && preview.mudarabah_shareholder_percent != null) {
+      previewPoolPct.textContent = '(' + Number(preview.mudarabah_shareholder_percent).toFixed(0) + '%)';
+    }
     previewTypeBadge.textContent = preview.is_profit ? 'Profit' : 'Loss';
     previewTypeBadge.className =
       'badge ms-2 ' + (preview.is_profit ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger');
     previewReconcile.textContent =
-      'Distributed ' + currency(preview.distributed_total) + ' · Variance ' + currency(preview.variance);
+      'Pool distributed ' + currency(preview.distributed_total) + ' · Variance ' + currency(preview.variance);
 
     if (data.warnings && data.warnings.length) {
       renderWarnings(data.warnings);

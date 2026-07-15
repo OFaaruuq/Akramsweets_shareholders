@@ -264,6 +264,12 @@ def get_dashboard_metrics(year=None):
         )
 
     pending_approval = review_periods
+    from apps.models.shareholder import CapitalWithdrawalRequest
+
+    pending_withdrawals = CapitalWithdrawalRequest.query.filter_by(
+        status=CapitalWithdrawalRequest.STATUS_PENDING
+    ).count()
+    approvals_inbox_count = review_periods + pending_withdrawals
 
     recent_periods = (
         MonthlyPeriod.query.order_by(MonthlyPeriod.year.desc(), MonthlyPeriod.month.desc()).limit(6).all()
@@ -355,6 +361,8 @@ def get_dashboard_metrics(year=None):
         'latest_profit': latest_profit,
         'latest_distributed': latest_distributed,
         'pending_approval': pending_approval,
+        'pending_withdrawals': pending_withdrawals,
+        'approvals_inbox_count': approvals_inbox_count,
         'recent_periods': recent_periods,
         'monthly_totals': monthly_totals,
         'shareholder_trends': shareholder_trends,
@@ -465,6 +473,8 @@ def get_shareholder_dashboard_metrics(shareholder_id, year=None):
         'latest_profit': latest_payout,
         'latest_distributed': latest_payout,
         'pending_approval': 0,
+        'pending_withdrawals': 0,
+        'approvals_inbox_count': 0,
         'active_shareholders': 1,
         'draft_periods': 0,
         'review_periods': 0,

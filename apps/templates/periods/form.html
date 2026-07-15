@@ -15,7 +15,8 @@
   <div class="flex-grow-1">
     <h4 class="fs-18 fw-semibold m-0">{{ title }}</h4>
     <p class="text-muted mb-0 fs-13">
-      Enter <strong>Net Profit from Odoo</strong> for the month. The system distributes that amount by each shareholder’s ownership %.
+      Enter <strong>Net Profit from Odoo</strong>. Under Mudarabah, 50% goes to the shareholders' pool
+      (distributed by ownership %) and 50% to Akram Sweets as managing partner.
     </p>
   </div>
   <div class="text-end">
@@ -62,9 +63,11 @@
         <div class="card-body">
           <p class="text-muted fs-13 mb-3">
             Import / enter only the period’s <strong>Net Profit</strong> from Odoo.
-            Shareholder payouts are calculated as:
-            <code>Net Profit × ownership %</code>
+            Mudarabah split (default 50/50):
+            <code>Shareholders' pool = Net Profit × 50%</code>, then
+            <code>Shareholder profit = pool × ownership %</code>
             (then special arrangements and adjustments, if any).
+            The remaining 50% belongs to Akram Sweets (managing partner).
           </p>
           <div class="row align-items-end">
             <div class="col-md-8 mb-2">
@@ -150,7 +153,8 @@
       <div class="card-body">
         <ol class="mb-0 ps-3 fs-13">
           <li class="mb-2 akram-step">Enter Net Profit from Odoo for the month</li>
-          <li class="mb-2 akram-step">Preview split by ownership %</li>
+          <li class="mb-2 akram-step">Mudarabah: 50% shareholders' pool / 50% Akram Sweets</li>
+          <li class="mb-2 akram-step">Preview pool split by ownership %</li>
           <li class="mb-2 akram-step">Save as draft &amp; review calculations</li>
           <li class="mb-2 akram-step">Submit for management approval</li>
           <li class="akram-step">Approve → lock → email PDF reports</li>
@@ -234,6 +238,22 @@
     <span class="badge bg-primary-subtle text-primary ms-2" id="preview-type-badge">Profit</span>
     <span class="ms-auto text-muted fs-13" id="preview-reconcile"></span>
   </div>
+  <div class="card-body border-bottom py-3">
+    <div class="row g-3 fs-13" id="preview-mudarabah-summary">
+      <div class="col-md-4">
+        <div class="text-muted">Company Net Profit</div>
+        <div class="fw-semibold" id="preview-company-net">{{ currency_symbol }}0.00</div>
+      </div>
+      <div class="col-md-4">
+        <div class="text-muted">Shareholders' pool <span id="preview-pool-pct"></span></div>
+        <div class="fw-semibold text-primary" id="preview-pool">{{ currency_symbol }}0.00</div>
+      </div>
+      <div class="col-md-4">
+        <div class="text-muted">Akram Sweets (managing partner)</div>
+        <div class="fw-semibold" id="preview-partner">{{ currency_symbol }}0.00</div>
+      </div>
+    </div>
+  </div>
   <div class="card-body p-0">
     <div class="table-responsive">
       <table class="table table-hover period-preview-table mb-0">
@@ -250,7 +270,7 @@
         <tbody id="preview-table-body"></tbody>
         <tfoot>
           <tr class="table-light fw-semibold">
-            <td colspan="5">Company total / distributed</td>
+            <td colspan="5">Shareholders' pool / distributed</td>
             <td class="text-end" id="preview-company-total">{{ currency_symbol }}0.00</td>
           </tr>
         </tfoot>

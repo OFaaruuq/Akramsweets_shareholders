@@ -101,6 +101,8 @@ def _notification_url(action, entity_type, entity_id):
             if adjustment:
                 return url_for('periods.detail_period', period_id=adjustment.period_id)
             return url_for('periods.list_periods')
+        if entity_type == 'capital_withdrawal' and entity_id:
+            return url_for('shareholders.review_withdrawal', request_id=entity_id)
         if entity_type == 'shareholder' and entity_id:
             return url_for('shareholders.edit_shareholder', shareholder_id=entity_id)
         if entity_type == 'special_arrangement':
@@ -144,9 +146,15 @@ def _format_notification(entry, unread_cutoff):
         ('recalculate', 'monthly_period'): f'Period recalculated — {details}',
         ('submit_review', 'monthly_period'): f'Submitted for review — {details}',
         ('approve', 'monthly_period'): f'Period approved — {details}',
+        ('reject', 'monthly_period'): f'Period returned to draft — {details}',
         ('send_reports', 'monthly_period'): f'Reports & certificates emailed — {details}',
         ('notify_update', 'monthly_period'): f'Shareholder update emailed — {details}',
         ('correction_reopen', 'monthly_period'): f'Period reopened — {details}',
+        ('create', 'capital_withdrawal'): f'Capital withdrawal requested — {details}',
+        ('approve', 'capital_withdrawal'): f'Capital withdrawal approved — {details}',
+        ('reject', 'capital_withdrawal'): f'Capital withdrawal rejected — {details}',
+        ('complete', 'capital_withdrawal'): f'Capital returned — {details}',
+        ('cancel', 'capital_withdrawal'): f'Capital withdrawal cancelled — {details}',
         ('adjustment', 'manual_adjustment'): f'Manual adjustment — {details}',
         ('issue', 'certificate'): f'Certificates issued — {details}',
         ('create', 'shareholder'): f'New shareholder — {details}',
@@ -191,7 +199,9 @@ def _format_notification(entry, unread_cutoff):
 
 
 def _staff_workflow_alerts(limit, unread_cutoff):
-    """Synthetic alerts for periods waiting on review or report delivery."""
+    """Synthetic alerts for periods waiting on review, withdrawals, or report delivery."""
+    from apps.models.shareholder import CapitalWithdrawalRequest
+
     items = []
     pending_reports = (
         MonthlyPeriod.query.filter_by(status=MonthlyPeriod.STATUS_APPROVED)
@@ -218,13 +228,31 @@ def _staff_workflow_alerts(limit, unread_cutoff):
         .all()
     )
     for period in in_review:
+        submitted = period.submitted_for_review_at
         items.append({
             'id': f'review-{period.id}',
             'title': f'Awaiting approval — {period.period_label}',
-            'actor': 'System',
-            'time_label': '',
-            'relative': '',
+            'actor': period.submitted_for_review_by.full_name if period.submitted_for_review_by else 'System',
+            'time_label': submitted.strftime('%Y-%m-%d %H:%M') if submitted else '',
+            'relative': _relative_time(submitted),
             'url': url_for('periods.detail_period', period_id=period.id),
+            'unread': True,
+        })
+
+    pending_withdrawals = (
+        CapitalWithdrawalRequest.query.filter_by(status=CapitalWithdrawalRequest.STATUS_PENDING)
+        .order_by(CapitalWithdrawalRequest.requested_at.desc())
+        .limit(3)
+        .all()
+    )
+    for req in pending_withdrawals:
+        items.append({
+            'id': f'withdrawal-{req.id}',
+            'title': f'Capital withdrawal — {req.shareholder.name}',
+            'actor': 'System',
+            'time_label': req.requested_at.strftime('%Y-%m-%d %H:%M') if req.requested_at else '',
+            'relative': _relative_time(req.requested_at),
+            'url': url_for('shareholders.review_withdrawal', request_id=req.id),
             'unread': True,
         })
 

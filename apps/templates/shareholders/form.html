@@ -55,6 +55,22 @@
             {{ form.effective_from(class='form-control' + (' is-invalid' if form.effective_from.errors else ''), type='date') }}
             {% for err in form.effective_from.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
           </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label">{{ form.investment_amount.label.text }}</label>
+            <div class="input-group">
+              <span class="input-group-text">{{ currency_symbol }}</span>
+              {{ form.investment_amount(class='form-control', step='0.01', placeholder='0.00') }}
+            </div>
+            <div class="form-text">{{ form.investment_amount.description }}</div>
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label">{{ form.share_count.label.text }}</label>
+            {{ form.share_count(class='form-control', step='0.0001', placeholder='0') }}
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label">{{ form.investment_date.label.text }}</label>
+            {{ form.investment_date(class='form-control', type='date') }}
+          </div>
           <div class="col-md-6 mb-3 d-flex align-items-end gap-3">
             <div class="form-check">{{ form.is_owner(class='form-check-input', id='is-owner') }}<label class="form-check-label" for="is-owner">Company owner</label></div>
             <div class="form-check">{{ form.is_active(class='form-check-input', id='is-active') }}<label class="form-check-label" for="is-active">Active</label></div>

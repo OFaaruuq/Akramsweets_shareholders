@@ -1,0 +1,60 @@
+{% extends 'layouts/vertical.html' %}
+{% block title %}Capital Withdrawals{% endblock title %}
+{% block css %}{% include 'partials/head-css.html' %}{% endblock css %}
+{% block body_attribute %}data-menu-color="dark" data-sidebar="default"{% endblock body_attribute %}
+{% block page_content %}
+<div class="py-3 d-flex align-items-sm-center flex-sm-row flex-column gap-2">
+  <div class="flex-grow-1">
+    <h4 class="fs-18 fw-semibold m-0">Capital Withdrawal Requests</h4>
+    <p class="text-muted mb-0 fs-13">Track requests to return shareholder capital (up to 6 months per agreement).</p>
+  </div>
+</div>
+
+<div class="mb-3">
+  <a href="{{ url_for('shareholders.list_withdrawals') }}" class="btn btn-sm {% if not status_filter %}btn-primary{% else %}btn-light{% endif %}">All</a>
+  {% for st in ['pending', 'approved', 'completed', 'rejected', 'cancelled'] %}
+  <a href="{{ url_for('shareholders.list_withdrawals', status=st) }}" class="btn btn-sm {% if status_filter == st %}btn-primary{% else %}btn-light{% endif %}">{{ st|title }}</a>
+  {% endfor %}
+</div>
+
+<div class="card"><div class="card-body"><div class="table-responsive">
+<table class="table table-hover mb-0">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Shareholder</th>
+      <th>Amount</th>
+      <th>Requested</th>
+      <th>Deadline</th>
+      <th>Status</th>
+      <th>Return date</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for row in requests %}
+  <tr>
+    <td>#{{ row.id }}</td>
+    <td>{{ row.shareholder.name }}</td>
+    <td>{{ currency_symbol }}{{ '%.2f'|format(row.amount) }}</td>
+    <td>{{ row.requested_at.strftime('%Y-%m-%d') if row.requested_at else '—' }}</td>
+    <td>{{ row.deadline_at.strftime('%Y-%m-%d') if row.deadline_at else '—' }}</td>
+    <td>
+      <span class="badge
+        {% if row.status == 'pending' %}bg-warning text-dark
+        {% elif row.status == 'approved' %}bg-info
+        {% elif row.status == 'completed' %}bg-success
+        {% elif row.status == 'rejected' %}bg-danger
+        {% else %}bg-secondary{% endif %}">{{ row.status|title }}</span>
+    </td>
+    <td>{{ row.capital_return_date.strftime('%Y-%m-%d') if row.capital_return_date else '—' }}</td>
+    <td><a href="{{ url_for('shareholders.review_withdrawal', request_id=row.id) }}" class="btn btn-sm btn-soft-primary">Open</a></td>
+  </tr>
+  {% else %}
+  <tr><td colspan="8" class="text-center text-muted py-4">No capital withdrawal requests.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div></div></div>
+{% endblock page_content %}
+{% block extra_javascript %}{% include 'partials/vendor.html' %}{% endblock extra_javascript %}

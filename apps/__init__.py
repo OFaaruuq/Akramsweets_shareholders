@@ -67,6 +67,11 @@ def configure_database(app):
 
             ensure_default_brand_settings()
             ensure_default_certificate_settings()
+            from apps.services.mudarabah_service import ensure_default_mudarabah_settings
+            from apps.services.share_value_service import ensure_default_share_settings
+
+            ensure_default_mudarabah_settings()
+            ensure_default_share_settings()
             if app.config.get('MAIL_SERVER') and not SystemSetting.get('mail_server'):
                 SystemSetting.set('mail_server', app.config['MAIL_SERVER'])
             if app.config.get('MAIL_PORT') and not SystemSetting.get('mail_port'):

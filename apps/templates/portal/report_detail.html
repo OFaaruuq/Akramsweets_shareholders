@@ -18,10 +18,14 @@
 </p>
 {% endif %}
 <p><strong>Shareholder:</strong> {{ report.shareholder_name }} ({{ report.shareholder_email }})</p>
-<p><strong>Company total for month:</strong> {{ '%.2f'|format(report.company_total) }}</p>
+<p><strong>Company Net Profit (Odoo):</strong> {{ '%.2f'|format(report.company_total) }}</p>
+{% if report.shareholders_pool is defined %}
+<p><strong>Shareholders' pool ({{ '%.0f'|format(report.mudarabah_shareholder_percent) }}%):</strong> {{ '%.2f'|format(report.shareholders_pool) }}</p>
+<p><strong>Akram Sweets (managing partner):</strong> {{ '%.2f'|format(report.managing_partner_share) }}</p>
+{% endif %}
 <hr>
 <p><strong>Ownership:</strong> {{ '%.2f'|format(report.ownership_percent) }}%</p>
-<p><strong>Base share:</strong> {{ '%.2f'|format(report.base_share) }}</p>
+<p><strong>Base share (from pool):</strong> {{ '%.2f'|format(report.base_share) }}</p>
 {% if report.arrangements_applied %}
 <p class="mb-1"><strong>Special arrangements:</strong></p>
 <ul>{% for item in report.arrangements_applied %}<li>{{ item.name }} ({{ '%.2f'|format(item.percent) }}%): {{ '%.2f'|format(item.amount) }} — {{ item.description }}</li>{% endfor %}</ul>

@@ -17,12 +17,14 @@ def _arrangement_breakdown(period, calculation):
     all rules — do not reuse them as each line's amount when multiple apply.
     """
     as_of_date = period.as_of_date
-    total = money(period.total_profit_loss)
-    is_profit = total >= 0
+    # Arrangements apply to the shareholders' Mudarabah pool, not full Net Profit.
+    pool = money(getattr(period, 'shareholders_pool', None) or period.total_profit_loss)
+    company_net = money(period.total_profit_loss)
+    is_profit = company_net >= 0
     _, shareholders = validate_ownership_totals(as_of_date)
     active_ids = [sh.id for sh in shareholders]
     bases = {
-        sh.id: money(total * get_ownership_percent(sh, as_of_date) / Decimal('100'))
+        sh.id: money(pool * get_ownership_percent(sh, as_of_date) / Decimal('100'))
         for sh in shareholders
     }
 
@@ -93,6 +95,9 @@ def build_shareholder_report(period, calculation):
         'period_label': period.period_label,
         'generated_at': period.approved_at or period.calculated_at,
         'company_total': period.total_profit_loss,
+        'shareholders_pool': getattr(period, 'shareholders_pool', None) or 0,
+        'managing_partner_share': getattr(period, 'managing_partner_share', None) or 0,
+        'mudarabah_shareholder_percent': getattr(period, 'mudarabah_shareholder_percent', None) or 50,
         'company_name': brand['company_name'],
         'brand_primary_color': brand['primary_color'],
         'brand_secondary_color': brand['secondary_color'],

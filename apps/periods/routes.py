@@ -3,11 +3,12 @@ from flask_login import current_user
 
 from apps import db
 from apps.auth.decorators import finance_or_management_required, management_required
-from apps.forms import AdjustmentForm, CorrectionReopenForm, PeriodForm, ShareholderUpdateForm
+from apps.forms import AdjustmentForm, CorrectionReopenForm, PeriodForm, PeriodRejectForm, ShareholderUpdateForm
 from apps.models.period import ManualAdjustment, MonthlyPeriod, ShareholderCalculation
 from apps.models.shareholder import Shareholder
 from apps.periods import blueprint
 from apps.services.audit_service import log_action
+from apps.services.approval_service import get_pending_approvals, reject_period
 from apps.services.calculation_service import approve_period, calculate_period, preview_period_distribution, reopen_for_correction, submit_for_review
 from apps.services.period_service import (
     apply_period_form_defaults,
@@ -75,11 +76,32 @@ def _update_period_from_form(period, form):
 @blueprint.route('/')
 @finance_or_management_required
 def list_periods():
-    periods = MonthlyPeriod.query.order_by(
+    status = (request.args.get('status') or '').strip() or None
+    query = MonthlyPeriod.query
+    if status in MonthlyPeriod.STATUSES:
+        query = query.filter_by(status=status)
+    periods = query.order_by(
         MonthlyPeriod.year.desc(),
         MonthlyPeriod.month.desc(),
     ).all()
-    return render_template('periods/list.html', periods=periods, segment='periods')
+    return render_template(
+        'periods/list.html',
+        periods=periods,
+        status_filter=status,
+        segment='periods',
+    )
+
+
+@blueprint.route('/approvals')
+@finance_or_management_required
+def approvals_inbox():
+    """Unified pending approvals: periods in review + open capital withdrawals."""
+    queue = get_pending_approvals()
+    return render_template(
+        'periods/approvals.html',
+        queue=queue,
+        segment='approvals',
+    )
 
 
 @blueprint.route('/create', methods=['GET', 'POST'])
@@ -183,6 +205,7 @@ def detail_period(period_id):
         (sh.id, sh.name) for sh in Shareholder.query.filter_by(is_active=True).order_by(Shareholder.name)
     ]
     correction_form = CorrectionReopenForm()
+    reject_form = PeriodRejectForm()
     update_form = ShareholderUpdateForm()
 
     from apps.models.certificate import ShareholderCertificate
@@ -200,6 +223,7 @@ def detail_period(period_id):
         adjustments=adjustments,
         adjustment_form=adjustment_form,
         correction_form=correction_form,
+        reject_form=reject_form,
         update_form=update_form,
         report_delivery_day=get_report_delivery_day(),
         can_send_reports_now=can_send_reports_now(),
@@ -212,7 +236,13 @@ def detail_period(period_id):
 def edit_period(period_id):
     period = MonthlyPeriod.query.get_or_404(period_id)
     if not period.is_editable:
-        flash('Approved periods are locked and cannot be edited.', 'danger')
+        if period.awaits_approval:
+            flash(
+                'This period is awaiting approval and is locked. Management must return it to draft before figures can change.',
+                'warning',
+            )
+        else:
+            flash('Approved periods are locked and cannot be edited.', 'danger')
         return redirect(url_for('periods.detail_period', period_id=period.id))
 
     form = PeriodForm(obj=period)
@@ -292,6 +322,9 @@ def edit_period(period_id):
 @finance_or_management_required
 def recalculate_period(period_id):
     period = MonthlyPeriod.query.get_or_404(period_id)
+    if not period.is_editable:
+        flash('Only draft periods can be recalculated. Return to draft first if changes are needed.', 'warning')
+        return redirect(url_for('periods.detail_period', period_id=period.id))
     try:
         calculate_period(period)
         log_action('recalculate', 'monthly_period', period.id, period.period_label)
@@ -306,7 +339,7 @@ def recalculate_period(period_id):
 def submit_review(period_id):
     period = MonthlyPeriod.query.get_or_404(period_id)
     try:
-        submit_for_review(period)
+        submit_for_review(period, user=current_user)
         log_action('submit_review', 'monthly_period', period.id, period.period_label)
         try:
             from apps.services.notification_service import notify_management_period_submitted
@@ -315,7 +348,7 @@ def submit_review(period_id):
         except Exception:
             # Audit + flash already recorded; email failure must not block workflow.
             pass
-        flash('Period submitted for management review.', 'success')
+        flash('Period submitted for management review. Figures are locked until approved or returned.', 'success')
     except ValueError as exc:
         flash(str(exc), 'danger')
     return redirect(url_for('periods.detail_period', period_id=period.id))
@@ -331,6 +364,9 @@ def add_adjustment(period_id):
     ]
     if period.is_locked:
         flash('Approved periods are locked.', 'danger')
+        return redirect(url_for('periods.detail_period', period_id=period.id))
+    if period.awaits_approval:
+        flash('Periods in review are locked. Return to draft before adding adjustments.', 'warning')
         return redirect(url_for('periods.detail_period', period_id=period.id))
 
     if form.validate_on_submit():
@@ -514,6 +550,28 @@ def send_shareholder_update(period_id):
     return redirect(url_for('periods.detail_period', period_id=period.id))
 
 
+@blueprint.route('/<int:period_id>/reject', methods=['POST'])
+@management_required
+def reject_period_view(period_id):
+    period = MonthlyPeriod.query.get_or_404(period_id)
+    form = PeriodRejectForm()
+    if form.validate_on_submit():
+        try:
+            reject_period(period, current_user, form.reason.data)
+            try:
+                from apps.services.notification_service import notify_finance_period_rejected
+
+                notify_finance_period_rejected(period, rejected_by=current_user)
+            except Exception:
+                pass
+            flash('Period returned to draft. Finance has been notified to make changes and re-submit.', 'warning')
+        except ValueError as exc:
+            flash(str(exc), 'danger')
+    else:
+        flash('A rejection reason is required.', 'danger')
+    return redirect(url_for('periods.detail_period', period_id=period.id))
+
+
 @blueprint.route('/<int:period_id>/reopen-correction', methods=['POST'])
 @management_required
 def reopen_correction(period_id):
@@ -521,9 +579,12 @@ def reopen_correction(period_id):
     form = CorrectionReopenForm()
     if form.validate_on_submit():
         try:
-            _, reason = reopen_for_correction(period, form.reason.data)
+            _, reason = reopen_for_correction(period, form.reason.data, user=current_user)
             log_action('correction_reopen', 'monthly_period', period.id, reason)
-            flash('Period reopened for correction. Make changes and submit for review again.', 'warning')
+            flash(
+                'Period reopened as draft. Edit figures, recalculate, then submit for review again before approval.',
+                'warning',
+            )
         except ValueError as exc:
             flash(str(exc), 'danger')
     else:

@@ -141,6 +141,9 @@ def create_shareholder():
                 is_owner=form.is_owner.data,
                 is_active=True if form.is_active.data else False,
                 notes=form.notes.data,
+                investment_amount=form.investment_amount.data or 0,
+                share_count=form.share_count.data or 0,
+                investment_date=form.investment_date.data,
             )
             _apply_country(shareholder, form.country_code.data)
             db.session.add(shareholder)
@@ -222,6 +225,9 @@ def edit_shareholder(shareholder_id):
             shareholder.is_owner = form.is_owner.data
             shareholder.is_active = form.is_active.data
             shareholder.notes = form.notes.data
+            shareholder.investment_amount = form.investment_amount.data or 0
+            shareholder.share_count = form.share_count.data or 0
+            shareholder.investment_date = form.investment_date.data
             _apply_country(shareholder, form.country_code.data)
 
             if (
@@ -321,3 +327,67 @@ def deactivate_shareholder(shareholder_id):
     log_action('deactivate', 'shareholder', shareholder.id, shareholder.name)
     flash('Shareholder deactivated.', 'success')
     return redirect(url_for('shareholders.list_shareholders'))
+
+
+@blueprint.route('/withdrawals')
+@finance_or_management_required
+def list_withdrawals():
+    from apps.services.capital_withdrawal_service import list_withdrawal_requests
+
+    status = (request.args.get('status') or '').strip() or None
+    requests = list_withdrawal_requests(status=status)
+    return render_template(
+        'shareholders/withdrawals.html',
+        requests=requests,
+        status_filter=status,
+        segment='withdrawals',
+    )
+
+
+@blueprint.route('/withdrawals/<int:request_id>', methods=['GET', 'POST'])
+@management_required
+def review_withdrawal(request_id):
+    from apps.forms import CapitalWithdrawalReviewForm
+    from apps.models.shareholder import CapitalWithdrawalRequest
+    from apps.services.capital_withdrawal_service import (
+        approve_withdrawal,
+        cancel_withdrawal,
+        complete_withdrawal,
+        reject_withdrawal,
+    )
+
+    withdrawal = CapitalWithdrawalRequest.query.get_or_404(request_id)
+    form = CapitalWithdrawalReviewForm()
+    if request.method == 'GET':
+        form.review_notes.data = withdrawal.review_notes
+        form.capital_return_date.data = withdrawal.capital_return_date or datetime.utcnow().date()
+
+    if form.validate_on_submit():
+        try:
+            if form.submit_approve.data:
+                approve_withdrawal(withdrawal.id, current_user, form.review_notes.data)
+                flash('Capital withdrawal approved. Company has up to 6 months to return capital.', 'success')
+            elif form.submit_reject.data:
+                reject_withdrawal(withdrawal.id, current_user, form.review_notes.data)
+                flash('Capital withdrawal rejected.', 'warning')
+            elif form.submit_complete.data:
+                complete_withdrawal(
+                    withdrawal.id,
+                    current_user,
+                    capital_return_date=form.capital_return_date.data,
+                    review_notes=form.review_notes.data,
+                )
+                flash('Capital return recorded as completed.', 'success')
+            elif form.submit_cancel.data:
+                cancel_withdrawal(withdrawal.id, current_user, form.review_notes.data)
+                flash('Capital withdrawal cancelled.', 'info')
+            return redirect(url_for('shareholders.list_withdrawals'))
+        except ValueError as exc:
+            flash(str(exc), 'danger')
+
+    return render_template(
+        'shareholders/withdrawal_detail.html',
+        withdrawal=withdrawal,
+        form=form,
+        segment='withdrawals',
+    )

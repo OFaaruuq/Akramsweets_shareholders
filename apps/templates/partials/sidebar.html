@@ -63,6 +63,12 @@
                     </a>
                 </li>
                 <li>
+                    <a href="{{ url_for('portal.withdrawal') }}" class="tp-link">
+                        <span class="nav-icon"><iconify-icon icon="solar:wallet-money-bold-duotone"></iconify-icon></span>
+                        <span> Capital Withdrawal </span>
+                    </a>
+                </li>
+                <li>
                     <a href="{{ url_for('auth.account') }}" class="tp-link">
                         <span class="nav-icon"><iconify-icon icon="solar:settings-bold-duotone"></iconify-icon></span>
                         <span> Account Settings </span>
@@ -88,6 +94,13 @@
                 </li>
 
                 <li>
+                    <a href="{{ url_for('periods.approvals_inbox') }}" class="tp-link">
+                        <span class="nav-icon"><iconify-icon icon="solar:check-circle-bold-duotone"></iconify-icon></span>
+                        <span> Approvals </span>
+                    </a>
+                </li>
+
+                <li>
                     <a href="{{ url_for('contacts.list_contacts') }}" class="tp-link">
                         <span class="nav-icon"><iconify-icon icon="solar:shield-user-bold-duotone"></iconify-icon></span>
                         <span> Contacts </span>
@@ -98,6 +111,13 @@
                     <a href="{{ url_for('shareholders.list_shareholders') }}" class="tp-link">
                         <span class="nav-icon"><iconify-icon icon="solar:users-group-rounded-bold-duotone"></iconify-icon></span>
                         <span> Shareholders </span>
+                    </a>
+                </li>
+
+                <li>
+                    <a href="{{ url_for('shareholders.list_withdrawals') }}" class="tp-link">
+                        <span class="nav-icon"><iconify-icon icon="solar:wallet-money-bold-duotone"></iconify-icon></span>
+                        <span> Capital Withdrawals </span>
                     </a>
                 </li>
 
@@ -114,6 +134,13 @@
                     <a href="{{ url_for('reports.certificates_register') }}" class="tp-link">
                         <span class="nav-icon"><iconify-icon icon="solar:diploma-verified-bold-duotone"></iconify-icon></span>
                         <span> Certificates </span>
+                    </a>
+                </li>
+
+                <li>
+                    <a href="{{ url_for('reports.mudarabah_summary') }}" class="tp-link">
+                        <span class="nav-icon"><iconify-icon icon="solar:chart-square-bold-duotone"></iconify-icon></span>
+                        <span> Mudarabah Summary </span>
                     </a>
                 </li>
 

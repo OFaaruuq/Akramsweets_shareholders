@@ -16,7 +16,11 @@ class MonthlyPeriod(db.Model):
     year = db.Column(db.Integer, nullable=False)
     month = db.Column(db.Integer, nullable=False)
     total_profit_loss = db.Column(db.Numeric(14, 2), nullable=False, default=0)
-    # Full P&L statement (all entered manually). Net Profit = total_profit_loss.
+    # Mudarabah pools (derived from Net Profit × configured shareholder %)
+    shareholders_pool = db.Column(db.Numeric(14, 2), nullable=False, default=0)
+    managing_partner_share = db.Column(db.Numeric(14, 2), nullable=False, default=0)
+    mudarabah_shareholder_percent = db.Column(db.Numeric(7, 4), nullable=False, default=50)
+    # Full P&L statement (optional notes). Net Profit = total_profit_loss.
     income = db.Column(db.Numeric(14, 2), nullable=False, default=0)
     gross_profit = db.Column(db.Numeric(14, 2), nullable=False, default=0)
     total_gross_profit = db.Column(db.Numeric(14, 2), nullable=False, default=0)
@@ -33,12 +37,19 @@ class MonthlyPeriod(db.Model):
     calculated_at = db.Column(db.DateTime, nullable=True)
     approved_at = db.Column(db.DateTime, nullable=True)
     approved_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    submitted_for_review_at = db.Column(db.DateTime, nullable=True)
+    submitted_for_review_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    rejection_reason = db.Column(db.Text, nullable=True)
+    rejected_at = db.Column(db.DateTime, nullable=True)
+    rejected_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     reports_sent_at = db.Column(db.DateTime, nullable=True)
     created_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     approved_by = db.relationship('User', foreign_keys=[approved_by_id])
+    submitted_for_review_by = db.relationship('User', foreign_keys=[submitted_for_review_by_id])
+    rejected_by = db.relationship('User', foreign_keys=[rejected_by_id])
     created_by = db.relationship('User', foreign_keys=[created_by_id])
     calculations = db.relationship(
         'ShareholderCalculation',
@@ -67,7 +78,12 @@ class MonthlyPeriod(db.Model):
 
     @property
     def is_editable(self):
-        return self.status in (self.STATUS_DRAFT, self.STATUS_REVIEW)
+        """Figures may only change in draft. Review is frozen until approve or reject."""
+        return self.status == self.STATUS_DRAFT
+
+    @property
+    def awaits_approval(self):
+        return self.status == self.STATUS_REVIEW
 
     @property
     def as_of_date(self):
@@ -88,6 +104,11 @@ class MonthlyPeriod(db.Model):
     @property
     def net_profit(self):
         return self.total_profit_loss
+
+    @property
+    def company_share(self):
+        """Akram Sweets managing-partner share (Mudarabah)."""
+        return self.managing_partner_share
 
 
 class ShareholderCalculation(db.Model):

@@ -27,6 +27,40 @@
 <form method="post" enctype="multipart/form-data">{{ form.hidden_tag() }}
 
 <div class="card mb-3">
+  <div class="card-header"><h5 class="card-title mb-0">Mudarabah (profit sharing)</h5></div>
+  <div class="card-body">
+    <p class="text-muted fs-13 mb-3">
+      The company operates under a Mudarabah agreement.
+      Monthly Net Profit from Odoo is split between the <strong>shareholders' profit pool</strong>
+      and <strong>Akram Sweets</strong> (managing partner). Only the shareholders' pool is then
+      distributed by ownership %.
+    </p>
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <label class="form-label">{{ form.mudarabah_shareholder_percent.label.text }}</label>
+        <div class="input-group">
+          {{ form.mudarabah_shareholder_percent(class='form-control', step='0.0001', placeholder='50') }}
+          <span class="input-group-text">%</span>
+        </div>
+        <div class="form-text">{{ form.mudarabah_shareholder_percent.description }}</div>
+        {% for error in form.mudarabah_shareholder_percent.errors %}<div class="text-danger fs-13">{{ error }}</div>{% endfor %}
+      </div>
+      <div class="col-md-8 mb-3">
+        <label class="form-label">Current split</label>
+        <div class="border rounded p-3 bg-light">
+          <div class="fw-semibold">{{ mudarabah.label if mudarabah else '50% shareholders / 50% Akram Sweets (managing partner)' }}</div>
+          <div class="text-muted fs-13 mt-1">
+            Example: Net Profit {{ currency_symbol }}30,000 → Shareholders' pool
+            {{ currency_symbol }}{{ '%.0f'|format(30000 * ((mudarabah.shareholder_percent if mudarabah else 50) / 100)) }},
+            Akram Sweets {{ currency_symbol }}{{ '%.0f'|format(30000 * (1 - ((mudarabah.shareholder_percent if mudarabah else 50) / 100))) }}.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
   <div class="card-header"><h5 class="card-title mb-0">Share value</h5></div>
   <div class="card-body">
     <p class="text-muted fs-13 mb-3">

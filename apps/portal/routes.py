@@ -127,6 +127,40 @@ def ownership():
     )
 
 
+@blueprint.route('/withdrawal', methods=['GET', 'POST'])
+@shareholder_portal_required
+def withdrawal():
+    from apps.forms import CapitalWithdrawalForm
+    from apps.models.shareholder import Shareholder
+    from apps.services.capital_withdrawal_service import (
+        create_withdrawal_request,
+        list_withdrawal_requests,
+    )
+
+    shareholder = Shareholder.query.get_or_404(current_user.shareholder_id)
+    form = CapitalWithdrawalForm()
+    if form.validate_on_submit():
+        try:
+            create_withdrawal_request(
+                shareholder,
+                form.amount.data,
+                form.reason.data,
+                user=current_user,
+            )
+            flash('Your capital withdrawal request was submitted for approval.', 'success')
+            return redirect(url_for('portal.withdrawal'))
+        except ValueError as exc:
+            flash(str(exc), 'danger')
+
+    requests = list_withdrawal_requests(shareholder_id=shareholder.id)
+    return render_template(
+        'portal/withdrawal.html',
+        form=form,
+        requests=requests,
+        segment='portal-withdrawal',
+    )
+
+
 @blueprint.route('/profile', methods=['GET', 'POST'])
 @shareholder_portal_required
 def profile():

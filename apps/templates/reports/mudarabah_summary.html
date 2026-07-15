@@ -1,0 +1,52 @@
+{% extends 'layouts/vertical.html' %}
+{% block title %}Mudarabah Summary{% endblock title %}
+{% block css %}{% include 'partials/head-css.html' %}{% endblock css %}
+{% block body_attribute %}data-menu-color="dark" data-sidebar="default"{% endblock body_attribute %}
+{% block page_content %}
+<div class="py-3">
+  <h4 class="fs-18 fw-semibold m-0">Mudarabah Distribution Summary</h4>
+  <p class="text-muted mb-0 fs-13">
+    {{ mudarabah.label if mudarabah else '50% shareholders / 50% Akram Sweets' }}.
+    Net Profit is imported from Odoo; only the shareholders' pool is distributed by ownership %.
+  </p>
+</div>
+
+{% if withdrawals %}
+<div class="alert alert-warning">
+  <strong>{{ withdrawals|length }} outstanding capital withdrawal request(s).</strong>
+  <a href="{{ url_for('shareholders.list_withdrawals', status='pending') }}" class="alert-link">Review withdrawals</a>
+</div>
+{% endif %}
+
+<div class="card"><div class="card-body"><div class="table-responsive">
+<table class="table table-hover mb-0">
+  <thead>
+    <tr>
+      <th>Period</th>
+      <th>Status</th>
+      <th>Net Profit (Odoo)</th>
+      <th>Shareholders' pool</th>
+      <th>Akram Sweets share</th>
+      <th>Distributed to SH</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for row in rows %}
+  <tr>
+    <td>{{ row.period.period_label }}</td>
+    <td><span class="badge bg-secondary-subtle text-secondary">{{ row.status }}</span></td>
+    <td class="{{ 'text-success' if row.net_profit >= 0 else 'text-danger' }}">{{ currency_symbol }}{{ '%.2f'|format(row.net_profit) }}</td>
+    <td class="text-primary">{{ currency_symbol }}{{ '%.2f'|format(row.shareholders_pool) }} <span class="text-muted fs-12">({{ '%.0f'|format(row.mudarabah_percent) }}%)</span></td>
+    <td>{{ currency_symbol }}{{ '%.2f'|format(row.managing_partner_share) }}</td>
+    <td>{{ currency_symbol }}{{ '%.2f'|format(row.distributed) }}</td>
+    <td><a href="{{ url_for('periods.detail_period', period_id=row.period.id) }}" class="btn btn-sm btn-soft-primary">Open</a></td>
+  </tr>
+  {% else %}
+  <tr><td colspan="7" class="text-center text-muted py-4">No calculated periods yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div></div></div>
+{% endblock page_content %}
+{% block extra_javascript %}{% include 'partials/vendor.html' %}{% endblock extra_javascript %}

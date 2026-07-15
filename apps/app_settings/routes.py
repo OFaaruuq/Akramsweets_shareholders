@@ -205,13 +205,20 @@ def system_settings():
         get_share_settings,
         save_share_settings,
     )
+    from apps.services.mudarabah_service import (
+        ensure_default_mudarabah_settings,
+        get_mudarabah_settings,
+        save_mudarabah_settings,
+    )
 
     ensure_default_brand_settings()
     ensure_default_certificate_settings()
     ensure_default_share_settings()
+    ensure_default_mudarabah_settings()
     brand = get_brand_settings()
     cert = get_certificate_settings()
     share = get_share_settings()
+    mudarabah = get_mudarabah_settings()
     form = SystemSettingsForm(
         auto_email_on_approval=str(SystemSetting.get('auto_email_on_approval', 'true')).lower() in ('1', 'true', 'yes', 'on'),
         sms_notifications_enabled=str(SystemSetting.get('sms_notifications_enabled', 'false')).lower() in ('1', 'true', 'yes', 'on'),
@@ -225,6 +232,7 @@ def system_settings():
         in ('1', 'true', 'yes', 'on'),
         share_value=share['share_value'],
         total_company_shares=share['total_company_shares'] if share['has_total_shares'] else None,
+        mudarabah_shareholder_percent=mudarabah['shareholder_percent'],
         report_delivery_day=SystemSetting.get('report_delivery_day'),
         mail_from=SystemSetting.get('mail_from'),
         mail_server=SystemSetting.get('mail_server'),
@@ -272,6 +280,7 @@ def system_settings():
         )
         try:
             save_share_settings(form.share_value.data, form.total_company_shares.data)
+            save_mudarabah_settings(form.mudarabah_shareholder_percent.data)
         except ValueError as exc:
             flash(str(exc), 'danger')
             return render_template(
@@ -279,6 +288,7 @@ def system_settings():
                 form=form,
                 brand=brand,
                 cert=cert,
+                mudarabah=mudarabah,
                 segment='settings',
             )
         for key in (
@@ -335,6 +345,7 @@ def system_settings():
                 form=form,
                 brand=get_brand_settings(),
                 cert=get_certificate_settings(),
+                mudarabah=get_mudarabah_settings(),
                 segment='settings',
             )
 
@@ -347,6 +358,7 @@ def system_settings():
         form=form,
         brand=brand,
         cert=cert,
+        mudarabah=mudarabah,
         segment='settings',
     )
 

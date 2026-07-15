@@ -27,6 +27,7 @@ REQUIRED_TABLES = {
     'system_settings',
     'todo_dismissals',
     'login_otps',
+    'capital_withdrawal_requests',
 }
 
 REQUIRED_COLUMNS = {
@@ -35,9 +36,13 @@ REQUIRED_COLUMNS = {
         'total_gross_profit', 'total_income', 'total_revenues', 'cost_of_goods',
         'total_expenses', 'other_income', 'entry_mode', 'status', 'calculated_at',
         'approved_at', 'approved_by_id', 'reports_sent_at',
+        'shareholders_pool', 'managing_partner_share', 'mudarabah_shareholder_percent',
+        'submitted_for_review_at', 'submitted_for_review_by_id',
+        'rejection_reason', 'rejected_at', 'rejected_by_id',
     },
     'shareholders': {
         'name', 'email', 'phone', 'country', 'country_code', 'is_owner', 'is_active',
+        'investment_amount', 'share_count', 'investment_date',
     },
     'users': {
         'email', 'password_hash', 'full_name', 'role', 'is_active', 'avatar_path',

@@ -30,7 +30,25 @@
     </div></div>
   </div>
   {% endif %}
+  {% if shareholder.investment_amount %}
+  <div class="col-md-4">
+    <div class="card"><div class="card-body">
+      <p class="text-muted mb-1">Recorded investment</p>
+      <h3 class="mb-0">{{ currency_symbol }}{{ '%.2f'|format(shareholder.investment_amount) }}</h3>
+      {% if shareholder.investment_date %}<div class="text-muted fs-13 mt-1">Since {{ shareholder.investment_date }}</div>{% endif %}
+    </div></div>
+  </div>
+  {% endif %}
+  {% if shareholder.share_count %}
+  <div class="col-md-4">
+    <div class="card"><div class="card-body">
+      <p class="text-muted mb-1">Recorded shares</p>
+      <h3 class="mb-0">{{ '%.4f'|format(shareholder.share_count) }}</h3>
+    </div></div>
+  </div>
+  {% endif %}
 </div>
+<p class="mb-3"><a href="{{ url_for('portal.withdrawal') }}" class="btn btn-soft-primary btn-sm">Request capital withdrawal</a></p>
 <div class="card"><div class="card-body"><div class="table-responsive">
 <table class="table mb-0">
   <thead><tr><th>Effective from</th><th>Effective to</th><th>Ownership %</th></tr></thead>

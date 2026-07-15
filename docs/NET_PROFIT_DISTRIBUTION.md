@@ -1,14 +1,18 @@
-# Monthly periods: Net Profit from Odoo → ownership distribution
+# Monthly periods: Net Profit from Odoo → Mudarabah → ownership distribution
 
 ## Rule
 
 For each accounting period (e.g. monthly):
 
 1. **Only Net Profit** is taken from Odoo (entered into this system with an optional Odoo reference).
-2. The system calculates each shareholder’s share from **ownership / investment %**.
+2. Under **Mudarabah**, Net Profit is split (default **50% / 50%**):
+   - **Shareholders' profit pool** — distributed by ownership %
+   - **Akram Sweets (managing partner)** — retained by the company
+3. Each shareholder’s base share is calculated from the **pool**, not from full Net Profit.
 
 ```
-base_share = Net Profit × (ownership % ÷ 100)
+Shareholders' pool = Net Profit × mudarabah_shareholder_percent / 100
+base_share = Shareholders' pool × (ownership % ÷ 100)
 ```
 
 Then, if configured:
@@ -16,9 +20,11 @@ Then, if configured:
 - Special arrangements may redirect a bonus % between shareholders  
 - Manual adjustments may apply  
 
-Company total still reconciles to Net Profit (± $0.01).
+Shareholder distribution reconciles to the **pool** (± $0.01).
 
 Other P&L lines (Income, Gross Profit, Expenses, etc.) are **optional notes only** and are **not** used for distribution.
+
+See [MUDARABAH.md](MUDARABAH.md) for the full agreement rules (withdrawal, audit, reporting).
 
 ---
 
@@ -28,7 +34,7 @@ Other P&L lines (Income, Gross Profit, Expenses, etc.) are **optional notes only
 2. Choose year / month  
 3. Paste optional Odoo journal / period reference  
 4. Enter **Net Profit (from Odoo)** — required  
-5. Preview distribution (shows ownership % and base shares)  
+5. Preview Mudarabah pools + ownership distribution  
 6. Save → draft calculated → submit → approve  
 
 ---
@@ -54,7 +60,9 @@ Dashboard “from Odoo” KPI widgets are separate admin display figures, not th
 | Step | Formula |
 |------|---------|
 | Input | Net Profit (Odoo) |
-| Base share | Net Profit × ownership % |
+| Shareholders' pool | Net Profit × 50% (configurable) |
+| Akram Sweets share | Net Profit − pool |
+| Base share | Pool × ownership % |
 | After arrangements | base ± arrangement deduction/received |
 | After adjustments | ± manual adjustment |
 | Final | stored on the period for reports & certificates |

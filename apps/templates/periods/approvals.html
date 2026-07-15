@@ -1,0 +1,73 @@
+{% extends 'layouts/vertical.html' %}
+{% block title %}Approvals{% endblock title %}
+{% block css %}{% include 'partials/head-css.html' %}{% endblock css %}
+{% block body_attribute %}data-menu-color="dark" data-sidebar="default"{% endblock body_attribute %}
+{% block page_content %}
+<div class="py-3 d-flex align-items-sm-center flex-sm-row flex-column gap-2">
+  <div class="flex-grow-1">
+    <h4 class="fs-18 fw-semibold m-0">Approvals inbox</h4>
+    <p class="text-muted mb-0 fs-13">Periods awaiting approval and open capital withdrawal requests.</p>
+  </div>
+</div>
+
+<div class="row mb-3">
+  <div class="col-md-4">
+    <div class="card"><div class="card-body">
+      <p class="text-muted mb-1">Periods in review</p>
+      <h3 class="mb-0">{{ queue.period_count }}</h3>
+    </div></div>
+  </div>
+  <div class="col-md-4">
+    <div class="card"><div class="card-body">
+      <p class="text-muted mb-1">Pending withdrawals</p>
+      <h3 class="mb-0">{{ queue.withdrawal_count }}</h3>
+    </div></div>
+  </div>
+  <div class="col-md-4">
+    <div class="card"><div class="card-body">
+      <p class="text-muted mb-1">Total open items</p>
+      <h3 class="mb-0">{{ queue.total_open }}</h3>
+    </div></div>
+  </div>
+</div>
+
+<div class="card"><div class="card-body p-0"><div class="table-responsive">
+<table class="table table-hover mb-0">
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Item</th>
+      <th>Detail</th>
+      <th>Status</th>
+      <th>Submitted</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for item in queue.approval_items %}
+  <tr>
+    <td>
+      {% if item.kind == 'period' %}
+      <span class="badge bg-info-subtle text-info">Period</span>
+      {% else %}
+      <span class="badge bg-warning-subtle text-warning">Withdrawal</span>
+      {% endif %}
+    </td>
+    <td class="fw-semibold">{{ item.title }}</td>
+    <td class="fs-13 text-muted">{{ item.subtitle }}{% if item.submitted_by %}<br>By {{ item.submitted_by }}{% endif %}</td>
+    <td><span class="badge bg-secondary-subtle text-secondary">{{ item.status|title }}</span></td>
+    <td class="fs-13">{{ item.submitted_at.strftime('%Y-%m-%d %H:%M') if item.submitted_at else '—' }}</td>
+    <td class="text-end">
+      <a href="{{ url_for(item.url_endpoint, **item.url_kwargs) }}" class="btn btn-sm {% if current_user.can_approve_periods() %}btn-primary{% else %}btn-soft-primary{% endif %}">
+        {% if item.kind == 'period' and current_user.can_approve_periods() %}Review &amp; approve{% elif item.kind == 'withdrawal' and current_user.is_management() %}Review{% else %}Open{% endif %}
+      </a>
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="6" class="text-center text-muted py-4">Nothing waiting for approval.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div></div></div>
+{% endblock page_content %}
+{% block extra_javascript %}{% include 'partials/vendor.html' %}{% endblock extra_javascript %}

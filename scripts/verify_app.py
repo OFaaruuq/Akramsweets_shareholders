@@ -93,6 +93,9 @@ def main():
         '/settings/audit-log',
         '/users/',
         '/reports/',
+        '/reports/mudarabah',
+        '/shareholders/withdrawals',
+        '/periods/approvals',
         '/analytics',
     ]:
         r = client.get(path)
@@ -118,9 +121,13 @@ def main():
         from datetime import date as date_cls
 
         bare = preview_period_distribution(Decimal('100000'), date_cls(2026, 6, 30))
-        # With seed arrangement applied in preview — still must reconcile to company total
-        if abs(float(bare['distributed_total']) - 100000) > 0.01:
-            errors.append('Distribution must reconcile to Net Profit')
+        # Mudarabah: 50% pool = 50,000 — distribution reconciles to the pool (not full Net Profit)
+        if abs(float(bare['shareholders_pool']) - 50000) > 0.01:
+            errors.append(f'Shareholders pool should be 50% of Net Profit, got {bare.get("shareholders_pool")}')
+        if abs(float(bare['managing_partner_share']) - 50000) > 0.01:
+            errors.append(f'Managing partner share should be 50% of Net Profit, got {bare.get("managing_partner_share")}')
+        if abs(float(bare['distributed_total']) - 50000) > 0.01:
+            errors.append('Distribution must reconcile to shareholders\' Mudarabah pool')
 
         period = MonthlyPeriod(
             year=2026,
@@ -140,14 +147,19 @@ def main():
         db.session.commit()
         calculate_period(period)
         results = {c.shareholder.name: float(c.final_amount) for c in period.calculations}
+        # Pool 50k · base 15k/20k/15k · 20% all-others arrangement → 22k / 16k / 12k
         expected = {
-            'Pocly (Owner)': 44000.0,
-            'Shareholder A': 32000.0,
-            'Shareholder B': 24000.0,
+            'Pocly (Owner)': 22000.0,
+            'Shareholder A': 16000.0,
+            'Shareholder B': 12000.0,
         }
         for name, val in expected.items():
             if abs(results.get(name, 0) - val) > 0.01:
                 errors.append(f'Calc mismatch {name}: got {results.get(name)} expected {val}')
+        if abs(float(period.shareholders_pool or 0) - 50000) > 0.01:
+            errors.append(f'Period shareholders_pool expected 50000, got {period.shareholders_pool}')
+        if abs(float(period.managing_partner_share or 0) - 50000) > 0.01:
+            errors.append(f'Period managing_partner_share expected 50000, got {period.managing_partner_share}')
 
         # Selective arrangement: 10% only from Shareholder A → Pocly
         from apps.models.arrangement import SpecialArrangement
@@ -176,13 +188,12 @@ def main():
         selective_results = {
             c.shareholder.name: float(c.final_amount) for c in selective_period.calculations
         }
-        # Base: 30k/40k/30k + existing 20% all-others (Pocly +14k, A -8k, B -6k)
-        # Plus selective 10% of A's base (4k) → Pocly +4k, A -4k
-        # Finals: Pocly 48000, A 28000, B 24000
+        # Pool 50k · base 15/20/15 · 20% all-others (+7k/-4k/-3k) · +10% of A's base (2k)
+        # Finals: Pocly 24000, A 14000, B 12000
         selective_expected = {
-            'Pocly (Owner)': 48000.0,
-            'Shareholder A': 28000.0,
-            'Shareholder B': 24000.0,
+            'Pocly (Owner)': 24000.0,
+            'Shareholder A': 14000.0,
+            'Shareholder B': 12000.0,
         }
         for name, val in selective_expected.items():
             if abs(selective_results.get(name, 0) - val) > 0.01:
@@ -236,16 +247,47 @@ def main():
                 errors.append('Certificate PDF generation failed')
 
         total = sum(float(c.final_amount) for c in period.calculations)
-        if abs(total - 100000.0) > 0.01:
-            errors.append(f'Total distribution {total} != 100000')
+        if abs(total - 50000.0) > 0.01:
+            errors.append(f'Total distribution {total} != 50000 (Mudarabah pool)')
+
+        from apps.services.capital_withdrawal_service import create_withdrawal_request, approve_withdrawal
+
+        wd = create_withdrawal_request(sh_a, Decimal('1000'), 'Verify capital return workflow', user=admin)
+        if wd.status != 'pending':
+            errors.append('Withdrawal request not pending')
+        wd = approve_withdrawal(wd.id, admin, 'OK for verification')
+        if wd.status != 'approved':
+            errors.append('Withdrawal request not approved')
+        # Deadline should be ~6 months from approval, not request
+        if wd.deadline_at and wd.reviewed_at:
+            delta_days = (wd.deadline_at - wd.reviewed_at).days
+            if delta_days < 170 or delta_days > 190:
+                errors.append(f'Withdrawal deadline should be ~183 days after approval, got {delta_days}')
+
+        from apps.services.approval_service import get_pending_approvals, reject_period
+
+        reject_period_test = MonthlyPeriod(year=2026, month=9, total_profit_loss=Decimal('10000'))
+        db.session.add(reject_period_test)
+        db.session.commit()
+        calculate_period(reject_period_test)
+        submit_for_review(reject_period_test, user=admin)
+        reject_period(reject_period_test, admin, 'Figures need correction for verify')
+        if reject_period_test.status != MonthlyPeriod.STATUS_DRAFT:
+            errors.append('Reject should return period to draft')
+        inbox = get_pending_approvals()
+        if 'period_count' not in inbox:
+            errors.append('Approvals inbox missing period_count')
 
         from apps.services.calculation_service import reopen_for_correction
         from apps.services.pdf_service import generate_shareholder_report_pdf
         from apps.services.report_service import build_shareholder_report
 
-        reopen_for_correction(period, 'Correction test: adjusted prior month entry')
+        reopen_for_correction(period, 'Correction test: adjusted prior month entry', user=admin)
+        if period.status != MonthlyPeriod.STATUS_DRAFT:
+            errors.append('Period not reopened to draft for correction')
+        submit_for_review(period, user=admin)
         if period.status != MonthlyPeriod.STATUS_REVIEW:
-            errors.append('Period not reopened for correction')
+            errors.append('Period not re-submitted after correction')
         approve_period(period, admin)
 
         calc_a = next(c for c in period.calculations if c.shareholder.name == 'Shareholder A')
@@ -282,7 +324,7 @@ def main():
             sess['_user_id'] = str(user.id)
             sess['_fresh'] = True
 
-    for path in ['/portal/', '/portal/reports', '/portal/ownership', '/auth/account']:
+    for path in ['/portal/', '/portal/reports', '/portal/ownership', '/portal/withdrawal', '/auth/account']:
         r = client.get(path)
         if r.status_code != 200:
             errors.append(f'{path} returned {r.status_code}')
@@ -306,7 +348,7 @@ def main():
     r = client.get(f'/portal/reports/{period_id}')
     if r.status_code != 200:
         errors.append(f'Shareholder report detail returned {r.status_code}')
-    elif '32000.00' not in r.get_data(as_text=True):
+    elif '16000.00' not in r.get_data(as_text=True):
         errors.append('Shareholder report detail missing expected payout')
 
     r = client.get(f'/portal/reports/{period_id}/pdf')

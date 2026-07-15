@@ -1,0 +1,58 @@
+{% extends 'layouts/vertical.html' %}
+{% block title %}Capital Withdrawal{% endblock title %}
+{% block css %}{% include 'partials/head-css.html' %}{% endblock css %}
+{% block body_attribute %}data-menu-color="dark" data-sidebar="default"{% endblock body_attribute %}
+{% block page_content %}
+<div class="py-3">
+  <h4 class="fs-18 fw-semibold m-0">Request capital return</h4>
+  <p class="text-muted mb-0 fs-13">
+    Submit a request to withdraw your investment. The company has up to six (6) months to return capital after approval.
+  </p>
+</div>
+
+<div class="row">
+  <div class="col-xl-5">
+    <div class="card mb-3"><div class="card-body">
+      <form method="post">
+        {{ form.hidden_tag() }}
+        <div class="mb-3">
+          <label class="form-label">{{ form.amount.label.text }}</label>
+          <div class="input-group">
+            <span class="input-group-text">{{ currency_symbol }}</span>
+            {{ form.amount(class='form-control', step='0.01') }}
+          </div>
+          {% for err in form.amount.errors %}<div class="text-danger fs-13">{{ err }}</div>{% endfor %}
+        </div>
+        <div class="mb-3">
+          <label class="form-label">{{ form.reason.label.text }}</label>
+          {{ form.reason(class='form-control', rows='4') }}
+          {% for err in form.reason.errors %}<div class="text-danger fs-13">{{ err }}</div>{% endfor %}
+        </div>
+        {{ form.submit(class='btn btn-primary') }}
+      </form>
+    </div></div>
+  </div>
+  <div class="col-xl-7">
+    <div class="card"><div class="card-header"><h5 class="card-title mb-0">Your requests</h5></div>
+    <div class="card-body p-0"><div class="table-responsive">
+      <table class="table mb-0">
+        <thead><tr><th>Date</th><th>Amount</th><th>Deadline</th><th>Status</th><th>Return</th></tr></thead>
+        <tbody>
+        {% for row in requests %}
+        <tr>
+          <td>{{ row.requested_at.strftime('%Y-%m-%d') }}</td>
+          <td>{{ currency_symbol }}{{ '%.2f'|format(row.amount) }}</td>
+          <td>{{ row.deadline_at.strftime('%Y-%m-%d') }}</td>
+          <td>{{ row.status|title }}</td>
+          <td>{{ row.capital_return_date or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-center text-muted py-3">No requests yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div></div></div>
+  </div>
+</div>
+{% endblock page_content %}
+{% block extra_javascript %}{% include 'partials/vendor.html' %}{% endblock extra_javascript %}

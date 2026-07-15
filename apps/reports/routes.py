@@ -37,6 +37,41 @@ def history():
     return render_template('reports/history_admin.html', periods=periods, segment='reports')
 
 
+@blueprint.route('/mudarabah')
+@finance_or_management_required
+def mudarabah_summary():
+    """Monthly Mudarabah pools: Net Profit, shareholders' pool, managing partner share."""
+    from apps.services.capital_withdrawal_service import outstanding_withdrawal_requests
+    from apps.services.mudarabah_service import get_mudarabah_settings
+
+    periods = (
+        MonthlyPeriod.query.filter(MonthlyPeriod.calculated_at.isnot(None))
+        .order_by(MonthlyPeriod.year.desc(), MonthlyPeriod.month.desc())
+        .limit(36)
+        .all()
+    )
+    rows = []
+    for period in periods:
+        distributed = sum((float(c.final_amount) for c in period.calculations), 0.0)
+        rows.append({
+            'period': period,
+            'net_profit': float(period.total_profit_loss or 0),
+            'shareholders_pool': float(period.shareholders_pool or 0),
+            'managing_partner_share': float(period.managing_partner_share or 0),
+            'mudarabah_percent': float(period.mudarabah_shareholder_percent or 50),
+            'distributed': distributed,
+            'status': period.status,
+        })
+    withdrawals = outstanding_withdrawal_requests()
+    return render_template(
+        'reports/mudarabah_summary.html',
+        rows=rows,
+        mudarabah=get_mudarabah_settings(),
+        withdrawals=withdrawals,
+        segment='mudarabah',
+    )
+
+
 @blueprint.route('/certificates')
 @finance_or_management_required
 def certificates_register():

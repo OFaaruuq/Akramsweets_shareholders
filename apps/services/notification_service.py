@@ -116,6 +116,123 @@ def notify_management_period_submitted(period, submitted_by=None):
     return {'ok': True, 'results': results}
 
 
+def notify_finance_period_rejected(period, rejected_by=None):
+    """Email period creator / finance when management returns a period to draft."""
+    if not notification_flag('notify_management_on_review', True):
+        return {'sent': False, 'mode': 'disabled'}
+
+    from apps.models.user import User
+    from apps.services.email_service import send_system_notice
+
+    recipients = []
+    if period.submitted_for_review_by_id and period.submitted_for_review_by:
+        recipients.append(period.submitted_for_review_by)
+    elif period.created_by_id and period.created_by:
+        recipients.append(period.created_by)
+    else:
+        recipients = (
+            User.query.filter(User.role.in_([User.ROLE_FINANCE, User.ROLE_OWNER, User.ROLE_ADMIN]))
+            .filter_by(is_active=True)
+            .all()
+        )
+
+    actor = getattr(rejected_by, 'full_name', None) or 'Management'
+    reason = (period.rejection_reason or '').strip() or 'No reason provided.'
+    subject = f'Period returned to draft — {period.period_label}'
+    results = []
+    seen = set()
+    for user in recipients:
+        if not user or not user.email or user.email in seen:
+            continue
+        seen.add(user.email)
+        result = send_system_notice(
+            user.email,
+            subject,
+            title='Period needs changes',
+            paragraphs=[
+                f'Hello {user.full_name},',
+                f'{actor} returned {period.period_label} to draft.',
+                f'Reason: {reason}',
+                'Update the figures if needed, recalculate, and submit for review again.',
+            ],
+            cta_label='Open period',
+            cta_endpoint='periods.detail_period',
+            cta_kwargs={'period_id': period.id},
+        )
+        results.append({'user': user.email, **result})
+    return {'ok': True, 'results': results}
+
+
+def notify_management_withdrawal_requested(request_obj, actor=None):
+    """Alert owners/admins when a shareholder requests capital return."""
+    from apps.models.user import User
+    from apps.services.display_settings_service import money_label
+    from apps.services.email_service import send_system_notice
+
+    recipients = (
+        User.query.filter(User.role.in_([User.ROLE_OWNER, User.ROLE_ADMIN]))
+        .filter_by(is_active=True)
+        .all()
+    )
+    sh_name = request_obj.shareholder.name if request_obj.shareholder else 'Shareholder'
+    subject = f'Capital withdrawal request — {sh_name}'
+    results = []
+    for user in recipients:
+        result = send_system_notice(
+            user.email,
+            subject,
+            title='Capital withdrawal pending',
+            paragraphs=[
+                f'Hello {user.full_name},',
+                f'{sh_name} requested return of {money_label(request_obj.amount)}.',
+                f'Reason: {(request_obj.reason or "")[:400]}',
+                'Review and approve or reject in Capital Withdrawals.',
+            ],
+            cta_label='Review request',
+            cta_endpoint='shareholders.review_withdrawal',
+            cta_kwargs={'request_id': request_obj.id},
+        )
+        results.append({'user': user.email, **result})
+    return {'ok': True, 'results': results}
+
+
+def notify_shareholder_withdrawal_status(request_obj, status_label):
+    """Notify the shareholder when their withdrawal request changes status."""
+    from apps.services.display_settings_service import money_label
+    from apps.services.email_service import send_system_notice
+
+    shareholder = request_obj.shareholder
+    if not shareholder or not shareholder.email:
+        return {'sent': False, 'mode': 'no_email'}
+
+    deadline = (
+        request_obj.deadline_at.strftime('%Y-%m-%d')
+        if request_obj.deadline_at
+        else '—'
+    )
+    paragraphs = [
+        f'Hello {shareholder.name},',
+        f'Your capital withdrawal request for {money_label(request_obj.amount)} is now: {status_label}.',
+    ]
+    if request_obj.status == 'approved':
+        paragraphs.append(
+            f'The company has until {deadline} to return capital (up to six months from approval).'
+        )
+    if request_obj.review_notes:
+        paragraphs.append(f'Notes: {request_obj.review_notes}')
+    if request_obj.capital_return_date:
+        paragraphs.append(f'Capital return date: {request_obj.capital_return_date}')
+
+    return send_system_notice(
+        shareholder.email,
+        f'Capital withdrawal {status_label.lower()} — {money_label(request_obj.amount)}',
+        title=f'Withdrawal {status_label}',
+        paragraphs=paragraphs,
+        cta_label='View in portal',
+        cta_endpoint='portal.withdrawal',
+    )
+
+
 def notify_portal_credentials(user, shareholder, password, created=True):
     """Email shareholder portal login details after access is granted/updated."""
     if not notification_flag('email_portal_credentials', True):

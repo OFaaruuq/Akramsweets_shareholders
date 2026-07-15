@@ -18,12 +18,12 @@
       <button class="btn btn-warning">Submit for Review</button>
     </form>
     {% endif %}
+    {% endif %}
     {% if period.status == 'review' and current_user.can_approve_periods() %}
     <form method="post" action="{{ url_for('periods.approve_period_view', period_id=period.id) }}" class="d-inline">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="btn btn-primary">Approve, Certify &amp; Email</button>
+      <button class="btn btn-primary">Approve &amp; Certify</button>
     </form>
-    {% endif %}
     {% endif %}
     {% if period.is_locked and current_user.can_approve_periods() %}
       {% if not period.reports_sent_at %}
@@ -42,23 +42,44 @@
     {% endif %}
   </div>
 </div>
+
+{% if period.status == 'review' %}
+<div class="alert alert-info py-2 fs-13">
+  <strong>Awaiting approval.</strong> Figures are locked.
+  {% if period.submitted_for_review_by %}Submitted by {{ period.submitted_for_review_by.full_name }}{% endif %}
+  {% if period.submitted_for_review_at %} on {{ period.submitted_for_review_at.strftime('%Y-%m-%d %H:%M') }}{% endif %}.
+  {% if current_user.can_approve_periods() %}Approve to certify, or return to draft with a reason below.{% else %}Management will approve or return this period.{% endif %}
+</div>
+{% endif %}
+
+{% if period.status == 'draft' and period.rejection_reason %}
+<div class="alert alert-warning py-2 fs-13">
+  <strong>Returned for changes.</strong> {{ period.rejection_reason }}
+  {% if period.rejected_by %} — {{ period.rejected_by.full_name }}{% endif %}
+  {% if period.rejected_at %} ({{ period.rejected_at.strftime('%Y-%m-%d %H:%M') }}){% endif %}
+</div>
+{% endif %}
 <div class="row">
-  <div class="col-xl-4"><div class="card"><div class="card-body">
-    <p class="text-muted mb-1">Net Profit from Odoo (distributed)</p>
+  <div class="col-xl-4">  <div class="card"><div class="card-body">
+    <p class="text-muted mb-1">Net Profit from Odoo</p>
     <h3 class="{{ 'text-success' if period.total_profit_loss >= 0 else 'text-danger' }}">{{ currency_symbol }}{{ '%.2f'|format(period.total_profit_loss) }}</h3>
     <hr>
     <ul class="list-unstyled mb-0 fs-13">
       <li class="d-flex justify-content-between mb-1"><span>Net Profit</span><strong class="{{ 'text-success' if period.total_profit_loss >= 0 else 'text-danger' }}">{{ currency_symbol }}{{ '%.2f'|format(period.total_profit_loss) }}</strong></li>
+      <li class="d-flex justify-content-between mb-1"><span>Shareholders' pool ({{ '%.0f'|format(period.mudarabah_shareholder_percent or 50) }}%)</span><strong class="text-primary">{{ currency_symbol }}{{ '%.2f'|format(period.shareholders_pool or 0) }}</strong></li>
+      <li class="d-flex justify-content-between mb-1"><span>Akram Sweets (managing partner)</span><strong>{{ currency_symbol }}{{ '%.2f'|format(period.managing_partner_share or 0) }}</strong></li>
       {% if period.income %}<li class="d-flex justify-content-between mb-1"><span>Income (optional)</span><strong>{{ currency_symbol }}{{ '%.2f'|format(period.income) }}</strong></li>{% endif %}
       {% if period.gross_profit %}<li class="d-flex justify-content-between mb-1"><span>Gross Profit (optional)</span><strong>{{ currency_symbol }}{{ '%.2f'|format(period.gross_profit) }}</strong></li>{% endif %}
       {% if period.total_gross_profit %}<li class="d-flex justify-content-between mb-1"><span>Total Gross Profit (optional)</span><strong>{{ currency_symbol }}{{ '%.2f'|format(period.total_gross_profit) }}</strong></li>{% endif %}
       {% if period.total_income %}<li class="d-flex justify-content-between mb-1"><span>Total Income (optional)</span><strong>{{ currency_symbol }}{{ '%.2f'|format(period.total_income) }}</strong></li>{% endif %}
       {% if period.total_expenses %}<li class="d-flex justify-content-between mb-1"><span>Operating Expenses (optional)</span><strong>{{ currency_symbol }}{{ '%.2f'|format(period.total_expenses) }}</strong></li>{% endif %}
     </ul>
-    <p class="text-muted mb-1 mt-3">Distributed total</p>
+    <p class="text-muted mb-1 mt-3">Distributed to shareholders (from pool)</p>
     <h5 class="mb-0">{{ currency_symbol }}{{ '%.2f'|format(distributed_total) }}</h5>
     <p class="text-muted mb-1 mt-3">Status</p>
     <span class="badge {% if period.status == 'approved' %}bg-success{% elif period.status == 'review' %}bg-info{% else %}bg-warning text-dark{% endif %}">{{ period.status|replace('_', ' ')|title }}</span>
+    {% if period.submitted_for_review_at %}<p class="text-muted mb-0 mt-2">Submitted for review: {{ period.submitted_for_review_at.strftime('%Y-%m-%d %H:%M') }}</p>{% endif %}
+    {% if period.approved_at %}<p class="text-muted mb-0 mt-2">Approved: {{ period.approved_at.strftime('%Y-%m-%d %H:%M') }}{% if period.approved_by %} by {{ period.approved_by.full_name }}{% endif %}</p>{% endif %}
     {% if period.odoo_reference %}<p class="text-muted mb-0 mt-3">Odoo: {{ period.odoo_reference }}</p>{% endif %}
     {% if period.reports_sent_at %}<p class="text-muted mb-0 mt-2">Reports &amp; certificates emailed: {{ period.reports_sent_at.strftime('%Y-%m-%d %H:%M') }}</p>{% endif %}
     {% if report_delivery_day %}<p class="text-muted mb-0 mt-2">Scheduled report day: {{ report_delivery_day }}</p>{% endif %}
@@ -139,9 +160,23 @@
   {{ adjustment_form.submit(class='btn btn-primary') }}
 </form></div></div>
 {% endif %}
+
+{% if period.status == 'review' and current_user.can_approve_periods() %}
+<div class="card mt-3 border-danger"><div class="card-header"><h5 class="card-title mb-0">Return to draft</h5></div><div class="card-body">
+<p class="text-muted fs-13">Reject this submission if figures need changes. Finance will be notified and must re-submit.</p>
+<form method="post" action="{{ url_for('periods.reject_period_view', period_id=period.id) }}">
+  {{ reject_form.hidden_tag() }}
+  <div class="mb-3">
+    <label class="form-label">{{ reject_form.reason.label.text }}</label>
+    {{ reject_form.reason(class='form-control', rows='3', placeholder='Explain what must be fixed') }}
+  </div>
+  {{ reject_form.submit(class='btn btn-danger') }}
+</form></div></div>
+{% endif %}
+
 {% if period.is_locked and current_user.can_approve_periods() %}
 <div class="card mt-3 border-warning"><div class="card-header bg-warning-subtle"><h5 class="card-title mb-0">Logged Correction</h5></div><div class="card-body">
-<p class="text-muted">Reopen this approved period to make corrections. A reason is required and will be stored in the audit trail.</p>
+<p class="text-muted">Reopen this approved period as a <strong>draft</strong>. Finance must edit, recalculate, and submit for review again before it can be re-approved.</p>
 <form method="post" action="{{ url_for('periods.reopen_correction', period_id=period.id) }}">
   {{ correction_form.hidden_tag() }}
   <div class="mb-3">{{ correction_form.reason(class='form-control', rows='3', placeholder='Explain why this approved period must be corrected') }}</div>

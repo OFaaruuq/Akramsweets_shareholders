@@ -32,10 +32,47 @@ class ShareholderForm(FlaskForm):
         validators=[DataRequired(), NumberRange(min=0.0001, max=100)],
     )
     effective_from = DateField('Effective from', validators=[DataRequired()], format='%Y-%m-%d')
+    investment_amount = DecimalField(
+        'Investment amount',
+        places=2,
+        validators=[Optional(), NumberRange(min=0)],
+        default=0,
+        description='Capital invested by this shareholder.',
+    )
+    share_count = DecimalField(
+        'Number of shares',
+        places=4,
+        validators=[Optional(), NumberRange(min=0)],
+        default=0,
+    )
+    investment_date = DateField('Investment date', validators=[Optional()], format='%Y-%m-%d')
     create_portal = BooleanField('Also create portal login for this shareholder')
     portal_email = StringField('Portal login email', validators=[Optional(), Email(), Length(max=120)])
     portal_password = PasswordField('Portal password', validators=[Optional(), Length(min=6, max=128)])
     submit = SubmitField('Save Shareholder')
+
+
+class CapitalWithdrawalForm(FlaskForm):
+    amount = DecimalField(
+        'Amount to withdraw',
+        places=2,
+        validators=[DataRequired(), NumberRange(min=0.01)],
+    )
+    reason = TextAreaField('Reason', validators=[DataRequired(), Length(min=3, max=5000)])
+    submit = SubmitField('Submit Withdrawal Request')
+
+
+class CapitalWithdrawalReviewForm(FlaskForm):
+    review_notes = TextAreaField('Review notes', validators=[Optional(), Length(max=5000)])
+    capital_return_date = DateField(
+        'Capital return date',
+        validators=[Optional()],
+        format='%Y-%m-%d',
+    )
+    submit_approve = SubmitField('Approve')
+    submit_reject = SubmitField('Reject')
+    submit_complete = SubmitField('Mark Capital Returned')
+    submit_cancel = SubmitField('Cancel Request')
 
 
 class PeriodForm(FlaskForm):
@@ -57,7 +94,10 @@ class PeriodForm(FlaskForm):
         'Net Profit (from Odoo)',
         places=2,
         validators=[InputRequired(message='Enter Net Profit from Odoo (negative for a loss).')],
-        description='Only this amount is distributed to shareholders by ownership %.',
+        description=(
+            'Company Net Profit from Odoo. Under Mudarabah, 50% goes to the shareholders\' '
+            'pool (distributed by ownership %) and 50% to Akram Sweets as managing partner.'
+        ),
     )
     odoo_reference = StringField(
         'Odoo period / journal reference',
@@ -190,6 +230,16 @@ class SystemSettingsForm(FlaskForm):
         places=4,
         validators=[Optional(), NumberRange(min=0)],
         description='If set, ownership % is also shown as an equivalent share count and capital.',
+    )
+    mudarabah_shareholder_percent = DecimalField(
+        'Shareholders\' Mudarabah share (%)',
+        places=4,
+        validators=[DataRequired(), NumberRange(min=0, max=100)],
+        default=50,
+        description=(
+            'Percent of Monthly Net Profit that goes to the shareholders\' profit pool. '
+            'Remainder belongs to Akram Sweets (managing partner). Default 50%.'
+        ),
     )
     report_delivery_day = IntegerField('Report delivery day of month', validators=[Optional(), NumberRange(min=1, max=28)])
     mail_from = StringField('From email', validators=[Optional(), Email()])
@@ -342,6 +392,15 @@ class CorrectionReopenForm(FlaskForm):
         validators=[DataRequired(), Length(min=10, max=2000)],
     )
     submit = SubmitField('Reopen for Correction')
+
+
+class PeriodRejectForm(FlaskForm):
+    reason = TextAreaField(
+        'Reason for returning to draft',
+        validators=[DataRequired(), Length(min=5, max=2000)],
+        description='Finance will see this reason and must fix and re-submit.',
+    )
+    submit = SubmitField('Return to Draft')
 
 
 class ShareholderUpdateForm(FlaskForm):
