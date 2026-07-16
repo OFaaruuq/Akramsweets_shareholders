@@ -42,101 +42,110 @@ def register_counts():
     }
 
 
-def purge_all_shareholders_and_assets(*, actor=None, reset_capital_settings=True, wipe_periods=True):
-    """
-    Delete everything related to shareholders:
-
-    - Shareholders, ownership, capital withdrawals
-    - Special arrangements
-    - Certificates, calculations, manual adjustments
-    - Monthly periods (optional, default on — distribution history)
-    - All portal / role=shareholder user accounts + OTPs
-    - Shareholder-related audit / todo dismissals
-    - Capital register settings (shares total, Murabaha assets → 0)
-
-    Keeps staff users (owner/admin/finance) and system settings other than capital register.
-    """
-    counts_before = register_counts()
-
-    # 1) Period line-items
-    cert_deleted = ShareholderCertificate.query.delete(synchronize_session=False)
-    calc_deleted = ShareholderCalculation.query.delete(synchronize_session=False)
-    adj_deleted = ManualAdjustment.query.delete(synchronize_session=False)
-
-    # 2) Withdrawals
-    wd_deleted = CapitalWithdrawalRequest.query.delete(synchronize_session=False)
-
-    # 3) Arrangements
-    db.session.execute(arrangement_source_shareholders.delete())
-    arr_deleted = SpecialArrangement.query.delete(synchronize_session=False)
-
-    # 4) Ownership
-    own_deleted = OwnershipRecord.query.delete(synchronize_session=False)
-
-    # 5) Monthly periods (profit distribution history for old register)
-    periods_deleted = 0
-    if wipe_periods:
-        periods_deleted = MonthlyPeriod.query.delete(synchronize_session=False)
-
-    # 6) Portal / shareholder-role users
-    portal_users = User.query.filter(
+def _portal_user_ids(actor=None):
+    rows = User.query.filter(
         or_(
             User.shareholder_id.isnot(None),
             User.role == User.ROLE_SHAREHOLDER,
         )
     ).all()
-    portal_deleted = 0
-    for user in portal_users:
-        # Never delete the acting super-admin mid-request
-        if actor is not None and getattr(actor, 'id', None) == user.id:
-            user.shareholder_id = None
-            if user.role == User.ROLE_SHAREHOLDER:
-                user.role = User.ROLE_FINANCE
-            continue
-        LoginOTP.query.filter_by(user_id=user.id).delete(synchronize_session=False)
-        db.session.delete(user)
-        portal_deleted += 1
+    actor_id = getattr(actor, 'id', None)
+    return [u.id for u in rows if actor_id is None or u.id != actor_id]
 
-    User.query.filter(User.shareholder_id.isnot(None)).update(
-        {User.shareholder_id: None},
-        synchronize_session=False,
-    )
 
-    # 7) Shareholders
-    sh_deleted = Shareholder.query.delete(synchronize_session=False)
+def purge_all_shareholders_and_assets(*, actor=None, reset_capital_settings=True, wipe_periods=True):
+    """
+    Delete everything related to shareholders.
 
-    # 8) Audit / todos that reference shareholder entities
-    audit_deleted = AuditLog.query.filter(
-        AuditLog.entity_type.in_([
-            'shareholder',
-            'shareholder_capital',
-            'ownership',
-            'arrangement',
-            'special_arrangement',
-            'certificate',
-            'capital_withdrawal',
-            'withdrawal',
-            'monthly_period',
-            'period',
-        ])
-    ).delete(synchronize_session=False)
+    Keeps staff users (owner/admin/finance) and non-shareholder system settings.
+    """
+    counts_before = register_counts()
+    portal_ids = _portal_user_ids(actor)
 
-    todo_deleted = TodoDismissal.query.filter(
-        or_(
-            TodoDismissal.source_key.ilike('%shareholder%'),
-            TodoDismissal.source_key.ilike('%withdrawal%'),
-            TodoDismissal.source_key.ilike('%period%'),
-            TodoDismissal.source_key.ilike('%arrangement%'),
-            TodoDismissal.source_key.ilike('%certificate%'),
+    with db.session.no_autoflush:
+        # 1) Period line-items
+        cert_deleted = ShareholderCertificate.query.delete(synchronize_session=False)
+        calc_deleted = ShareholderCalculation.query.delete(synchronize_session=False)
+        adj_deleted = ManualAdjustment.query.delete(synchronize_session=False)
+
+        # 2) Withdrawals
+        wd_deleted = CapitalWithdrawalRequest.query.delete(synchronize_session=False)
+
+        # 3) Arrangements
+        db.session.execute(arrangement_source_shareholders.delete())
+        arr_deleted = SpecialArrangement.query.delete(synchronize_session=False)
+
+        # 4) Ownership
+        own_deleted = OwnershipRecord.query.delete(synchronize_session=False)
+
+        # 5) Monthly periods
+        periods_deleted = 0
+        if wipe_periods:
+            periods_deleted = MonthlyPeriod.query.delete(synchronize_session=False)
+
+        # 6) Detach portal users from FKs that block DELETE (audit_logs, todos, otps)
+        portal_deleted = 0
+        if portal_ids:
+            AuditLog.query.filter(AuditLog.user_id.in_(portal_ids)).update(
+                {AuditLog.user_id: None},
+                synchronize_session=False,
+            )
+            TodoDismissal.query.filter(TodoDismissal.dismissed_by_id.in_(portal_ids)).update(
+                {TodoDismissal.dismissed_by_id: None},
+                synchronize_session=False,
+            )
+            LoginOTP.query.filter(LoginOTP.user_id.in_(portal_ids)).delete(synchronize_session=False)
+
+            # Clear shareholder link first, then delete users
+            User.query.filter(User.id.in_(portal_ids)).update(
+                {User.shareholder_id: None},
+                synchronize_session=False,
+            )
+            portal_deleted = User.query.filter(User.id.in_(portal_ids)).delete(
+                synchronize_session=False
+            )
+
+        # Safety: no user should still point at a shareholder
+        User.query.filter(User.shareholder_id.isnot(None)).update(
+            {User.shareholder_id: None},
+            synchronize_session=False,
         )
-    ).delete(synchronize_session=False)
 
-    if reset_capital_settings:
-        save_share_settings(
-            share_value=DEFAULT_SHARE_VALUE,
-            total_company_shares=None,
-            company_owned_assets=Decimal('0'),
-        )
+        # 7) Shareholders
+        sh_deleted = Shareholder.query.delete(synchronize_session=False)
+
+        # 8) Shareholder-related audit / todos
+        audit_deleted = AuditLog.query.filter(
+            AuditLog.entity_type.in_([
+                'shareholder',
+                'shareholder_capital',
+                'ownership',
+                'arrangement',
+                'special_arrangement',
+                'certificate',
+                'capital_withdrawal',
+                'withdrawal',
+                'monthly_period',
+                'period',
+            ])
+        ).delete(synchronize_session=False)
+
+        todo_deleted = TodoDismissal.query.filter(
+            or_(
+                TodoDismissal.source_key.ilike('%shareholder%'),
+                TodoDismissal.source_key.ilike('%withdrawal%'),
+                TodoDismissal.source_key.ilike('%period%'),
+                TodoDismissal.source_key.ilike('%arrangement%'),
+                TodoDismissal.source_key.ilike('%certificate%'),
+            )
+        ).delete(synchronize_session=False)
+
+        if reset_capital_settings:
+            save_share_settings(
+                share_value=DEFAULT_SHARE_VALUE,
+                total_company_shares=None,
+                company_owned_assets=Decimal('0'),
+            )
 
     db.session.commit()
 
