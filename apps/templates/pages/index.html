@@ -51,56 +51,105 @@
 {% endif %}
 
 {% if not is_shareholder_view %}
-<!-- Mudarabah KPIs -->
+<!-- Capital Summary (Excel register / reporting — not used in Mudarabah split) -->
+<div class="card mb-3">
+  <div class="card-header d-flex align-items-center flex-wrap gap-2">
+    <h5 class="card-title mb-0">Capital Summary</h5>
+    <span class="badge bg-secondary-subtle text-secondary">Reporting only</span>
+    <a href="{{ url_for('app_settings.system_settings') }}" class="btn btn-soft-secondary btn-sm ms-auto">Capital settings</a>
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="text-muted fs-12">Total Shareholders</div>
+        <div class="fs-20 fw-semibold">{{ total_shareholders if total_shareholders is defined else active_shareholders }}</div>
+      </div>
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="text-muted fs-12">Active Shareholders</div>
+        <div class="fs-20 fw-semibold">{{ active_shareholders }}</div>
+      </div>
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="text-muted fs-12">Total Shares</div>
+        <div class="fs-20 fw-semibold">{{ '{:,.0f}'.format(total_shares or 0) }}</div>
+      </div>
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="text-muted fs-12">Shareholder Capital</div>
+        <div class="fs-20 fw-semibold">{{ currency_symbol }}{{ '{:,.2f}'.format(total_investment or 0) }}</div>
+      </div>
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="text-muted fs-12">Company-Owned Assets</div>
+        <div class="fs-20 fw-semibold">{{ currency_symbol }}{{ '{:,.2f}'.format(company_owned_assets or 0) }}</div>
+      </div>
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="text-muted fs-12">Total Company Assets</div>
+        <div class="fs-20 fw-semibold text-primary">{{ currency_symbol }}{{ '{:,.2f}'.format(total_company_assets or ((total_investment or 0) + (company_owned_assets or 0))) }}</div>
+      </div>
+    </div>
+    <p class="text-muted fs-12 mb-0 mt-3">
+      Total Company Assets = Shareholder Capital + Company-Owned Assets (Murabaha).
+      These figures do <strong>not</strong> affect monthly profit distribution.
+    </p>
+  </div>
+</div>
+
+<!-- Monthly Profit Summary (Mudarabah — Net Profit from Odoo) -->
+<div class="card mb-3 border-primary">
+  <div class="card-header d-flex align-items-center flex-wrap gap-2">
+    <h5 class="card-title mb-0">Monthly Profit Summary</h5>
+    <span class="badge bg-primary-subtle text-primary">Mudarabah</span>
+    {% if latest_period %}
+    <span class="text-muted fs-13">Period {{ latest_period.period_label }}</span>
+    {% endif %}
+    <a href="{{ url_for('periods.create_period') }}" class="btn btn-soft-primary btn-sm ms-auto">Enter Net Profit</a>
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-6 col-md-4 col-xl">
+        <div class="text-muted fs-12">Net Profit (from Odoo)</div>
+        <div class="fs-20 fw-semibold {{ 'text-success' if latest_profit >= 0 else 'text-danger' }}">{{ currency_symbol }}{{ '{:,.2f}'.format(latest_profit or 0) }}</div>
+      </div>
+      <div class="col-6 col-md-4 col-xl">
+        <div class="text-muted fs-12">{{ mudarabah.pool_caption if mudarabah else "Shareholders' Pool" }}</div>
+        <div class="fs-20 fw-semibold text-primary">{{ currency_symbol }}{{ '{:,.2f}'.format(latest_pool or 0) }}</div>
+      </div>
+      <div class="col-6 col-md-4 col-xl">
+        <div class="text-muted fs-12">{{ mudarabah.partner_caption if mudarabah else ((brand.company_name if brand else company_name) ~ ' Share') }}</div>
+        <div class="fs-20 fw-semibold">{{ currency_symbol }}{{ '{:,.2f}'.format(latest_partner or 0) }}</div>
+      </div>
+      <div class="col-6 col-md-4 col-xl">
+        <div class="text-muted fs-12">Total Distributed</div>
+        <div class="fs-20 fw-semibold">{{ currency_symbol }}{{ '{:,.2f}'.format(latest_distributed or 0) }}</div>
+      </div>
+      <div class="col-6 col-md-4 col-xl">
+        <div class="text-muted fs-12">Remaining Undistributed</div>
+        <div class="fs-20 fw-semibold">{{ currency_symbol }}{{ '{:,.2f}'.format(latest_remaining or 0) }}</div>
+      </div>
+    </div>
+    <p class="text-muted fs-12 mb-0 mt-3">
+      Distribution = Net Profit → Mudarabah split → ownership % (special arrangements may apply).
+      Capital / company assets are not inputs to this calculation.
+    </p>
+  </div>
+</div>
+
 <div class="row g-3 mb-3">
-  <div class="col-6 col-md-3 col-xl">
-    <div class="card mb-0 h-100"><div class="card-body py-3">
-      <div class="text-muted fs-12">Monthly Net Profit</div>
-      <div class="fs-20 fw-semibold {{ 'text-success' if latest_profit >= 0 else 'text-danger' }}">{{ currency_symbol }}{{ '{:,.2f}'.format(latest_profit) }}</div>
-      <div class="fs-11 text-muted">{% if latest_period %}{{ latest_period.period_label }}{% else %}No period{% endif %}</div>
-    </div></div>
-  </div>
-  <div class="col-6 col-md-3 col-xl">
-    <div class="card mb-0 h-100"><div class="card-body py-3">
-      <div class="text-muted fs-12">{{ mudarabah.pool_caption if mudarabah else "Shareholders' Pool" }}</div>
-      <div class="fs-20 fw-semibold text-primary">{{ currency_symbol }}{{ '{:,.2f}'.format(latest_pool or 0) }}</div>
-    </div></div>
-  </div>
-  <div class="col-6 col-md-3 col-xl">
-    <div class="card mb-0 h-100"><div class="card-body py-3">
-      <div class="text-muted fs-12">{{ mudarabah.partner_caption if mudarabah else ((brand.company_name if brand else company_name) ~ ' Share') }}</div>
-      <div class="fs-20 fw-semibold">{{ currency_symbol }}{{ '{:,.2f}'.format(latest_partner or 0) }}</div>
-    </div></div>
-  </div>
-  <div class="col-6 col-md-3 col-xl">
-    <div class="card mb-0 h-100"><div class="card-body py-3">
-      <div class="text-muted fs-12">Total Shareholders</div>
-      <div class="fs-20 fw-semibold">{{ active_shareholders }}</div>
-    </div></div>
-  </div>
-  <div class="col-6 col-md-3 col-xl">
-    <div class="card mb-0 h-100"><div class="card-body py-3">
-      <div class="text-muted fs-12">Total Investment</div>
-      <div class="fs-20 fw-semibold">{{ currency_symbol }}{{ '{:,.2f}'.format(total_investment or 0) }}</div>
-    </div></div>
-  </div>
-  <div class="col-6 col-md-3 col-xl">
-    <div class="card mb-0 h-100"><div class="card-body py-3">
-      <div class="text-muted fs-12">Total Shares</div>
-      <div class="fs-20 fw-semibold">{{ '{:,.4f}'.format(total_shares or 0) }}</div>
-    </div></div>
-  </div>
-  <div class="col-6 col-md-3 col-xl">
+  <div class="col-6 col-md-4">
     <a href="{{ url_for('shareholders.list_withdrawals') }}" class="card mb-0 h-100 text-decoration-none"><div class="card-body py-3">
       <div class="text-muted fs-12">Pending Withdrawals</div>
       <div class="fs-20 fw-semibold text-warning">{{ pending_withdrawals }}</div>
     </div></a>
   </div>
-  <div class="col-6 col-md-3 col-xl">
+  <div class="col-6 col-md-4">
     <a href="{{ url_for('periods.approvals_inbox') }}" class="card mb-0 h-100 text-decoration-none"><div class="card-body py-3">
       <div class="text-muted fs-12">Pending Approvals</div>
       <div class="fs-20 fw-semibold text-info">{{ pending_approval }}</div>
     </div></a>
+  </div>
+  <div class="col-12 col-md-4">
+    <div class="card mb-0 h-100"><div class="card-body py-3">
+      <div class="text-muted fs-12">YTD Company Net Profit</div>
+      <div class="fs-20 fw-semibold">{{ currency_symbol }}{{ '{:,.2f}'.format(ytd_company_profit or 0) }}</div>
+    </div></div>
   </div>
 </div>
 {% endif %}

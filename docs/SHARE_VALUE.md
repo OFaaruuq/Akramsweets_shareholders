@@ -1,58 +1,87 @@
-# Share value configuration
+# Share value & capital register
 
 ## Purpose
 
-Configure how much **one company share** is worth, for example:
+Configure the **shareholder capital register** (from the company Excel sheet) for display and reporting:
 
-> **1 share = 1000** (in your currency)
+| Item | Example (current register) |
+|------|----------------------------|
+| Value of 1 share | **USD 1,000** |
+| Total shares | **1,220** |
+| Total shareholder capital | **USD 1,220,000.48** |
+| Company-owned assets (Murabaha) | **USD 423,000.00** |
+| **Total company assets** | **USD 1,643,000.48** |
 
-This is dynamic — Owner/Admin can change it anytime under System Settings.
+```text
+Total Company Assets = Shareholder Capital + Company-Owned Assets
+```
 
-Monthly profit distribution still uses **ownership % × Net Profit**.  
-Share value is used to display capital / investment (when total shares are also set).
+---
+
+## Critical rule (Mudarabah)
+
+**Company assets and shareholder capital are not used to calculate monthly profit distribution.**
+
+Monthly process:
+
+1. Import **Monthly Net Profit** from Odoo into a period  
+2. Split by Mudarabah (e.g. **50% shareholders’ pool / 50% Akram Sweets**)  
+3. Distribute the pool by each shareholder’s **ownership %**  
+4. Apply special arrangements / manual adjustments if configured  
+
+Capital totals appear on the **dashboard capital summary** and shareholder statements for financial reporting only.
 
 ---
 
 ## How to set it
 
-1. Sign in as **Owner** or **Admin**
-2. Open **System Settings** (`/settings/system`)
-3. Find the **Share value** card
-4. Enter:
-   - **Value of 1 share** — e.g. `1000`
-   - **Total company shares** (optional) — e.g. `1000` outstanding shares
-5. Save
+1. Sign in as **Owner** or **Admin**  
+2. Open **System Settings** → **Shareholder capital register**  
+3. Enter:
+   - **Value of 1 share** — e.g. `1000`  
+   - **Total company shares** — e.g. `1220`  
+   - **Company-owned assets (Murabaha)** — e.g. `423000`  
+4. Save  
 
-Preview shows: `1 share = $1,000.00` (using your currency symbol).
+Per-shareholder **shares**, **capital**, and **ownership %** are maintained under **Shareholders** (or imported from CSV).
 
----
+### Import from Excel / CSV
 
-## What it unlocks
+```bash
+# 1. Fill data/shareholder_capital.csv with all 20 shareholders from Excel
+# 2. Dry-run, then import
+python scripts/import_shareholder_capital.py data/shareholder_capital.csv --dry-run
+python scripts/import_shareholder_capital.py data/shareholder_capital.csv
+```
 
-| Setting | Effect |
-|---------|--------|
-| Share value only | Badge/label “1 share = X” across the app |
-| Share value + total company shares | Each shareholder also shows **share count** and **capital** = shares × value |
+CSV columns: `name,email,shares,capital,ownership_percent,is_owner,phone,country,country_code`
 
-Example with total shares = 1,000 and share value = 1,000:
-
-| Ownership | Shares | Capital |
-|-----------|--------|---------|
-| 30% | 300 | 300,000 |
-| 40% | 400 | 400,000 |
-| 30% | 300 | 300,000 |
+Ownership % across active shareholders must total **100.0000%** before a period can be calculated.
 
 ---
 
-## Where it appears
+## Dashboard KPIs
 
-- System Settings (edit)
-- Shareholders list (Shares / Capital columns when total shares is set)
-- Shareholder portal → My Ownership
+### Capital Summary
+
+- Total Shareholders / Active Shareholders  
+- Total Shares  
+- Total Shareholder Capital (sum of active `investment_amount`)  
+- Company-Owned Assets (setting)  
+- Total Company Assets (capital + company-owned)  
+
+### Monthly Profit Summary
+
+- Net Profit (from latest period / Odoo)  
+- Shareholders’ Profit Pool  
+- Akram Sweets’ Profit Share  
+- Total Distributed  
+- Remaining Undistributed  
 
 ---
 
 ## Notes
 
-- Changing share value does **not** change past period calculations.
-- Profit distribution formula remains: `Net Profit × ownership %`.
+- Changing share value or company-owned assets does **not** rewrite past period calculations.  
+- Profit formula remains: `Shareholders' pool × ownership %` (after Mudarabah split of Net Profit).  
+- Excel “20% from some people” style bonuses belong in **Special Arrangements**, not in the capital register.  

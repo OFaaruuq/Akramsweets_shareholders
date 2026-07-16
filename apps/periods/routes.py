@@ -42,14 +42,8 @@ def _form_extras():
 
 
 def _period_from_form(form, created_by_id=None):
-    net_total, fields = resolve_period_totals(
-        net_profit=form.total_profit_loss.data,
-        income=form.income.data,
-        gross_profit=form.gross_profit.data,
-        total_gross_profit=form.total_gross_profit.data,
-        total_income=form.total_income.data,
-        total_operating_expenses=form.total_expenses.data,
-    )
+    """Create a period from Net Profit only (optional P&L columns stay at zero)."""
+    net_total, fields = resolve_period_totals(net_profit=form.total_profit_loss.data)
     period = MonthlyPeriod(
         year=form.year.data,
         month=form.month.data,
@@ -72,24 +66,10 @@ def _period_from_form(form, created_by_id=None):
 
 
 def _update_period_from_form(period, form):
-    net_total, fields = resolve_period_totals(
-        net_profit=form.total_profit_loss.data,
-        income=form.income.data,
-        gross_profit=form.gross_profit.data,
-        total_gross_profit=form.total_gross_profit.data,
-        total_income=form.total_income.data,
-        total_operating_expenses=form.total_expenses.data,
-    )
+    """Update Net Profit / metadata only — do not wipe legacy P&L reference columns."""
+    net_total, _fields = resolve_period_totals(net_profit=form.total_profit_loss.data)
     period.total_profit_loss = net_total
-    period.income = fields['income']
-    period.gross_profit = fields['gross_profit']
-    period.total_gross_profit = fields['total_gross_profit']
-    period.total_income = fields['total_income']
-    period.total_revenues = fields['total_revenues']
-    period.cost_of_goods = fields['cost_of_goods']
-    period.total_expenses = fields['total_expenses']
-    period.other_income = fields['other_income']
-    period.entry_mode = fields['entry_mode']
+    period.entry_mode = 'pnl'
     period.odoo_reference = (form.odoo_reference.data or '').strip() or None
     period.notes = (form.notes.data or '').strip() or None
 
@@ -465,20 +445,6 @@ def edit_period(period_id):
 
     form = PeriodForm(obj=period)
     extras = _form_extras()
-    if request.method == 'GET':
-        # Prefer dedicated P&L fields; fall back to legacy columns for older periods.
-        if not form.income.data and period.total_revenues:
-            form.income.data = period.income or period.total_revenues
-        if not form.gross_profit.data and (period.total_revenues or period.cost_of_goods):
-            form.gross_profit.data = period.gross_profit or (
-                (period.total_revenues or 0) - (period.cost_of_goods or 0)
-            )
-        if not form.total_gross_profit.data:
-            form.total_gross_profit.data = period.total_gross_profit or form.gross_profit.data or 0
-        if not form.total_income.data:
-            form.total_income.data = period.total_income or (
-                (period.total_revenues or 0) + (period.other_income or 0)
-            )
     create_context = get_period_create_context(period.year, period.month)
 
     if form.validate_on_submit():

@@ -231,5 +231,4 @@ def apply_period_form_defaults(form, period=None):
     if form.month.data is None:
         form.month.data = context['suggested_month']
 
-    # Leave P&L lines blank — every line must be typed in manually.
     return context

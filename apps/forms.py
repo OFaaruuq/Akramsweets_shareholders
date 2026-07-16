@@ -92,12 +92,7 @@ class CapitalWithdrawalReviewForm(FlaskForm):
 
 
 class PeriodForm(FlaskForm):
-    """
-    Monthly Mudarabah profit distribution entry.
-
-    Only Approved Monthly Net Profit (from Odoo) drives distribution.
-    Optional P&L reference lines are stored only when provided and never used in the split.
-    """
+    """Monthly Mudarabah entry — Net Profit from Odoo is the only distribution input."""
 
     year = IntegerField('Year', validators=[DataRequired(), NumberRange(min=2000, max=2100)])
     month = SelectField(
@@ -107,39 +102,22 @@ class PeriodForm(FlaskForm):
         validators=[DataRequired()],
     )
     total_profit_loss = DecimalField(
-        'Approved Monthly Net Profit (Imported from Odoo ERP)',
+        'Approved Monthly Net Profit (from Odoo)',
         places=2,
-        validators=[InputRequired(message='Enter Approved Monthly Net Profit from Odoo (negative for a loss).')],
-        description=(
-            'Only this figure is used for Mudarabah distribution. '
-            'Shareholders\' pool = Net Profit × configured Mudarabah %; '
-            'remainder is the managing partner (company) share.'
-        ),
+        validators=[InputRequired(message='Enter Net Profit from Odoo (use negative for a loss).')],
     )
     odoo_reference = StringField(
-        'Odoo period / journal reference',
+        'Odoo reference',
         validators=[Optional(), Length(max=255)],
     )
-    # Optional Odoo P&L reference — not used for shareholder calculation
-    income = DecimalField('Income (Odoo reference)', places=2, validators=[Optional()], default=0)
-    gross_profit = DecimalField('Gross Profit (Odoo reference)', places=2, validators=[Optional()], default=0)
-    total_gross_profit = DecimalField(
-        'Total Gross Profit (Odoo reference)', places=2, validators=[Optional()], default=0
-    )
-    total_income = DecimalField('Total Income (Odoo reference)', places=2, validators=[Optional()], default=0)
-    total_expenses = DecimalField(
-        'Operating Expenses (Odoo reference)', places=2, validators=[Optional()], default=0
-    )
-    notes = TextAreaField('Internal notes', validators=[Optional(), Length(max=5000)])
-    submit = SubmitField('Save & Calculate Mudarabah Distribution')
+    notes = TextAreaField('Notes', validators=[Optional(), Length(max=5000)])
+    submit = SubmitField('Save & Calculate')
 
     def validate(self, extra_validators=None):
         if not super().validate(extra_validators):
             return False
         if self.total_profit_loss.data is None:
-            self.total_profit_loss.errors.append(
-                'Enter Approved Monthly Net Profit (Imported from Odoo ERP).'
-            )
+            self.total_profit_loss.errors.append('Enter Approved Monthly Net Profit from Odoo.')
             return False
         return True
 
@@ -243,10 +221,20 @@ class SystemSettingsForm(FlaskForm):
         description='Example: 1000 means 1 share = 1000 in your currency.',
     )
     total_company_shares = DecimalField(
-        'Total company shares (optional)',
+        'Total company shares',
         places=4,
         validators=[Optional(), NumberRange(min=0)],
-        description='If set, ownership % is also shown as an equivalent share count and capital.',
+        description='Outstanding shares on the capital register (e.g. 1220).',
+    )
+    company_owned_assets = DecimalField(
+        'Company-owned assets (Murabaha)',
+        places=2,
+        validators=[Optional(), NumberRange(min=0)],
+        default=423000,
+        description=(
+            'Company assets held outside shareholder capital (e.g. Murabaha assets). '
+            'Shown on the dashboard capital summary only — never used in Mudarabah profit distribution.'
+        ),
     )
     mudarabah_shareholder_percent = DecimalField(
         'Shareholders\' Mudarabah share (%)',

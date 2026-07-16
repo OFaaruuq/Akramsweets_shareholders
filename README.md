@@ -11,7 +11,8 @@ Flask web app for **Akram Sweets** shareholder management: profit periods, share
 - Dynamic certificate content settings
 - Monthly **Mudarabah** distribution from Odoo Net Profit (configurable pool % × ownership %) — see [docs/MUDARABAH.md](docs/MUDARABAH.md) and [docs/NET_PROFIT_DISTRIBUTION.md](docs/NET_PROFIT_DISTRIBUTION.md)
 - Special arrangements on the shareholders’ pool — see [docs/SPECIAL_ARRANGEMENTS.md](docs/SPECIAL_ARRANGEMENTS.md)
-- Dynamic **share value** (e.g. 1 share = 1000) — see [docs/SHARE_VALUE.md](docs/SHARE_VALUE.md)
+- **Capital register** KPIs (shares, shareholder capital, company-owned Murabaha assets) — see [docs/SHARE_VALUE.md](docs/SHARE_VALUE.md)
+- Dynamic **share value** (e.g. 1 share = 1000)
 - Login email OTP verification (requires SMTP)
 - Optional **WhatsApp** notifications via Twilio (shareholder updates, certificates, withdrawals, credentials)
 - Alembic database migrations (`flask db upgrade`)

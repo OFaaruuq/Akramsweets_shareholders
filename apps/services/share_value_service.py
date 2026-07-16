@@ -1,4 +1,4 @@
-"""Company share value configuration (1 share = X currency units)."""
+"""Company share value and capital-register configuration (reporting)."""
 
 from __future__ import annotations
 
@@ -7,6 +7,8 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from apps.models.settings import SystemSetting
 
 DEFAULT_SHARE_VALUE = Decimal('1000')
+DEFAULT_TOTAL_COMPANY_SHARES = Decimal('1220')
+DEFAULT_COMPANY_OWNED_ASSETS = Decimal('423000.00')
 MONEY = Decimal('0.01')
 SHARES = Decimal('0.0001')
 
@@ -40,7 +42,23 @@ def get_total_company_shares():
     return value.quantize(SHARES, rounding=ROUND_HALF_UP)
 
 
-def save_share_settings(share_value, total_company_shares=None):
+def get_company_owned_assets():
+    """
+    Company-owned / Murabaha assets (USD).
+
+    For financial reporting and dashboard capital summary only.
+    Never used in Mudarabah monthly profit distribution.
+    """
+    value = _parse_decimal(
+        SystemSetting.get('company_owned_assets'),
+        DEFAULT_COMPANY_OWNED_ASSETS,
+    )
+    if value < 0:
+        return Decimal('0')
+    return value.quantize(MONEY, rounding=ROUND_HALF_UP)
+
+
+def save_share_settings(share_value, total_company_shares=None, company_owned_assets=None):
     value = _parse_decimal(share_value, DEFAULT_SHARE_VALUE)
     if value < 0:
         raise ValueError('Share value cannot be negative.')
@@ -53,6 +71,15 @@ def save_share_settings(share_value, total_company_shares=None):
         if total < 0:
             raise ValueError('Total company shares cannot be negative.')
         SystemSetting.set('total_company_shares', str(total.quantize(SHARES, rounding=ROUND_HALF_UP)))
+
+    if company_owned_assets is not None:
+        assets = _parse_decimal(company_owned_assets, Decimal('0'))
+        if assets < 0:
+            raise ValueError('Company-owned assets cannot be negative.')
+        SystemSetting.set(
+            'company_owned_assets',
+            str(assets.quantize(MONEY, rounding=ROUND_HALF_UP)),
+        )
 
 
 def shares_for_ownership(ownership_percent, total_shares=None):
@@ -81,6 +108,7 @@ def capital_for_ownership(ownership_percent, share_value=None, total_shares=None
 def get_share_settings():
     share_value = get_share_value()
     total_shares = get_total_company_shares()
+    company_owned = get_company_owned_assets()
     currency = '$'
     try:
         from apps.services.certificate_settings_service import get_certificate_settings
@@ -92,6 +120,7 @@ def get_share_settings():
     return {
         'share_value': share_value,
         'total_company_shares': total_shares,
+        'company_owned_assets': company_owned,
         'has_total_shares': total_shares > 0,
         'label': f'1 share = {currency}{share_value:,.2f}',
         'currency_symbol': currency,
@@ -99,5 +128,10 @@ def get_share_settings():
 
 
 def ensure_default_share_settings():
+    """Seed Akram Sweets capital-register defaults when settings are blank."""
     if not SystemSetting.get('share_value'):
         SystemSetting.set('share_value', str(DEFAULT_SHARE_VALUE))
+    if SystemSetting.get('total_company_shares') in (None, ''):
+        SystemSetting.set('total_company_shares', str(DEFAULT_TOTAL_COMPANY_SHARES))
+    if SystemSetting.get('company_owned_assets') in (None, ''):
+        SystemSetting.set('company_owned_assets', str(DEFAULT_COMPANY_OWNED_ASSETS))

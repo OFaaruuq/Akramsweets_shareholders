@@ -278,17 +278,24 @@ def get_dashboard_metrics(year=None):
         status=CapitalWithdrawalRequest.STATUS_PENDING
     ).count()
 
-    # Capital / shares register totals
-    active_shareholder_rows = Shareholder.query.filter_by(is_active=True).all()
-    total_investment = sum((Decimal(s.investment_amount or 0) for s in active_shareholder_rows), Decimal('0'))
-    total_shares = sum((Decimal(s.share_count or 0) for s in active_shareholder_rows), Decimal('0'))
-    if total_shares <= 0:
-        try:
-            from apps.services.share_value_service import get_total_company_shares
+    # Capital / shares register totals (reporting — not used in Mudarabah split)
+    from apps.services.share_value_service import get_company_owned_assets, get_total_company_shares
 
-            total_shares = get_total_company_shares()
-        except Exception:
-            total_shares = Decimal('0')
+    total_shareholders = Shareholder.query.count()
+    active_shareholder_rows = Shareholder.query.filter_by(is_active=True).all()
+    total_investment = sum(
+        (Decimal(s.investment_amount or 0) for s in active_shareholder_rows),
+        Decimal('0'),
+    )
+    total_shares = sum(
+        (Decimal(s.share_count or 0) for s in active_shareholder_rows),
+        Decimal('0'),
+    )
+    if total_shares <= 0:
+        total_shares = get_total_company_shares()
+    company_owned_assets = get_company_owned_assets()
+    total_company_assets = total_investment + company_owned_assets
+    latest_remaining = latest_pool - latest_distributed
 
     recent_periods = (
         MonthlyPeriod.query.order_by(MonthlyPeriod.year.desc(), MonthlyPeriod.month.desc()).limit(6).all()
@@ -371,10 +378,33 @@ def get_dashboard_metrics(year=None):
     chart_data['analytics']['shareholder_series'] = _build_shareholder_series(shareholder_trends)
     analytics_summary = _build_analytics_summary(monthly_totals, manual_kpis)
 
+    capital_summary = {
+        'total_shareholders': total_shareholders,
+        'active_shareholders': active_shareholders,
+        'total_shares': total_shares,
+        'shareholder_capital': total_investment,
+        'company_owned_assets': company_owned_assets,
+        'total_company_assets': total_company_assets,
+    }
+    profit_summary = {
+        'net_profit': latest_profit,
+        'shareholders_pool': latest_pool,
+        'partner_share': latest_partner,
+        'total_distributed': latest_distributed,
+        'remaining': latest_remaining,
+        'period_label': latest_period.period_label if latest_period else None,
+    }
+
     return {
         'active_shareholders': active_shareholders,
+        'total_shareholders': total_shareholders,
         'total_investment': total_investment,
         'total_shares': total_shares,
+        'company_owned_assets': company_owned_assets,
+        'total_company_assets': total_company_assets,
+        'capital_summary': capital_summary,
+        'profit_summary': profit_summary,
+        'latest_remaining': latest_remaining,
         'draft_periods': draft_periods,
         'review_periods': review_periods,
         'approved_periods': approved_periods,

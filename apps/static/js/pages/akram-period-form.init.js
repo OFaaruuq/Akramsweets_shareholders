@@ -14,8 +14,6 @@ Monthly Mudarabah profit distribution — Net Profit from Odoo drives the split
   const previewCompanyNet = document.getElementById('preview-company-net');
   const previewPool = document.getElementById('preview-pool');
   const previewPartner = document.getElementById('preview-partner');
-  const previewDistributed = document.getElementById('preview-distributed');
-  const previewRemaining = document.getElementById('preview-remaining');
   const previewPoolPct = document.getElementById('preview-pool-pct');
   const previewPartnerPct = document.getElementById('preview-partner-pct');
   const previewFormulaText = document.getElementById('preview-formula-text');
@@ -61,8 +59,6 @@ Monthly Mudarabah profit distribution — Net Profit from Odoo drives the split
     set('formula-net', net);
     set('formula-pool', pool);
     set('formula-partner', partner);
-    set('formula-distributed', pool);
-    set('formula-remaining', 0);
     const poolPctEl = document.getElementById('formula-pool-pct');
     const partnerPctEl = document.getElementById('formula-partner-pct');
     const partnerNameEl = document.getElementById('formula-partner-name');
@@ -88,11 +84,6 @@ Monthly Mudarabah profit distribution — Net Profit from Odoo drives the split
       year: document.getElementById('period-year').value,
       month: document.getElementById('period-month').value,
       total_profit_loss: parseNumber('pnl-net-profit'),
-      income: parseNumber('pnl-income'),
-      gross_profit: parseNumber('pnl-gross-profit'),
-      total_gross_profit: parseNumber('pnl-total-gross-profit'),
-      total_income: parseNumber('pnl-total-income'),
-      total_expenses: parseNumber('pnl-total-expenses'),
     };
   }
 
@@ -104,19 +95,24 @@ Monthly Mudarabah profit distribution — Net Profit from Odoo drives the split
     const preview = data.preview || {};
     const rows = preview.shareholders || [];
     previewBody.innerHTML = rows
-      .map(
-        (row) =>
+      .map(function (row) {
+        const finalAmt = row.profit != null ? row.profit : row.final_amount;
+        const base = row.original_profit != null ? row.original_profit : row.base_share;
+        const adj =
+          row.arrangement_adjustment != null
+            ? row.arrangement_adjustment
+            : (row.arrangement_deduction || 0) + (row.arrangement_received || 0);
+        return (
           '<tr>' +
           '<td>' + row.name + '</td>' +
-          '<td class="text-end">' + currency(row.investment) + '</td>' +
-          '<td class="text-end">' + (row.shares ? Number(row.shares).toFixed(4) : '—') + '</td>' +
           '<td class="text-end">' + Number(row.ownership_percent).toFixed(4) + '%</td>' +
-          '<td class="text-end">' + currency(row.original_profit != null ? row.original_profit : row.base_share) + '</td>' +
-          '<td class="text-end">' + currency(row.arrangement_adjustment != null ? row.arrangement_adjustment : ((row.arrangement_deduction || 0) + (row.arrangement_received || 0))) + '</td>' +
-          '<td class="text-end fw-semibold ' + ((row.profit != null ? row.profit : row.final_amount) >= 0 ? 'text-success' : 'text-danger') + '">' +
-          currency(row.profit != null ? row.profit : row.final_amount) +
+          '<td class="text-end">' + currency(base) + '</td>' +
+          '<td class="text-end">' + currency(adj) + '</td>' +
+          '<td class="text-end fw-semibold ' + (finalAmt >= 0 ? 'text-success' : 'text-danger') + '">' +
+          currency(finalAmt) +
           '</td></tr>'
-      )
+        );
+      })
       .join('');
 
     const pool = preview.shareholders_pool != null ? preview.shareholders_pool : preview.distributed_total;
@@ -124,29 +120,39 @@ Monthly Mudarabah profit distribution — Net Profit from Odoo drives the split
     if (previewCompanyNet) previewCompanyNet.textContent = currency(preview.company_total);
     if (previewPool) previewPool.textContent = currency(preview.shareholders_pool);
     if (previewPartner) previewPartner.textContent = currency(preview.managing_partner_share);
-    if (previewDistributed) previewDistributed.textContent = currency(preview.distributed_total);
-    if (previewRemaining) previewRemaining.textContent = currency(preview.remaining_balance != null ? preview.remaining_balance : preview.variance);
     if (previewPoolPct && preview.mudarabah_shareholder_percent != null) {
       previewPoolPct.textContent = '(' + Number(preview.mudarabah_shareholder_percent).toFixed(0) + '%)';
     }
     if (previewPartnerPct) {
-      const pct = preview.mudarabah_partner_percent != null
-        ? preview.mudarabah_partner_percent
-        : safePartnerPct;
+      const pct =
+        preview.mudarabah_partner_percent != null
+          ? preview.mudarabah_partner_percent
+          : safePartnerPct;
       previewPartnerPct.textContent = '(' + Number(pct).toFixed(0) + '%)';
     }
     if (previewFormulaText && preview.formula) {
       const f = preview.formula;
       previewFormulaText.textContent =
-        'Net Profit = ' + currency(f.net_profit) +
-        '  →  Shareholders Pool (' + Number(f.shareholder_percent).toFixed(0) + '%) = ' + currency(f.shareholders_pool) +
-        '  →  ' + partnerName + ' (' + Number(f.partner_percent).toFixed(0) + '%) = ' + currency(f.akram_share);
+        'Net Profit = ' +
+        currency(f.net_profit) +
+        '  →  Pool (' +
+        Number(f.shareholder_percent).toFixed(0) +
+        '%) = ' +
+        currency(f.shareholders_pool) +
+        '  →  ' +
+        partnerName +
+        ' (' +
+        Number(f.partner_percent).toFixed(0) +
+        '%) = ' +
+        currency(f.akram_share);
     }
     previewTypeBadge.textContent = preview.is_profit ? 'Profit' : 'Loss';
     previewTypeBadge.className =
       'badge ms-2 ' + (preview.is_profit ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger');
-    previewReconcile.textContent =
-      'Pool distributed ' + currency(preview.distributed_total) + ' · Remaining ' + currency(preview.remaining_balance != null ? preview.remaining_balance : preview.variance);
+    if (previewReconcile) {
+      previewReconcile.textContent =
+        'Pool ' + currency(preview.distributed_total != null ? preview.distributed_total : pool);
+    }
 
     if (data.warnings && data.warnings.length) {
       renderWarnings(data.warnings);
@@ -189,17 +195,8 @@ Monthly Mudarabah profit distribution — Net Profit from Odoo drives the split
       previewBody.innerHTML = '';
     } finally {
       previewBtn.disabled = false;
-      previewBtn.innerHTML = '<i class="mdi mdi-calculator"></i> Preview Distribution';
+      previewBtn.innerHTML = 'Preview Distribution';
     }
-  }
-
-  const unlockPnl = document.getElementById('unlock-pnl-ref');
-  if (unlockPnl) {
-    unlockPnl.addEventListener('change', function () {
-      document.querySelectorAll('#odoo-pnl-ref .pnl-input').forEach(function (el) {
-        el.readOnly = !unlockPnl.checked;
-      });
-    });
   }
 
   if (previewBtn) previewBtn.addEventListener('click', previewDistribution);

@@ -243,6 +243,7 @@ def system_settings():
         in ('1', 'true', 'yes', 'on'),
         share_value=share['share_value'],
         total_company_shares=share['total_company_shares'] if share['has_total_shares'] else None,
+        company_owned_assets=share.get('company_owned_assets'),
         mudarabah_shareholder_percent=mudarabah['shareholder_percent'],
         capital_return_deadline_days=get_capital_return_deadline_days(),
         report_delivery_day=SystemSetting.get('report_delivery_day'),
@@ -291,7 +292,11 @@ def system_settings():
             'true' if form.notify_shareholders_on_profit_update.data else 'false',
         )
         try:
-            save_share_settings(form.share_value.data, form.total_company_shares.data)
+            save_share_settings(
+                form.share_value.data,
+                form.total_company_shares.data,
+                company_owned_assets=form.company_owned_assets.data,
+            )
             save_mudarabah_settings(form.mudarabah_shareholder_percent.data)
             save_capital_return_deadline_days(form.capital_return_deadline_days.data)
         except ValueError as exc:
