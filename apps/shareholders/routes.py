@@ -255,10 +255,14 @@ def purge_shareholder_register():
 
     deleted = result['deleted']
     flash(
-        f'Register cleared: {deleted["shareholders"]} shareholders, '
-        f'{deleted["calculations"]} calculations, {deleted["certificates"]} certificates, '
-        f'{deleted["arrangements"]} arrangements, {deleted["portal_users"]} portal users removed. '
-        f'Company-owned assets reset to $0. You can upload a clean Excel now.',
+        f'Everything shareholder-related cleared: '
+        f'{deleted["shareholders"]} shareholders, '
+        f'{deleted.get("periods", 0)} periods, '
+        f'{deleted["calculations"]} calculations, '
+        f'{deleted["certificates"]} certificates, '
+        f'{deleted["arrangements"]} arrangements, '
+        f'{deleted["portal_users"]} portal users. '
+        f'Company assets reset to $0. Upload a clean Excel now.',
         'success',
     )
     return redirect(url_for('shareholders.import_capital_register'))
