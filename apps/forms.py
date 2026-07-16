@@ -69,7 +69,7 @@ class ShareholderForm(FlaskForm):
 
 
 class ShareholderCapitalUploadForm(FlaskForm):
-    """Bulk upload of the Excel/CSV shareholder capital register."""
+    """Authoritative capital-register upload — always replaces existing shareholders/assets."""
 
     file = FileField(
         'Capital register file',
@@ -82,20 +82,23 @@ class ShareholderCapitalUploadForm(FlaskForm):
         'Ownership effective from',
         validators=[DataRequired()],
         format='%Y-%m-%d',
-        description='Ownership percentages from the file become effective on this date.',
+        description='Ownership from this file becomes the active register from this date.',
     )
     company_owned_assets = DecimalField(
         'Company-owned assets (Murabaha)',
         places=2,
         validators=[Optional(), NumberRange(min=0)],
-        description='Optional. Updates the dashboard company-assets figure (not used in Mudarabah).',
+        description=(
+            'Optional override. If blank, Murabaha note rows in the Excel file are used. '
+            'Reporting only — not used in Mudarabah profit distribution.'
+        ),
     )
     preview_only = BooleanField(
         'Preview only (do not save)',
         default=False,
         description='Parse and show totals without writing to the database.',
     )
-    submit = SubmitField('Upload & Import Shareholders')
+    submit = SubmitField('Replace Register from File')
 
 
 class CapitalWithdrawalForm(FlaskForm):

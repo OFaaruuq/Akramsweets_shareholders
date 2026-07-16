@@ -15,7 +15,7 @@
     <a href="{{ url_for('reports.certificates_register') }}" class="btn btn-soft-danger">Monthly Certificates</a>
     <a href="{{ url_for('contacts.list_contacts') }}" class="btn btn-soft-secondary">Contacts</a>
     {% if current_user.can_edit_shareholders() %}
-    <a href="{{ url_for('shareholders.import_capital_register') }}" class="btn btn-soft-primary">Upload Excel / CSV</a>
+    <a href="{{ url_for('shareholders.import_capital_register') }}" class="btn btn-soft-primary">Replace from Excel / CSV</a>
     <a href="{{ url_for('shareholders.create_shareholder') }}" class="btn btn-primary">Register Shareholder</a>
     {% endif %}
   </div>

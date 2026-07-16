@@ -80,6 +80,37 @@ TEMPLATE_HEADERS = (
     'country_code',
 )
 
+# Excel footer / note rows that must never become shareholders
+_SKIP_NAME_RE = re.compile(
+    r'('
+    r'\btotal\b|'
+    r'\bwadarta\b|'
+    r'\bsum\b|'
+    r'grand\s*total|'
+    r'total\s*asset|'
+    r'intaas\s+ayay|'
+    r'noqonaysaa|'
+    r'faaiidada\s+shirkad|'
+    r'dadka\s+qaar|'
+    r'faahfaahin|'
+    r'boqoleyda\s+lagaf'
+    r')',
+    re.IGNORECASE,
+)
+
+# Company Murabaha / company-owned asset note rows → setting, not a shareholder
+_MURABAHA_NAME_RE = re.compile(
+    r'('
+    r'muraabax|'
+    r'murabaha|'
+    r'murabaax|'
+    r'assetka\s+shirkad|'
+    r'company[- ]owned|'
+    r'company\s+asset'
+    r')',
+    re.IGNORECASE,
+)
+
 
 def _normalize_header(raw: str) -> str:
     text = (raw or '').strip().lower()
@@ -129,6 +160,27 @@ def _parse_bool(raw) -> bool:
     if isinstance(raw, bool):
         return raw
     return str(raw or '').strip().lower() in ('1', 'true', 'yes', 'y', 'owner')
+
+
+def _classify_name(name: str) -> str:
+    """
+    Return 'shareholder', 'murabaha_asset', or 'skip'.
+
+    Akram Excel ends with note rows such as:
+      - muraabaxa waaye oo ku jirta assetka shirkada  ($423,000)
+      - total asset intaas ayay noqonaysaa             ($1,643,000)
+    """
+    text = (name or '').strip()
+    if not text:
+        return 'skip'
+    if _MURABAHA_NAME_RE.search(text):
+        return 'murabaha_asset'
+    if _SKIP_NAME_RE.search(text):
+        return 'skip'
+    # Pure numeric / punctuation labels
+    if re.fullmatch(r'[\d\W_]+', text):
+        return 'skip'
+    return 'shareholder'
 
 
 def _slug_email(name: str, used: set) -> str:
@@ -225,11 +277,8 @@ def _rows_from_csv(text: str) -> list[dict]:
             if field in row and field == 'capital':
                 continue
             row[field] = cells[idx]
-        # Skip totals row
-        name = str(row.get('name') or '').strip().lower()
-        if not name or name in ('total', 'wadarta', 'sum', 'grand total'):
-            continue
-        if name.replace(' ', '').isdigit():
+        name = str(row.get('name') or '').strip()
+        if not name:
             continue
         out.append(row)
     return out
@@ -282,8 +331,8 @@ def _rows_from_xlsx(data: bytes) -> list[dict]:
             if not field or idx >= len(cells):
                 continue
             row[field] = cells[idx]
-        name = str(row.get('name') or '').strip().lower()
-        if not name or name in ('total', 'wadarta', 'sum', 'grand total'):
+        name = str(row.get('name') or '').strip()
+        if not name:
             continue
         out.append(row)
     return out
@@ -319,19 +368,50 @@ def normalize_rows(raw_rows: list[dict]):
     """Validate/normalize rows; derive ownership from capital when missing.
 
     Returns (rows, warnings, meta).
+    meta includes detected company_owned_assets from Murabaha note rows.
     """
     warnings = []
     used_emails: set[str] = set()
     normalized = []
+    detected_company_assets = None
+    skipped = 0
 
     for i, raw in enumerate(raw_rows, start=1):
         name = str(raw.get('name') or '').strip()
         if not name:
             warnings.append(f'Row {i}: skipped (missing name).')
+            skipped += 1
             continue
 
-        shares = _parse_decimal(raw.get('shares'), Decimal('0')) or Decimal('0')
+        kind = _classify_name(name)
         capital = _parse_decimal(raw.get('capital'), Decimal('0')) or Decimal('0')
+        shares = _parse_decimal(raw.get('shares'), Decimal('0')) or Decimal('0')
+
+        if kind == 'murabaha_asset':
+            if capital > 0:
+                detected_company_assets = capital.quantize(MONEY)
+                warnings.append(
+                    f'Skipped “{name}” — treated as company-owned Murabaha assets '
+                    f'(${detected_company_assets:,.2f}), not a shareholder.'
+                )
+            else:
+                warnings.append(f'Skipped “{name}” (Murabaha / company-asset note).')
+            skipped += 1
+            continue
+
+        if kind == 'skip':
+            warnings.append(f'Skipped “{name}” (summary / total / note row).')
+            skipped += 1
+            continue
+
+        # Extra guard: huge capital with almost no shares = balance-sheet total line
+        if capital >= Decimal('1000000') and shares <= Decimal('1'):
+            warnings.append(
+                f'Skipped “{name}” — looks like a total-assets line (${capital:,.2f}).'
+            )
+            skipped += 1
+            continue
+
         ownership = _parse_decimal(raw.get('ownership_percent'), None)
 
         email = str(raw.get('email') or '').strip().lower()
@@ -360,35 +440,37 @@ def normalize_rows(raw_rows: list[dict]):
         })
 
     if not normalized:
-        raise ValueError('No shareholder rows found. Check that the file has Magaca/Name column.')
+        raise ValueError(
+            'No shareholder rows found. Remove summary lines and ensure Magaca/Name column exists.'
+        )
+
+    # Excel stores 47% as 0.47 — convert fractions to percent when sum ≈ 1
+    own_values = [r['ownership_percent'] for r in normalized if r['ownership_percent'] is not None]
+    if own_values:
+        own_sum = sum(own_values, Decimal('0'))
+        if Decimal('0.85') <= own_sum <= Decimal('1.15'):
+            for r in normalized:
+                if r['ownership_percent'] is not None:
+                    r['ownership_percent'] = (r['ownership_percent'] * Decimal('100')).quantize(
+                        OWNERSHIP, rounding=ROUND_HALF_UP
+                    )
+            warnings.append(
+                'Excel ownership cells were fractions (e.g. 0.47 = 47%). Converted to percent.'
+            )
 
     total_capital = sum((r['capital'] for r in normalized), Decimal('0'))
     total_shares = sum((r['shares'] for r in normalized), Decimal('0'))
 
-    # Derive ownership from capital when missing or when Excel used rounded whole %
-    missing_ownership = any(r['ownership_percent'] is None for r in normalized)
-    if missing_ownership and total_capital > 0:
+    # Prefer capital-based ownership for the Akram register (precise dollars, rounded Excel %)
+    if total_capital > 0:
         for r in normalized:
-            if r['ownership_percent'] is None:
-                r['ownership_percent'] = (r['capital'] / total_capital * Decimal('100')).quantize(
-                    OWNERSHIP, rounding=ROUND_HALF_UP
-                )
-        warnings.append('Ownership % derived from each row’s capital ÷ total capital.')
-    elif total_capital > 0:
-        # If provided ownership is coarse (whole numbers) but capital is precise, prefer capital-based
-        coarse = all(
-            r['ownership_percent'] is not None
-            and r['ownership_percent'] == r['ownership_percent'].to_integral_value()
-            for r in normalized
-        )
-        if coarse and len(normalized) >= 3:
-            for r in normalized:
-                r['ownership_percent'] = (r['capital'] / total_capital * Decimal('100')).quantize(
-                    OWNERSHIP, rounding=ROUND_HALF_UP
-                )
-            warnings.append(
-                'Excel ownership looked rounded (whole %). Recalculated from capital for 100% accuracy.'
+            r['ownership_percent'] = (r['capital'] / total_capital * Decimal('100')).quantize(
+                OWNERSHIP, rounding=ROUND_HALF_UP
             )
+        warnings.append(
+            'Ownership % calculated from each shareholder’s capital ÷ total shareholder capital '
+            '(Murabaha / company assets excluded).'
+        )
 
     for r in normalized:
         if r['ownership_percent'] is None:
@@ -400,7 +482,7 @@ def normalize_rows(raw_rows: list[dict]):
     # Rebalance tiny rounding drift onto the largest capital holder
     total_own = sum((r['ownership_percent'] for r in normalized), Decimal('0'))
     drift = (Decimal('100') - total_own).quantize(OWNERSHIP, rounding=ROUND_HALF_UP)
-    if abs(drift) > 0 and abs(drift) <= Decimal('0.02'):
+    if abs(drift) > 0 and abs(drift) <= Decimal('0.05'):
         top = max(normalized, key=lambda r: r['capital'])
         top['ownership_percent'] = (top['ownership_percent'] + drift).quantize(OWNERSHIP)
         warnings.append(f'Adjusted {top["name"]} ownership by {drift}% so total is 100%.')
@@ -417,26 +499,28 @@ def normalize_rows(raw_rows: list[dict]):
         top['is_owner'] = True
         warnings.append(f'Marked {top["name"]} as owner (largest capital).')
 
-    # If shares missing but capital present and share value ~1000
+    # Shares from capital when missing (1 share = 1000)
     for r in normalized:
         if r['shares'] <= 0 and r['capital'] > 0:
             r['shares'] = (r['capital'] / Decimal('1000')).quantize(SHARES, rounding=ROUND_HALF_UP)
 
+    # Recompute share total after backfill
+    total_shares = sum((r['shares'] for r in normalized), Decimal('0'))
+
     meta = {
         'row_count': len(normalized),
-        'total_shares': total_shares if total_shares > 0 else sum((r['shares'] for r in normalized), Decimal('0')),
+        'skipped_rows': skipped,
+        'total_shares': total_shares,
         'total_capital': total_capital,
         'total_ownership': sum((r['ownership_percent'] for r in normalized), Decimal('0')),
+        'company_owned_assets': detected_company_assets,
     }
-    for r in normalized:
-        r['_meta'] = meta  # unused per-row; meta returned separately
     return normalized, warnings, meta
 
 
 def preview_import(file_storage) -> dict:
     raw = parse_upload(file_storage)
     rows, warnings, meta = normalize_rows(raw)
-    # strip internal
     clean = [{k: v for k, v in r.items() if k != '_meta'} for r in rows]
     return {
         'ok': True,
@@ -444,6 +528,69 @@ def preview_import(file_storage) -> dict:
         'warnings': warnings,
         'meta': meta,
     }
+
+
+def _norm_name(name: str) -> str:
+    return re.sub(r'[^a-z0-9]+', ' ', (name or '').lower()).strip()
+
+
+def _find_existing_shareholder(row: dict, claimed_ids: set[int]):
+    """Match by email first, then by exact normalized name (for re-uploads)."""
+    email = (row.get('email') or '').strip().lower()
+    if email:
+        sh = Shareholder.query.filter_by(email=email).first()
+        if sh and sh.id not in claimed_ids:
+            return sh
+
+    target = _norm_name(row.get('name') or '')
+    if not target:
+        return None
+    for sh in Shareholder.query.all():
+        if sh.id in claimed_ids:
+            continue
+        if _norm_name(sh.name) == target:
+            return sh
+    return None
+
+
+def _close_open_ownership(shareholder_id: int, effective: date):
+    open_recs = OwnershipRecord.query.filter_by(
+        shareholder_id=shareholder_id,
+        effective_to=None,
+    ).all()
+    for rec in open_recs:
+        if rec.effective_from >= effective:
+            db.session.delete(rec)
+        else:
+            rec.effective_to = effective - timedelta(days=1)
+
+
+def _deactivate_non_imported(keep_ids: set[int], effective: date) -> int:
+    """Deactivate every shareholder not in the uploaded register and close ownership."""
+    deactivated = 0
+    for sh in Shareholder.query.filter_by(is_active=True).all():
+        if sh.id in keep_ids and _classify_name(sh.name or '') == 'shareholder':
+            continue
+        sh.is_active = False
+        sh.is_owner = False
+        # Zero capital/shares so dashboard totals only reflect the uploaded register
+        sh.investment_amount = Decimal('0')
+        sh.share_count = Decimal('0')
+        _close_open_ownership(sh.id, effective)
+        deactivated += 1
+
+    # Also deactivate junk / Murabaha note people left from older imports (even if inactive)
+    for sh in Shareholder.query.all():
+        if sh.id in keep_ids:
+            continue
+        if _classify_name(sh.name or '') != 'shareholder' and sh.is_active:
+            sh.is_active = False
+            sh.is_owner = False
+            sh.investment_amount = Decimal('0')
+            sh.share_count = Decimal('0')
+            _close_open_ownership(sh.id, effective)
+            deactivated += 1
+    return deactivated
 
 
 def apply_import(
@@ -454,43 +601,59 @@ def apply_import(
     company_owned_assets: Optional[Decimal] = None,
     actor=None,
 ) -> dict:
-    """Upsert shareholders + ownership from normalized rows."""
+    """
+    Authoritative replace of the shareholder capital register.
+
+    - Creates or updates every row in the file (name, shares, capital, ownership)
+    - Deactivates anyone not in the file (demo data, old rows, mistaken asset lines)
+    - Overwrites company share totals + Murabaha assets settings
+    """
     if not rows:
         raise ValueError('No rows to import.')
 
     effective = effective_from or date.today().replace(day=1)
     created = updated = 0
+    keep_ids: set[int] = set()
+    claimed_ids: set[int] = set()
+
+    # Clear owner flags before re-applying from file
+    for sh in Shareholder.query.filter_by(is_owner=True).all():
+        sh.is_owner = False
 
     for row in rows:
-        sh = Shareholder.query.filter_by(email=row['email']).first()
+        sh = _find_existing_shareholder(row, claimed_ids)
         if not sh:
             sh = Shareholder(email=row['email'])
             db.session.add(sh)
             created += 1
         else:
             updated += 1
+            # Keep a stable login email if one already exists; otherwise use file email
+            if not sh.email:
+                sh.email = row['email']
 
         sh.name = row['name']
+        # File is authoritative for register contact + capital fields
+        if sh.email != row['email']:
+            clash = Shareholder.query.filter(
+                Shareholder.email == row['email'],
+                Shareholder.id != sh.id,
+            ).first()
+            if not clash:
+                sh.email = row['email']
         sh.share_count = row['shares']
         sh.investment_amount = row['capital']
         sh.is_owner = bool(row.get('is_owner'))
         sh.is_active = True
-        if row.get('phone'):
-            sh.phone = row['phone']
+        sh.phone = row.get('phone')
         sh.country = row.get('country') or 'Somalia'
         sh.country_code = row.get('country_code') or 'so'
         db.session.flush()
 
-        open_recs = OwnershipRecord.query.filter_by(
-            shareholder_id=sh.id,
-            effective_to=None,
-        ).all()
-        for rec in open_recs:
-            if rec.effective_from >= effective:
-                db.session.delete(rec)
-            else:
-                rec.effective_to = effective - timedelta(days=1)
+        claimed_ids.add(sh.id)
+        keep_ids.add(sh.id)
 
+        _close_open_ownership(sh.id, effective)
         db.session.add(
             OwnershipRecord(
                 shareholder_id=sh.id,
@@ -499,6 +662,8 @@ def apply_import(
                 created_by_id=getattr(actor, 'id', None),
             )
         )
+
+    deactivated = _deactivate_non_imported(keep_ids, effective)
 
     total_shares = sum((Decimal(r['shares']) for r in rows), Decimal('0'))
     total_capital = sum((Decimal(r['capital']) for r in rows), Decimal('0'))
@@ -512,7 +677,7 @@ def apply_import(
             else get_company_owned_assets()
         )
         save_share_settings(
-            share_value=get_share_value(),
+            share_value=get_share_value() or Decimal('1000'),
             total_company_shares=total_shares if total_shares > 0 else None,
             company_owned_assets=assets,
         )
@@ -525,8 +690,8 @@ def apply_import(
         'import',
         'shareholder_capital',
         None,
-        f'Capital register import: {created} created, {updated} updated, '
-        f'{len(rows)} rows, capital={total_capital}',
+        f'Capital register REPLACE: {created} created, {updated} updated, '
+        f'{deactivated} removed from active register, {len(rows)} rows, capital={total_capital}',
         user=actor,
     )
 
@@ -534,9 +699,12 @@ def apply_import(
         'ok': True,
         'created': created,
         'updated': updated,
+        'deactivated': deactivated,
         'total_rows': len(rows),
         'total_shares': total_shares,
         'total_capital': total_capital,
+        'company_owned_assets': company_owned_assets,
+        'replaced': True,
     }
 
 
@@ -547,15 +715,23 @@ def import_from_upload(
     company_owned_assets: Optional[Decimal] = None,
     actor=None,
 ) -> dict:
-    """Parse + apply in one step (used by web upload and CLI)."""
+    """Parse + fully replace the capital register from an uploaded file."""
     raw = parse_upload(file_storage)
     rows, warnings, meta = normalize_rows(raw)
     clean = [{k: v for k, v in r.items() if k != '_meta'} for r in rows]
+
+    assets = company_owned_assets
+    if assets is None and meta.get('company_owned_assets') is not None:
+        assets = meta['company_owned_assets']
+        warnings.append(
+            f'Company-owned assets set from Excel Murabaha row: ${assets:,.2f}.'
+        )
+
     result = apply_import(
         clean,
         effective_from=effective_from,
         update_register_settings=True,
-        company_owned_assets=company_owned_assets,
+        company_owned_assets=assets,
         actor=actor,
     )
     result['warnings'] = warnings

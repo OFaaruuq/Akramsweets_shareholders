@@ -162,7 +162,7 @@ def _validate_registration(form, *, exclude_id=None, require_active_ownership=Tr
 @blueprint.route('/import', methods=['GET', 'POST'])
 @management_required
 def import_capital_register():
-    """Upload CSV/Excel capital register — creates/updates all shareholders & assets."""
+    """Authoritative upload — always replaces existing shareholders and capital assets."""
     from apps.services.capital_import_service import import_from_upload, preview_import
     from apps.services.share_value_service import get_company_owned_assets
 
@@ -177,12 +177,19 @@ def import_capital_register():
     if form.validate_on_submit():
         try:
             upload = form.file.data
-            # FileStorage can only be read once — clone for preview vs apply path
             if form.preview_only.data:
                 preview = preview_import(upload)
+                assets = preview['meta'].get('company_owned_assets')
                 flash(
-                    f'Preview ready: {preview["meta"]["row_count"]} shareholders, '
-                    f'capital {preview["meta"]["total_capital"]:,.2f}. Nothing was saved.',
+                    f'Preview (not saved): {preview["meta"]["row_count"]} shareholders will REPLACE '
+                    f'the active register. Capital ${preview["meta"]["total_capital"]:,.2f}, '
+                    f'ownership {preview["meta"]["total_ownership"]:.4f}%'
+                    + (
+                        f', Murabaha ${assets:,.2f}'
+                        if assets is not None
+                        else ''
+                    )
+                    + '.',
                     'info',
                 )
             else:
@@ -193,9 +200,10 @@ def import_capital_register():
                     actor=current_user,
                 )
                 flash(
-                    f'Imported {result["total_rows"]} shareholders '
-                    f'({result["created"]} new, {result["updated"]} updated). '
-                    f'Total capital {result["total_capital"]:,.2f} · '
+                    f'Register replaced with {result["total_rows"]} shareholders '
+                    f'({result["created"]} new, {result["updated"]} updated, '
+                    f'{result.get("deactivated", 0)} removed from active register). '
+                    f'Total capital ${result["total_capital"]:,.2f} · '
                     f'{result["total_shares"]:,.0f} shares.',
                     'success',
                 )

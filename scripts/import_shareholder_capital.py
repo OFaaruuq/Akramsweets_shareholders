@@ -76,8 +76,9 @@ def main():
             actor=SimpleNamespace(id=None, full_name='cli'),
         )
         print(
-            f"Imported {result['total_rows']} "
-            f"({result['created']} new, {result['updated']} updated)"
+            f"Register replaced: {result['total_rows']} "
+            f"({result['created']} new, {result['updated']} updated, "
+            f"{result.get('deactivated', 0)} deactivated)"
         )
         print(f"Capital: {result['total_capital']} · Shares: {result['total_shares']}")
         for w in result.get('warnings') or []:
