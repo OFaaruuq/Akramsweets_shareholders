@@ -42,23 +42,6 @@
 
 </div>
 
-{% if not is_shareholder_view and current_user.is_superadmin() %}
-<div class="alert alert-danger border-0 mb-3">
-  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
-    <div>
-      <strong>Super Admin</strong>
-      <span class="fs-13 d-block mt-1">Full system control: staff users, approvals, settings, audit trail, and Mudarabah configuration.</span>
-    </div>
-    <div class="d-flex flex-wrap gap-1">
-      <a href="{{ url_for('users.list_users') }}" class="btn btn-sm btn-light">Staff users</a>
-      <a href="{{ url_for('periods.approvals_inbox') }}" class="btn btn-sm btn-light">Approvals</a>
-      <a href="{{ url_for('app_settings.system_settings') }}" class="btn btn-sm btn-light">Settings</a>
-      <a href="{{ url_for('app_settings.audit_log') }}" class="btn btn-sm btn-light">Audit</a>
-    </div>
-  </div>
-</div>
-{% endif %}
-
 {% if not is_shareholder_view and mail_status and mail_status.show_warning %}
 <div class="alert alert-{{ 'danger' if mail_status.otp_blocked else 'warning' }}">
   <strong>{{ mail_status.headline }}</strong>
