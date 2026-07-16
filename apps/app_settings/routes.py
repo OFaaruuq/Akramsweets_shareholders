@@ -222,11 +222,14 @@ def system_settings():
     ensure_default_share_settings()
     ensure_default_mudarabah_settings()
     ensure_default_withdrawal_settings()
+    from apps.services.twilio_whatsapp_service import get_whatsapp_delivery_status
+
     brand = get_brand_settings()
     cert = get_certificate_settings()
     share = get_share_settings()
     mudarabah = get_mudarabah_settings()
     capital_return = get_capital_return_deadline_months_label()
+    whatsapp_status = get_whatsapp_delivery_status()
     form = SystemSettingsForm(
         auto_email_on_approval=str(SystemSetting.get('auto_email_on_approval', 'true')).lower() in ('1', 'true', 'yes', 'on'),
         sms_notifications_enabled=str(SystemSetting.get('sms_notifications_enabled', 'false')).lower() in ('1', 'true', 'yes', 'on'),
@@ -300,6 +303,7 @@ def system_settings():
                 cert=cert,
                 mudarabah=mudarabah,
                 capital_return=capital_return,
+                whatsapp_status=whatsapp_status,
                 segment='settings',
             )
         for key in (
@@ -358,6 +362,7 @@ def system_settings():
                 cert=get_certificate_settings(),
                 mudarabah=get_mudarabah_settings(),
                 capital_return=get_capital_return_deadline_months_label(),
+                whatsapp_status=whatsapp_status,
                 segment='settings',
             )
 
@@ -372,6 +377,7 @@ def system_settings():
         cert=cert,
         mudarabah=mudarabah,
         capital_return=capital_return,
+        whatsapp_status=whatsapp_status,
         segment='settings',
     )
 

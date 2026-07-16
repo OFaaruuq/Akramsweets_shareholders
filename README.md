@@ -13,6 +13,7 @@ Flask web app for **Akram Sweets** shareholder management: profit periods, share
 - Special arrangements on the shareholders’ pool — see [docs/SPECIAL_ARRANGEMENTS.md](docs/SPECIAL_ARRANGEMENTS.md)
 - Dynamic **share value** (e.g. 1 share = 1000) — see [docs/SHARE_VALUE.md](docs/SHARE_VALUE.md)
 - Login email OTP verification (requires SMTP)
+- Optional **WhatsApp** notifications via Twilio (shareholder updates, certificates, withdrawals, credentials)
 - Alembic database migrations (`flask db upgrade`)
 - Scheduled email report delivery
 - Local **PostgreSQL** database
@@ -94,6 +95,7 @@ Copy `env.sample` to `.env` and adjust. Never commit `.env` — it is gitignored
 | `SECRET_KEY` | Flask secret (set in production) |
 | `DB_*` / `DATABASE_URL` | Local PostgreSQL connection |
 | `MAIL_*` | Optional SMTP (also configurable in Settings → System) |
+| `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_WHATSAPP_FROM` | Optional Twilio WhatsApp (enable toggle in Settings → Email & delivery) |
 
 ## Production notes
 

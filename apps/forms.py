@@ -212,7 +212,7 @@ class SystemSettingsForm(FlaskForm):
         default=True,
     )
     sms_notifications_enabled = BooleanField(
-        'Also queue SMS/WhatsApp stubs when a phone number is on file (provider not wired yet — logs only)',
+        'Also send WhatsApp via Twilio when a phone number is on file (requires TWILIO_* in .env)',
         default=False,
     )
     notify_management_on_review = BooleanField(

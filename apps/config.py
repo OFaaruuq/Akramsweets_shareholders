@@ -124,6 +124,12 @@ class Config(object):
     OTP_MAX_ATTEMPTS = _env_int('OTP_MAX_ATTEMPTS', 5)
     OTP_TEST_CAPTURE = _env_bool('OTP_TEST_CAPTURE', False)
 
+    # Twilio WhatsApp (optional — enable in Settings → Email & delivery)
+    TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID') or None
+    TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN') or None
+    TWILIO_WHATSAPP_FROM = os.getenv('TWILIO_WHATSAPP_FROM') or None
+    TWILIO_MESSAGING_SERVICE_SID = os.getenv('TWILIO_MESSAGING_SERVICE_SID') or None
+
 
 class ProductionConfig(Config):
     DEBUG = False
