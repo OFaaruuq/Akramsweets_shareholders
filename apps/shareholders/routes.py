@@ -5,9 +5,9 @@ from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user
 
 from apps import db
-from apps.auth.decorators import finance_or_management_required, management_required
+from apps.auth.decorators import finance_or_management_required, management_required, owner_required
 from apps.auth.forms import ShareholderPortalAccountForm
-from apps.forms import ShareholderCapitalUploadForm, ShareholderForm
+from apps.forms import PurgeShareholderRegisterForm, ShareholderCapitalUploadForm, ShareholderForm
 from apps.models.shareholder import OwnershipRecord, Shareholder
 from apps.services.audit_service import log_action
 from apps.services.portal_service import (
@@ -164,9 +164,11 @@ def _validate_registration(form, *, exclude_id=None, require_active_ownership=Tr
 def import_capital_register():
     """Authoritative upload — always replaces existing shareholders and capital assets."""
     from apps.services.capital_import_service import import_from_upload, preview_import
+    from apps.services.register_reset_service import register_counts
     from apps.services.share_value_service import get_company_owned_assets
 
     form = ShareholderCapitalUploadForm()
+    purge_form = PurgeShareholderRegisterForm()
     if request.method == 'GET':
         form.effective_from.data = datetime.utcnow().date().replace(day=1)
         form.company_owned_assets.data = get_company_owned_assets()
@@ -219,10 +221,47 @@ def import_capital_register():
     return render_template(
         'shareholders/import.html',
         form=form,
+        purge_form=purge_form,
+        register_stats=register_counts(),
+        can_purge=current_user.is_superadmin(),
         preview=preview,
         result=result,
         segment='shareholders',
     )
+
+
+@blueprint.route('/purge', methods=['POST'])
+@owner_required
+def purge_shareholder_register():
+    """Owner-only: delete all shareholders and capital-register related data."""
+    from apps.services.register_reset_service import CONFIRM_PHRASE, purge_all_shareholders_and_assets
+
+    form = PurgeShareholderRegisterForm()
+    if not form.validate_on_submit():
+        flash('Purge cancelled — confirmation was incomplete.', 'warning')
+        return redirect(url_for('shareholders.import_capital_register'))
+
+    phrase = (form.confirm_phrase.data or '').strip().upper()
+    if phrase != CONFIRM_PHRASE:
+        flash(f'Type exactly {CONFIRM_PHRASE} to confirm the purge.', 'danger')
+        return redirect(url_for('shareholders.import_capital_register'))
+
+    try:
+        result = purge_all_shareholders_and_assets(actor=current_user, reset_capital_settings=True)
+    except Exception as exc:
+        db.session.rollback()
+        flash(f'Purge failed: {exc}', 'danger')
+        return redirect(url_for('shareholders.import_capital_register'))
+
+    deleted = result['deleted']
+    flash(
+        f'Register cleared: {deleted["shareholders"]} shareholders, '
+        f'{deleted["calculations"]} calculations, {deleted["certificates"]} certificates, '
+        f'{deleted["arrangements"]} arrangements, {deleted["portal_users"]} portal users removed. '
+        f'Company-owned assets reset to $0. You can upload a clean Excel now.',
+        'success',
+    )
+    return redirect(url_for('shareholders.import_capital_register'))
 
 
 @blueprint.route('/import/template.csv')

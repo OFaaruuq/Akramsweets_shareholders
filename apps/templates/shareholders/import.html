@@ -73,6 +73,42 @@
         </ol>
       </div>
     </div>
+
+    {% if can_purge %}
+    <div class="card mb-3 border-danger" id="purge">
+      <div class="card-header bg-danger-subtle">
+        <h5 class="card-title mb-0 text-danger">Danger zone — clean all shareholders</h5>
+      </div>
+      <div class="card-body">
+        <p class="fs-13 mb-2">
+          Permanently delete <strong>all</strong> shareholders and capital-register data so you can re-upload a clean Excel.
+          Staff accounts are kept. Period headers stay, but shareholder calculations/certificates for those people are removed.
+        </p>
+        <div class="row g-2 fs-13 mb-3">
+          <div class="col-6"><span class="text-muted">Shareholders</span> <strong>{{ register_stats.shareholders }}</strong> ({{ register_stats.active_shareholders }} active)</div>
+          <div class="col-6"><span class="text-muted">Ownership rows</span> <strong>{{ register_stats.ownership_records }}</strong></div>
+          <div class="col-6"><span class="text-muted">Calculations</span> <strong>{{ register_stats.calculations }}</strong></div>
+          <div class="col-6"><span class="text-muted">Certificates</span> <strong>{{ register_stats.certificates }}</strong></div>
+          <div class="col-6"><span class="text-muted">Arrangements</span> <strong>{{ register_stats.arrangements }}</strong></div>
+          <div class="col-6"><span class="text-muted">Portal users</span> <strong>{{ register_stats.portal_users }}</strong></div>
+        </div>
+        <form method="post" action="{{ url_for('shareholders.purge_shareholder_register') }}"
+              onsubmit="return confirm('This permanently deletes ALL shareholders and capital data. Continue?');">
+          {{ purge_form.hidden_tag() }}
+          <div class="mb-3">
+            <label class="form-label">{{ purge_form.confirm_phrase.label.text }}</label>
+            {{ purge_form.confirm_phrase(class='form-control', placeholder=register_stats.confirm_phrase, autocomplete='off') }}
+            <div class="form-text">Type <code>{{ register_stats.confirm_phrase }}</code> exactly.</div>
+          </div>
+          <div class="form-check mb-3">
+            {{ purge_form.acknowledge(class='form-check-input', id='purge-ack') }}
+            <label class="form-check-label fs-13" for="purge-ack">{{ purge_form.acknowledge.label.text }}</label>
+          </div>
+          {{ purge_form.submit(class='btn btn-danger') }}
+        </form>
+      </div>
+    </div>
+    {% endif %}
   </div>
 
   <div class="col-xl-7">

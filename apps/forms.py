@@ -68,6 +68,29 @@ class ShareholderForm(FlaskForm):
     submit = SubmitField('Save Shareholder')
 
 
+class PurgeShareholderRegisterForm(FlaskForm):
+    """Owner-only wipe of all shareholders and capital-register data."""
+
+    confirm_phrase = StringField(
+        'Type RESET SHAREHOLDERS to confirm',
+        validators=[DataRequired(), Length(max=64)],
+    )
+    acknowledge = BooleanField(
+        'I understand this permanently deletes all shareholders, ownership, '
+        'certificates, calculations, arrangements, withdrawals, and portal logins',
+        default=False,
+    )
+    submit = SubmitField('Delete all shareholders & assets')
+
+    def validate(self, extra_validators=None):
+        if not super().validate(extra_validators):
+            return False
+        if not self.acknowledge.data:
+            self.acknowledge.errors.append('You must acknowledge this action.')
+            return False
+        return True
+
+
 class ShareholderCapitalUploadForm(FlaskForm):
     """Authoritative capital-register upload — always replaces existing shareholders/assets."""
 
