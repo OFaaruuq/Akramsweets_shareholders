@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from flask_wtf.file import FileAllowed, FileField
+from flask_wtf.file import FileAllowed, FileField, FileRequired
 from wtforms import (
     BooleanField,
     DateField,
@@ -66,6 +66,36 @@ class ShareholderForm(FlaskForm):
         default=False,
     )
     submit = SubmitField('Save Shareholder')
+
+
+class ShareholderCapitalUploadForm(FlaskForm):
+    """Bulk upload of the Excel/CSV shareholder capital register."""
+
+    file = FileField(
+        'Capital register file',
+        validators=[
+            FileRequired(message='Choose a CSV or Excel (.xlsx) file.'),
+            FileAllowed(['csv', 'xlsx', 'xlsm', 'txt'], 'Upload CSV or Excel (.xlsx) only.'),
+        ],
+    )
+    effective_from = DateField(
+        'Ownership effective from',
+        validators=[DataRequired()],
+        format='%Y-%m-%d',
+        description='Ownership percentages from the file become effective on this date.',
+    )
+    company_owned_assets = DecimalField(
+        'Company-owned assets (Murabaha)',
+        places=2,
+        validators=[Optional(), NumberRange(min=0)],
+        description='Optional. Updates the dashboard company-assets figure (not used in Mudarabah).',
+    )
+    preview_only = BooleanField(
+        'Preview only (do not save)',
+        default=False,
+        description='Parse and show totals without writing to the database.',
+    )
+    submit = SubmitField('Upload & Import Shareholders')
 
 
 class CapitalWithdrawalForm(FlaskForm):

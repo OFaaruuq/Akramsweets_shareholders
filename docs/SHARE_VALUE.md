@@ -45,16 +45,27 @@ Capital totals appear on the **dashboard capital summary** and shareholder state
 
 Per-shareholder **shares**, **capital**, and **ownership %** are maintained under **Shareholders** (or imported from CSV).
 
-### Import from Excel / CSV
+### Import from Excel / CSV (automated)
+
+**In the app (recommended):**
+
+1. Sign in as Owner/Admin  
+2. Open **Shareholders → Upload Excel / CSV** (`/shareholders/import`)  
+3. Upload your capital register (`.xlsx` or `.csv`)  
+4. Optionally set **Company-owned assets (Murabaha)** e.g. `423000`  
+5. Use **Preview only** first, then import  
+
+Somali Excel headers are supported: `Magaca`, `Saamiga`, `Lacagta`, `Boqoleey %`.  
+The profit `Lacagta` column is ignored. Missing emails are auto-generated. Rounded % values are recalculated from capital.
+
+**CLI:**
 
 ```bash
-# 1. Fill data/shareholder_capital.csv with all 20 shareholders from Excel
-# 2. Dry-run, then import
-python scripts/import_shareholder_capital.py data/shareholder_capital.csv --dry-run
-python scripts/import_shareholder_capital.py data/shareholder_capital.csv
+python scripts/import_shareholder_capital.py register.xlsx --dry-run
+python scripts/import_shareholder_capital.py register.xlsx --company-owned-assets 423000
 ```
 
-CSV columns: `name,email,shares,capital,ownership_percent,is_owner,phone,country,country_code`
+Template download: `/shareholders/import/template.csv`
 
 Ownership % across active shareholders must total **100.0000%** before a period can be calculated.
 

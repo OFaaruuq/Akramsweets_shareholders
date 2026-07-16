@@ -7,7 +7,7 @@ from flask_login import current_user
 from apps import db
 from apps.auth.decorators import finance_or_management_required, management_required
 from apps.auth.forms import ShareholderPortalAccountForm
-from apps.forms import ShareholderForm
+from apps.forms import ShareholderCapitalUploadForm, ShareholderForm
 from apps.models.shareholder import OwnershipRecord, Shareholder
 from apps.services.audit_service import log_action
 from apps.services.portal_service import (
@@ -157,6 +157,80 @@ def _validate_registration(form, *, exclude_id=None, require_active_ownership=Tr
             ok = False
 
     return ok
+
+
+@blueprint.route('/import', methods=['GET', 'POST'])
+@management_required
+def import_capital_register():
+    """Upload CSV/Excel capital register — creates/updates all shareholders & assets."""
+    from apps.services.capital_import_service import import_from_upload, preview_import
+    from apps.services.share_value_service import get_company_owned_assets
+
+    form = ShareholderCapitalUploadForm()
+    if request.method == 'GET':
+        form.effective_from.data = datetime.utcnow().date().replace(day=1)
+        form.company_owned_assets.data = get_company_owned_assets()
+
+    preview = None
+    result = None
+
+    if form.validate_on_submit():
+        try:
+            upload = form.file.data
+            # FileStorage can only be read once — clone for preview vs apply path
+            if form.preview_only.data:
+                preview = preview_import(upload)
+                flash(
+                    f'Preview ready: {preview["meta"]["row_count"]} shareholders, '
+                    f'capital {preview["meta"]["total_capital"]:,.2f}. Nothing was saved.',
+                    'info',
+                )
+            else:
+                result = import_from_upload(
+                    upload,
+                    effective_from=form.effective_from.data,
+                    company_owned_assets=form.company_owned_assets.data,
+                    actor=current_user,
+                )
+                flash(
+                    f'Imported {result["total_rows"]} shareholders '
+                    f'({result["created"]} new, {result["updated"]} updated). '
+                    f'Total capital {result["total_capital"]:,.2f} · '
+                    f'{result["total_shares"]:,.0f} shares.',
+                    'success',
+                )
+                for warning in result.get('warnings') or []:
+                    flash(warning, 'warning')
+                return redirect(url_for('shareholders.list_shareholders', status='active'))
+        except ValueError as exc:
+            flash(str(exc), 'danger')
+        except Exception as exc:
+            db.session.rollback()
+            flash(f'Import failed: {exc}', 'danger')
+
+    return render_template(
+        'shareholders/import.html',
+        form=form,
+        preview=preview,
+        result=result,
+        segment='shareholders',
+    )
+
+
+@blueprint.route('/import/template.csv')
+@finance_or_management_required
+def download_capital_template():
+    from flask import Response
+
+    from apps.services.capital_import_service import build_template_csv
+
+    return Response(
+        build_template_csv(),
+        mimetype='text/csv',
+        headers={
+            'Content-Disposition': 'attachment; filename=shareholder_capital_template.csv',
+        },
+    )
 
 
 @blueprint.route('/')

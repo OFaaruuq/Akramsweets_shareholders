@@ -1,0 +1,182 @@
+{% extends 'layouts/vertical.html' %}
+{% block title %}Upload Capital Register{% endblock title %}
+{% block css %}{% include 'partials/head-css.html' %}{% endblock css %}
+{% block body_attribute %}data-menu-color="dark" data-sidebar="default"{% endblock body_attribute %}
+{% block page_content %}
+
+<div class="py-3 d-flex align-items-sm-center flex-sm-row flex-column gap-2">
+  <div class="flex-grow-1">
+    <h4 class="fs-18 fw-semibold m-0">Upload Shareholders &amp; Capital</h4>
+    <p class="text-muted mb-0 fs-13">
+      Import the Excel capital register (Magaca, Saamiga, Lacagta, Boqoleey %) or a CSV template.
+      Creates or updates shareholders, shares, capital, and ownership automatically.
+    </p>
+  </div>
+  <div class="text-end d-flex flex-wrap gap-1 justify-content-end">
+    <a href="{{ url_for('shareholders.download_capital_template') }}" class="btn btn-soft-secondary btn-sm">Download CSV template</a>
+    <a href="{{ url_for('shareholders.list_shareholders') }}" class="btn btn-soft-primary btn-sm">Back to register</a>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-xl-5">
+    <div class="card mb-3">
+      <div class="card-header"><h5 class="card-title mb-0">Upload file</h5></div>
+      <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+          {{ form.hidden_tag() }}
+          <div class="mb-3">
+            <label class="form-label">{{ form.file.label.text }}</label>
+            {{ form.file(class='form-control', accept='.csv,.xlsx,.xlsm,.txt') }}
+            {% for err in form.file.errors %}<div class="text-danger fs-13">{{ err }}</div>{% endfor %}
+            <div class="form-text">Accepted: <strong>.xlsx</strong> (Excel) or <strong>.csv</strong></div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{{ form.effective_from.label.text }}</label>
+            {{ form.effective_from(class='form-control', type='date') }}
+            <div class="form-text">{{ form.effective_from.description }}</div>
+            {% for err in form.effective_from.errors %}<div class="text-danger fs-13">{{ err }}</div>{% endfor %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{{ form.company_owned_assets.label.text }}</label>
+            <div class="input-group">
+              <span class="input-group-text">{{ currency_symbol }}</span>
+              {{ form.company_owned_assets(class='form-control', step='0.01', placeholder='423000.00') }}
+            </div>
+            <div class="form-text">{{ form.company_owned_assets.description }}</div>
+          </div>
+          <div class="form-check mb-3">
+            {{ form.preview_only(class='form-check-input', id='preview-only') }}
+            <label class="form-check-label" for="preview-only">{{ form.preview_only.label.text }}</label>
+          </div>
+          {{ form.submit(class='btn btn-primary') }}
+        </form>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header"><h5 class="card-title mb-0">How it works</h5></div>
+      <div class="card-body fs-13">
+        <ol class="mb-0 ps-3">
+          <li class="mb-2">Export your Excel sheet as <strong>.xlsx</strong> or copy into the CSV template.</li>
+          <li class="mb-2">Columns supported: <code>Magaca</code> / Name, <code>Saamiga</code> / Shares, <code>Lacagta</code> / Capital, <code>Boqoleey %</code>.</li>
+          <li class="mb-2">Missing emails are auto-generated (<code>name@akramsweets.com</code>).</li>
+          <li class="mb-2">Rounded Excel % values are recalculated from capital so ownership totals <strong>100%</strong>.</li>
+          <li class="mb-2">Dashboard capital KPIs update automatically after import.</li>
+          <li>Monthly Mudarabah still uses <strong>Net Profit from Odoo</strong> — capital is for the register only.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-7">
+    {% if preview %}
+    <div class="card mb-3 border-info">
+      <div class="card-header d-flex align-items-center flex-wrap gap-2">
+        <h5 class="card-title mb-0">Preview</h5>
+        <span class="badge bg-info-subtle text-info">Not saved</span>
+      </div>
+      <div class="card-body">
+        <div class="row g-3 mb-3 fs-13">
+          <div class="col-6 col-md-3">
+            <div class="text-muted">Shareholders</div>
+            <div class="fw-semibold fs-18">{{ preview.meta.row_count }}</div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="text-muted">Total Shares</div>
+            <div class="fw-semibold fs-18">{{ '{:,.0f}'.format(preview.meta.total_shares) }}</div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="text-muted">Shareholder Capital</div>
+            <div class="fw-semibold fs-18">{{ currency_symbol }}{{ '{:,.2f}'.format(preview.meta.total_capital) }}</div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="text-muted">Ownership</div>
+            <div class="fw-semibold fs-18 {% if (preview.meta.total_ownership - 100)|abs < 0.05 %}text-success{% else %}text-danger{% endif %}">
+              {{ '%.4f'|format(preview.meta.total_ownership) }}%
+            </div>
+          </div>
+        </div>
+        {% if preview.warnings %}
+        <div class="alert alert-warning py-2 fs-13">
+          <ul class="mb-0 ps-3">
+            {% for w in preview.warnings %}<li>{{ w }}</li>{% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th class="text-end">Shares</th>
+                <th class="text-end">Capital</th>
+                <th class="text-end">Ownership %</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in preview.rows %}
+              <tr>
+                <td>{{ row.name }}{% if row.is_owner %} <span class="badge bg-primary-subtle text-primary">Owner</span>{% endif %}</td>
+                <td class="fs-12 text-muted">{{ row.email }}</td>
+                <td class="text-end">{{ '{:,.4f}'.format(row.shares) }}</td>
+                <td class="text-end">{{ currency_symbol }}{{ '{:,.2f}'.format(row.capital) }}</td>
+                <td class="text-end">{{ '%.4f'|format(row.ownership_percent) }}%</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <p class="text-muted fs-12 mt-3 mb-0">Uncheck <em>Preview only</em> and upload again to save.</p>
+      </div>
+    </div>
+    {% else %}
+    <div class="card mb-3">
+      <div class="card-header"><h5 class="card-title mb-0">Expected Excel layout</h5></div>
+      <div class="card-body">
+        <p class="fs-13 text-muted">Your Somali Excel sheet works as-is if it has these columns:</p>
+        <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <thead>
+              <tr>
+                <th>Magaca</th>
+                <th>Saamiga</th>
+                <th>Lacagta (capital)</th>
+                <th>Boqoleey %</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Abdwahaab Said Andirahman</td>
+                <td>571</td>
+                <td>$571,505.00</td>
+                <td>47%</td>
+              </tr>
+              <tr>
+                <td>Abdiraxman Shikhdoon</td>
+                <td>100</td>
+                <td>$100,000.00</td>
+                <td>8%</td>
+              </tr>
+              <tr class="table-light fw-semibold">
+                <td>Total</td>
+                <td>1,220</td>
+                <td>$1,220,000.48</td>
+                <td>100%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="fs-12 text-muted mt-3 mb-0">
+          The second <em>Lacagta</em> (profit) column is ignored — profit comes from monthly Mudarabah periods.
+          Set company Murabaha assets (e.g. $423,000) in the field on the left.
+        </p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock page_content %}
+{% block extra_javascript %}{% include 'partials/vendor.html' %}{% endblock extra_javascript %}
