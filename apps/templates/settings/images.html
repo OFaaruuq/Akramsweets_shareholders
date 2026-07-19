@@ -11,7 +11,7 @@
       login screen, emails, and dashboard.
     </p>
   </div>
-  <a href="{{ url_for('app_settings.system_settings') }}" class="btn btn-soft-secondary btn-sm">System Settings</a>
+  <a href="{{ url_for('app_settings.system_settings', section='brand') }}" class="btn btn-soft-secondary btn-sm">Brand settings</a>
   <a href="{{ url_for('app_settings.preview_certificate') }}" class="btn btn-soft-primary btn-sm">Preview certificate PDF</a>
 </div>
 

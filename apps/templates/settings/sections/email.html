@@ -1,0 +1,78 @@
+{% if mail_status and mail_status.show_warning %}
+<div class="alert alert-{{ 'danger' if mail_status.otp_blocked else 'warning' }}">
+  <strong>{{ mail_status.headline }}</strong>
+  <div class="fs-13 mt-1">{{ mail_status.detail }}</div>
+  {% if mail_status.otp_blocked %}
+  <ul class="mb-0 mt-2 fs-13">
+    <li>Fill SMTP server, username, password, and From email below (or in <code>.env</code>).</li>
+    <li>For local development only: set <code>LOGIN_OTP_ENABLED=false</code> in <code>.env</code> and restart the app.</li>
+    <li>Gmail typically needs an App Password and port <strong>587</strong> (STARTTLS).</li>
+  </ul>
+  {% endif %}
+</div>
+{% elif mail_status and mail_status.deliverability_risk %}
+<div class="alert alert-warning py-2 fs-13 mb-3">
+  <strong>{{ mail_status.headline }}</strong>
+  <div class="mt-1">{{ mail_status.detail }}</div>
+  <ul class="mb-0 mt-2">
+    <li>In Zoho Mail: check <strong>Spam</strong> and Admin <strong>Quarantine</strong> (DMARC is <code>p=quarantine</code>).</li>
+    <li>Switch SMTP to Zoho: server <code>smtp.zoho.com</code>, port <code>587</code>, From = a real <code>@akramsweets.com</code> mailbox.</li>
+    <li>Keep Gmail App Password only for testing — not for production OTP to company users.</li>
+  </ul>
+</div>
+{% elif mail_status and mail_status.smtp_configured %}
+<div class="alert alert-success py-2 fs-13 mb-3">
+  <strong>{{ mail_status.headline }}</strong> — {{ mail_status.detail }}
+</div>
+{% endif %}
+
+<div class="card mb-3">
+  <div class="card-header"><h5 class="card-title mb-0">Email notifications</h5></div>
+  <div class="card-body">
+    <div class="mb-3 form-check">
+      {{ form.auto_email_on_approval(class='form-check-input', id='auto-email') }}
+      <label class="form-check-label" for="auto-email">{{ form.auto_email_on_approval.label.text }}</label>
+    </div>
+    <div class="mb-3 form-check">
+      {{ form.notify_management_on_review(class='form-check-input', id='notify-review') }}
+      <label class="form-check-label" for="notify-review">{{ form.notify_management_on_review.label.text }}</label>
+    </div>
+    <div class="mb-3 form-check">
+      {{ form.email_portal_credentials(class='form-check-input', id='email-portal') }}
+      <label class="form-check-label" for="email-portal">{{ form.email_portal_credentials.label.text }}</label>
+    </div>
+    <div class="mb-3 form-check">
+      {{ form.email_staff_invite(class='form-check-input', id='email-staff') }}
+      <label class="form-check-label" for="email-staff">{{ form.email_staff_invite.label.text }}</label>
+    </div>
+    <div class="mb-3 form-check">
+      {{ form.email_password_change(class='form-check-input', id='email-password') }}
+      <label class="form-check-label" for="email-password">{{ form.email_password_change.label.text }}</label>
+    </div>
+    <div class="mb-3 form-check">
+      {{ form.notify_shareholders_on_profit_update(class='form-check-input', id='notify-profit-update') }}
+      <label class="form-check-label" for="notify-profit-update">{{ form.notify_shareholders_on_profit_update.label.text }}</label>
+    </div>
+    <div class="row">
+      <div class="col-md-4 mb-3"><label class="form-label">Report delivery day</label>{{ form.report_delivery_day(class='form-control') }}</div>
+    </div>
+    <div class="alert alert-info py-2 fs-13 mb-0">
+      Keep <em>auto email on approval</em> enabled so each shareholder receives the branded certificate PDF and profit report.
+      Email and WhatsApp share the same events — configure WhatsApp under the WhatsApp tab.
+      Use SMTP port <strong>587</strong> (STARTTLS) or <strong>465</strong> (SSL).
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header"><h5 class="card-title mb-0">SMTP delivery</h5></div>
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-4 mb-3"><label class="form-label">From email</label>{{ form.mail_from(class='form-control') }}</div>
+      <div class="col-md-4 mb-3"><label class="form-label">SMTP server</label>{{ form.mail_server(class='form-control') }}</div>
+      <div class="col-md-4 mb-3"><label class="form-label">SMTP port</label>{{ form.mail_port(class='form-control') }}</div>
+      <div class="col-md-4 mb-3"><label class="form-label">SMTP username</label>{{ form.mail_username(class='form-control') }}</div>
+      <div class="col-md-4 mb-3"><label class="form-label">SMTP password</label>{{ form.mail_password(class='form-control') }}</div>
+    </div>
+  </div>
+</div>

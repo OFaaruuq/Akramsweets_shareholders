@@ -1,0 +1,72 @@
+{% if whatsapp_status %}
+<div class="alert alert-{{ 'success' if whatsapp_status.configured else 'warning' }} py-2 fs-13">
+  <strong>{{ whatsapp_status.headline }}</strong>
+  <div class="mt-1">{{ whatsapp_status.detail }}</div>
+  {% if whatsapp_status.status_callback_url %}
+  <div class="mt-2 fs-12">
+    <div><strong>Status callback:</strong> <code>{{ whatsapp_status.status_callback_url }}</code></div>
+    <div><strong>Inbound webhook:</strong> <code>{{ whatsapp_status.inbound_webhook_url }}</code></div>
+    <div class="mt-1">Paste these into the Twilio WhatsApp sender / Messaging Service configuration.</div>
+  </div>
+  {% endif %}
+  <div class="mt-2">
+    <a href="{{ url_for('app_settings.whatsapp_messages') }}" class="btn btn-sm btn-soft-primary">WhatsApp message log</a>
+  </div>
+</div>
+{% endif %}
+
+<div class="card mb-3">
+  <div class="card-header"><h5 class="card-title mb-0">WhatsApp delivery</h5></div>
+  <div class="card-body">
+    <div class="mb-3 form-check">
+      {{ form.sms_notifications_enabled(class='form-check-input', id='sms-notify') }}
+      <label class="form-check-label" for="sms-notify">{{ form.sms_notifications_enabled.label.text }}</label>
+    </div>
+    <div class="mb-3 form-check">
+      {{ form.whatsapp_attach_pdfs(class='form-check-input', id='wa-pdfs') }}
+      <label class="form-check-label" for="wa-pdfs">{{ form.whatsapp_attach_pdfs.label.text }}</label>
+    </div>
+    <div class="mb-3 form-check">
+      {{ form.whatsapp_auto_reply_enabled(class='form-check-input', id='wa-autoreply') }}
+      <label class="form-check-label" for="wa-autoreply">{{ form.whatsapp_auto_reply_enabled.label.text }}</label>
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="wa-autoreply-text">{{ form.whatsapp_auto_reply_text.label.text }}</label>
+      {{ form.whatsapp_auto_reply_text(class='form-control', id='wa-autoreply-text', rows='2') }}
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="public-base-url">{{ form.public_base_url.label.text }}</label>
+      {{ form.public_base_url(class='form-control', id='public-base-url', placeholder='https://your-domain.com') }}
+      <div class="form-text">{{ form.public_base_url.description }}</div>
+    </div>
+    <div class="alert alert-info py-2 fs-13 mb-0">
+      Email and WhatsApp use the same events: period review, reject/reopen, profit updates, reports,
+      payment completed, withdrawals, portal/staff credentials, password changes, and login OTP.
+      Store phones as <code>+252…</code> or local <code>061…</code>; staff phones are on Users → Edit.
+      Twilio credentials are set in <code>.env</code> (<code>TWILIO_ACCOUNT_SID</code>, <code>TWILIO_AUTH_TOKEN</code>, <code>TWILIO_WHATSAPP_FROM</code>).
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header"><h5 class="card-title mb-0">Meta Content Template SIDs (production)</h5></div>
+  <div class="card-body">
+    <p class="text-muted fs-13 mb-3">
+      Optional. Outside the 24-hour session window, Twilio requires approved Content Templates.
+      Leave blank to send free-form text (sandbox / open session). Variable order is typically
+      <code>1=name</code>, <code>2=period/code</code>, <code>3=amount/detail</code>.
+    </p>
+    <div class="row">
+      <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_otp.label.text }}</label>{{ form.twilio_content_sid_otp(class='form-control form-control-sm') }}</div>
+      <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_report.label.text }}</label>{{ form.twilio_content_sid_report(class='form-control form-control-sm') }}</div>
+      <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_credentials.label.text }}</label>{{ form.twilio_content_sid_credentials(class='form-control form-control-sm') }}</div>
+      <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_period_update.label.text }}</label>{{ form.twilio_content_sid_period_update(class='form-control form-control-sm') }}</div>
+      <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_payment.label.text }}</label>{{ form.twilio_content_sid_payment(class='form-control form-control-sm') }}</div>
+      <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_withdrawal.label.text }}</label>{{ form.twilio_content_sid_withdrawal(class='form-control form-control-sm') }}</div>
+      <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_staff_invite.label.text }}</label>{{ form.twilio_content_sid_staff_invite(class='form-control form-control-sm') }}</div>
+      <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_password.label.text }}</label>{{ form.twilio_content_sid_password(class='form-control form-control-sm') }}</div>
+      <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_review.label.text }}</label>{{ form.twilio_content_sid_review(class='form-control form-control-sm') }}</div>
+      <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_generic.label.text }}</label>{{ form.twilio_content_sid_generic(class='form-control form-control-sm') }}</div>
+    </div>
+  </div>
+</div>

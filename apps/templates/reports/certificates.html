@@ -25,7 +25,7 @@
     {% if period %}
     <a href="{{ url_for('periods.detail_period', period_id=period.id) }}" class="btn btn-soft-primary btn-sm">Open period</a>
     {% endif %}
-    <a href="{{ url_for('app_settings.system_settings') }}#certificate-content" class="btn btn-soft-secondary btn-sm">Certificate settings</a>
+    <a href="{{ url_for('app_settings.system_settings', section='certificates') }}" class="btn btn-soft-secondary btn-sm">Certificate settings</a>
     <a href="{{ url_for('periods.list_periods') }}" class="btn btn-soft-danger btn-sm">All periods</a>
   </div>
 </div>

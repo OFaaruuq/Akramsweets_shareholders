@@ -63,11 +63,26 @@ def get_mail_delivery_status():
     # OTP can deliver via email (SMTP) and/or WhatsApp when both are configured
     otp_blocked = otp_enabled and not smtp_configured and not whatsapp_ready
 
+    from_domain = (mail_from.split('@')[-1] or '').lower() if mail_from and '@' in mail_from else ''
+    consumer_mailbox = from_domain in {
+        'gmail.com',
+        'googlemail.com',
+        'yahoo.com',
+        'yahoo.co.uk',
+        'outlook.com',
+        'hotmail.com',
+        'live.com',
+        'icloud.com',
+    }
+    using_gmail_smtp = 'gmail.com' in (server or '').lower()
+    # Personal Gmail SMTP often shows in Sent but Zoho/corporate inboxes quarantine the mail
+    deliverability_risk = smtp_configured and (consumer_mailbox or using_gmail_smtp)
+
     settings_url = None
     try:
-        settings_url = url_for('app_settings.system_settings')
+        settings_url = url_for('app_settings.system_settings', section='email')
     except RuntimeError:
-        settings_url = '/settings/system'
+        settings_url = '/settings/system/email'
 
     if otp_blocked:
         headline = 'Login OTP needs email or WhatsApp before anyone can sign in'
@@ -87,6 +102,17 @@ def get_mail_delivery_status():
                 if whatsapp_ready
                 else 'Enable Twilio WhatsApp as a second channel once SMTP is set.'
             )
+        )
+    elif deliverability_risk:
+        headline = 'SMTP accepts mail — but @akramsweets.com may not receive it'
+        detail = (
+            f'OTP is leaving via {server} as {mail_from} (appears in Gmail Sent). '
+            'Company mailboxes on Zoho (akramsweets.com) often quarantine or spam-folder '
+            'login codes from a personal Gmail address. '
+            'Fix: send from a Zoho mailbox such as noreply@akramsweets.com '
+            '(smtp.zoho.com, port 587) so SPF/DKIM/DMARC align, '
+            'and ask users to check Zoho Spam / Admin Quarantine. '
+            + ('WhatsApp OTP is also available when enabled.' if whatsapp_ready else '')
         )
     elif otp_enabled:
         channels = [f'email via {server}:{port}']
@@ -118,5 +144,6 @@ def get_mail_delivery_status():
         'headline': headline,
         'detail': detail,
         'settings_url': settings_url,
-        'show_warning': otp_blocked or not smtp_configured,
+        'deliverability_risk': deliverability_risk,
+        'show_warning': otp_blocked or not smtp_configured or deliverability_risk,
     }

@@ -1,0 +1,125 @@
+<div class="card mb-3" id="certificate-content">
+  <div class="card-header"><h5 class="card-title mb-0">Certificate content</h5></div>
+  <div class="card-body">
+    <p class="text-muted fs-13 mb-3">
+      Every title, label, footer line, currency symbol, and signature on monthly certificates is editable here.
+      Placeholders: <code>{period_label}</code> and <code>{company_name}</code>.
+    </p>
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">{{ form.cert_title.label.text }}</label>
+        {{ form.cert_title(class='form-control') }}
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">{{ form.cert_subtitle.label.text }}</label>
+        {{ form.cert_subtitle(class='form-control') }}
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">{{ form.cert_intro_text.label.text }}</label>
+        {{ form.cert_intro_text(class='form-control') }}
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">{{ form.cert_allocation_text.label.text }}</label>
+        {{ form.cert_allocation_text(class='form-control') }}
+        <div class="form-text">Include <code>{period_label}</code> where the month should appear.</div>
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">{{ form.cert_profit_label.label.text }}</label>
+        {{ form.cert_profit_label(class='form-control') }}
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">{{ form.cert_loss_label.label.text }}</label>
+        {{ form.cert_loss_label(class='form-control') }}
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">{{ form.cert_currency_symbol.label.text }}</label>
+        {{ form.cert_currency_symbol(class='form-control') }}
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">{{ form.cert_number_prefix.label.text }}</label>
+        {{ form.cert_number_prefix(class='form-control') }}
+        <div class="form-text">Used for newly issued certificates only.</div>
+      </div>
+      <div class="col-md-4 mb-3">
+        <label class="form-label">{{ form.cert_approver_fallback.label.text }}</label>
+        {{ form.cert_approver_fallback(class='form-control') }}
+      </div>
+      <div class="col-md-4 mb-3">
+        <label class="form-label">{{ form.cert_owner_label.label.text }}</label>
+        {{ form.cert_owner_label(class='form-control') }}
+      </div>
+      <div class="col-md-4 mb-3">
+        <label class="form-label">{{ form.cert_roster_title.label.text }}</label>
+        {{ form.cert_roster_title(class='form-control') }}
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">{{ form.cert_label_company_pl.label.text }}</label>
+        {{ form.cert_label_company_pl(class='form-control') }}
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">{{ form.cert_label_base_share.label.text }}</label>
+        {{ form.cert_label_base_share(class='form-control') }}
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">{{ form.cert_label_ytd.label.text }}</label>
+        {{ form.cert_label_ytd(class='form-control') }}
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">{{ form.cert_label_odoo.label.text }}</label>
+        {{ form.cert_label_odoo(class='form-control') }}
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">{{ form.cert_footer_disclaimer.label.text }}</label>
+        {{ form.cert_footer_disclaimer(class='form-control') }}
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">{{ form.cert_footer_confidential.label.text }}</label>
+        {{ form.cert_footer_confidential(class='form-control') }}
+        <div class="form-text">Include <code>{company_name}</code> if needed.</div>
+      </div>
+      <div class="col-12 mb-3">
+        <label class="form-label">{{ form.cert_legal_text.label.text }}</label>
+        {{ form.cert_legal_text(class='form-control', rows=3) }}
+      </div>
+      <div class="col-md-6 mb-3">
+        <div class="form-check">
+          {{ form.cert_show_roster(class='form-check-input', id='cert-show-roster') }}
+          <label class="form-check-label" for="cert-show-roster">{{ form.cert_show_roster.label.text }}</label>
+        </div>
+      </div>
+      <div class="col-md-6 mb-3">
+        <div class="form-check">
+          {{ form.cert_show_odoo_reference(class='form-check-input', id='cert-show-odoo') }}
+          <label class="form-check-label" for="cert-show-odoo">{{ form.cert_show_odoo_reference.label.text }}</label>
+        </div>
+      </div>
+      <div class="col-md-4 mb-3">
+        <label class="form-label">{{ form.cert_signature_name.label.text }}</label>
+        {{ form.cert_signature_name(class='form-control') }}
+      </div>
+      <div class="col-md-4 mb-3">
+        <label class="form-label">{{ form.cert_signature_title.label.text }}</label>
+        {{ form.cert_signature_title(class='form-control') }}
+      </div>
+      <div class="col-md-4 mb-3">
+        <label class="form-label">{{ form.cert_signature_image.label.text }}</label>
+        {{ form.cert_signature_image(class='form-control') }}
+        {% if cert.signature_url %}
+        <div class="mt-2 p-2 border rounded d-inline-block bg-white">
+          <img src="{{ cert.signature_url }}?v={{ cert.signature_image_path }}" alt="Signature" style="max-height: 48px; max-width: 160px;">
+        </div>
+        <div class="form-check mt-2">
+          {{ form.remove_cert_signature(class='form-check-input', id='remove-signature') }}
+          <label class="form-check-label" for="remove-signature">{{ form.remove_cert_signature.label.text }}</label>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="mt-2">
+      <a href="{{ url_for('app_settings.preview_certificate') }}" class="btn btn-soft-danger btn-sm">
+        Download sample certificate PDF
+      </a>
+      <span class="form-text ms-2">Save changes first to preview updates.</span>
+    </div>
+  </div>
+</div>

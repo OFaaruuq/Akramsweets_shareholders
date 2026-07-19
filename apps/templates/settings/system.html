@@ -1,441 +1,50 @@
 {% extends 'layouts/vertical.html' %}
-{% block title %}System Settings{% endblock title %}
+{% block title %}System Settings — {{ section_meta.label }}{% endblock title %}
 {% block css %}{% include 'partials/head-css.html' %}{% endblock css %}
 {% block body_attribute %}data-menu-color="dark" data-sidebar="default"{% endblock body_attribute %}
 {% block page_content %}
-<div class="py-3"><h4 class="fs-18 fw-semibold m-0">System Settings</h4>
-<p class="text-muted mb-0 fs-13">Configure brand identity, certificate wording, automatic emails, and SMTP delivery.</p></div>
-
-{% if mail_status and mail_status.show_warning %}
-<div class="alert alert-{{ 'danger' if mail_status.otp_blocked else 'warning' }}">
-  <strong>{{ mail_status.headline }}</strong>
-  <div class="fs-13 mt-1">{{ mail_status.detail }}</div>
-  {% if mail_status.otp_blocked %}
-  <ul class="mb-0 mt-2 fs-13">
-    <li>Fill SMTP server, username, password, and From email below (or in <code>.env</code>).</li>
-    <li>For local development only: set <code>LOGIN_OTP_ENABLED=false</code> in <code>.env</code> and restart the app.</li>
-    <li>Gmail typically needs an App Password and port <strong>587</strong> (STARTTLS).</li>
-  </ul>
+<div class="py-3 d-flex flex-wrap justify-content-between align-items-start gap-2">
+  <div>
+    <h4 class="fs-18 fw-semibold m-0">System Settings</h4>
+    <p class="text-muted mb-0 fs-13">{{ section_meta.description }}</p>
+  </div>
+  {% if section == 'whatsapp' %}
+  <a href="{{ url_for('app_settings.whatsapp_messages') }}" class="btn btn-soft-primary btn-sm">Message log</a>
+  {% elif section == 'brand' %}
+  <a href="{{ url_for('app_settings.manage_images') }}" class="btn btn-soft-secondary btn-sm">Manage Images</a>
   {% endif %}
 </div>
-{% elif mail_status and mail_status.smtp_configured %}
-<div class="alert alert-success py-2 fs-13 mb-3">
-  <strong>{{ mail_status.headline }}</strong> — {{ mail_status.detail }}
+
+{% include 'settings/_system_nav.html' %}
+
+<form method="post" enctype="multipart/form-data" action="{{ url_for('app_settings.system_settings', section=section) }}">
+  {{ form.hidden_tag() }}
+  <input type="hidden" name="settings_section" value="{{ section }}">
+
+  {% include 'settings/sections/' ~ section ~ '.html' %}
+
+  <button type="submit" class="btn btn-primary">Save {{ section_meta.label }}</button>
+</form>
+
+{% if section == 'whatsapp' and whatsapp_test_form %}
+<div class="card mt-3 mb-3">
+  <div class="card-header"><h5 class="card-title mb-0">Send test WhatsApp</h5></div>
+  <div class="card-body">
+    <p class="text-muted fs-13 mb-3">
+      Uses current Twilio credentials (does not require the master toggle). Join the sandbox first if you use Twilio’s trial sender.
+    </p>
+    <form method="post" action="{{ url_for('app_settings.whatsapp_test_send') }}" class="row g-2 align-items-end">
+      {{ whatsapp_test_form.hidden_tag() }}
+      <div class="col-md-6">
+        <label class="form-label" for="wa-test-phone">{{ whatsapp_test_form.phone.label.text }}</label>
+        {{ whatsapp_test_form.phone(class='form-control', id='wa-test-phone', placeholder='+25261…') }}
+      </div>
+      <div class="col-md-auto">
+        {{ whatsapp_test_form.submit(class='btn btn-outline-primary') }}
+      </div>
+    </form>
+  </div>
 </div>
 {% endif %}
-
-<form method="post" enctype="multipart/form-data">{{ form.hidden_tag() }}
-
-<div class="card mb-3">
-  <div class="card-header"><h5 class="card-title mb-0">Mudarabah (profit sharing)</h5></div>
-  <div class="card-body">
-    <p class="text-muted fs-13 mb-3">
-      The company operates under a Mudarabah agreement.
-      Monthly Net Profit from Odoo is split between the <strong>shareholders' profit pool</strong>
-      and <strong>{{ mudarabah.partner_name if mudarabah else (brand.company_name if brand else company_name) }}</strong> (managing partner).
-      Only the shareholders' pool is then distributed by ownership %. Change the % below anytime — new periods use the latest value.
-    </p>
-    <div class="row">
-      <div class="col-md-4 mb-3">
-        <label class="form-label">{{ form.mudarabah_shareholder_percent.label.text }}</label>
-        <div class="input-group">
-          {{ form.mudarabah_shareholder_percent(class='form-control', step='0.0001', placeholder=mudarabah.shareholder_percent_label if mudarabah else '50') }}
-          <span class="input-group-text">%</span>
-        </div>
-        <div class="form-text">{{ form.mudarabah_shareholder_percent.description }}</div>
-        {% for error in form.mudarabah_shareholder_percent.errors %}<div class="text-danger fs-13">{{ error }}</div>{% endfor %}
-      </div>
-      <div class="col-md-8 mb-3">
-        <label class="form-label">Current split</label>
-        <div class="border rounded p-3 bg-light">
-          <div class="fw-semibold">{{ mudarabah.label }}</div>
-          <div class="text-muted fs-13 mt-1">
-            Example: Net Profit {{ currency_symbol }}30,000 → Shareholders' pool
-            {{ currency_symbol }}{{ '%.0f'|format(30000 * (mudarabah.shareholder_percent / 100)) }},
-            {{ mudarabah.partner_name }} {{ currency_symbol }}{{ '%.0f'|format(30000 * (mudarabah.partner_percent / 100)) }}.
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="card mb-3">
-  <div class="card-header"><h5 class="card-title mb-0">Capital withdrawal deadline</h5></div>
-  <div class="card-body">
-    <p class="text-muted fs-13 mb-3">
-      After management approves a capital withdrawal, the company has this many days to return capital.
-      Currently: <strong>{{ capital_return.label if capital_return else 'configurable' }}</strong>.
-    </p>
-    <div class="row">
-      <div class="col-md-4 mb-3">
-        <label class="form-label">{{ form.capital_return_deadline_days.label.text }}</label>
-        {{ form.capital_return_deadline_days(class='form-control', min='1', max='3650') }}
-        <div class="form-text">{{ form.capital_return_deadline_days.description }}</div>
-        {% for error in form.capital_return_deadline_days.errors %}<div class="text-danger fs-13">{{ error }}</div>{% endfor %}
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="card mb-3">
-  <div class="card-header"><h5 class="card-title mb-0">Shareholder capital register</h5></div>
-  <div class="card-body">
-    <p class="text-muted fs-13 mb-3">
-      Matches the Excel capital register used by the company.
-      <strong>1 share = {{ currency_symbol }}1,000</strong> by default.
-      Shareholder capital and company-owned assets are for <strong>reporting / dashboard</strong> only —
-      monthly Mudarabah distribution uses <strong>Net Profit from Odoo</strong>, never these asset totals.
-    </p>
-    <div class="row">
-      <div class="col-md-3 mb-3">
-        <label class="form-label">{{ form.share_value.label.text }}</label>
-        <div class="input-group">
-          <span class="input-group-text">1 share = {{ currency_symbol }}</span>
-          {{ form.share_value(class='form-control', step='0.01', placeholder='1000') }}
-        </div>
-        {% for error in form.share_value.errors %}<div class="text-danger fs-13">{{ error }}</div>{% endfor %}
-      </div>
-      <div class="col-md-3 mb-3">
-        <label class="form-label">{{ form.total_company_shares.label.text }}</label>
-        {{ form.total_company_shares(class='form-control', step='0.0001', placeholder='1220') }}
-        <div class="form-text">{{ form.total_company_shares.description }}</div>
-        {% for error in form.total_company_shares.errors %}<div class="text-danger fs-13">{{ error }}</div>{% endfor %}
-      </div>
-      <div class="col-md-3 mb-3">
-        <label class="form-label">{{ form.company_owned_assets.label.text }}</label>
-        <div class="input-group">
-          <span class="input-group-text">{{ currency_symbol }}</span>
-          {{ form.company_owned_assets(class='form-control', step='0.01', placeholder='423000.00') }}
-        </div>
-        <div class="form-text">{{ form.company_owned_assets.description }}</div>
-        {% for error in form.company_owned_assets.errors %}<div class="text-danger fs-13">{{ error }}</div>{% endfor %}
-      </div>
-      <div class="col-md-3 mb-3">
-        <label class="form-label">Preview</label>
-        <div class="border rounded p-3 bg-light fs-13">
-          <div class="fw-semibold">{{ share_value_label or ('1 share = ' ~ currency_symbol ~ '1,000.00') }}</div>
-          <div class="text-muted mt-1">Total shares: {{ '%.0f'|format(form.total_company_shares.data or 0) }}</div>
-          <div class="text-muted">Company assets: {{ currency_symbol }}{{ '{:,.2f}'.format(form.company_owned_assets.data or 0) }}</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="card mb-3">
-  <div class="card-header"><h5 class="card-title mb-0">Brand identity (certificates)</h5></div>
-  <div class="card-body">
-    <p class="text-muted fs-13">
-      Certificates, PDF reports, and shareholder emails use these brand colors and logo.
-      Defaults match Akram Sweets maroon and gold.
-      Manage all application images (logo, signature, login background, banners) in
-      <a href="{{ url_for('app_settings.manage_images') }}">Manage Images</a>.
-    </p>
-    <div class="row align-items-start">
-      <div class="col-md-4 mb-3">
-        <label class="form-label">{{ form.brand_company_name.label.text }}</label>
-        {{ form.brand_company_name(class='form-control') }}
-      </div>
-      <div class="col-md-2 mb-3">
-        <label class="form-label">{{ form.brand_primary_color.label.text }}</label>
-        <div class="input-group">
-          <input type="color" class="form-control form-control-color" value="{{ brand.primary_color }}" oninput="document.getElementById('brand_primary_color').value=this.value">
-          {{ form.brand_primary_color(class='form-control', id='brand_primary_color') }}
-        </div>
-        {% for err in form.brand_primary_color.errors %}<div class="text-danger fs-12">{{ err }}</div>{% endfor %}
-      </div>
-      <div class="col-md-2 mb-3">
-        <label class="form-label">{{ form.brand_secondary_color.label.text }}</label>
-        <div class="input-group">
-          <input type="color" class="form-control form-control-color" value="{{ brand.secondary_color }}" oninput="document.getElementById('brand_secondary_color').value=this.value">
-          {{ form.brand_secondary_color(class='form-control', id='brand_secondary_color') }}
-        </div>
-        {% for err in form.brand_secondary_color.errors %}<div class="text-danger fs-12">{{ err }}</div>{% endfor %}
-      </div>
-      <div class="col-md-2 mb-3">
-        <label class="form-label">{{ form.brand_accent_color.label.text }}</label>
-        <div class="input-group">
-          <input type="color" class="form-control form-control-color" value="{{ brand.accent_color }}" oninput="document.getElementById('brand_accent_color').value=this.value">
-          {{ form.brand_accent_color(class='form-control', id='brand_accent_color') }}
-        </div>
-        {% for err in form.brand_accent_color.errors %}<div class="text-danger fs-12">{{ err }}</div>{% endfor %}
-      </div>
-      <div class="col-md-4 mb-3">
-        <label class="form-label">{{ form.brand_logo.label.text }}</label>
-        {{ form.brand_logo(class='form-control') }}
-        <div class="form-text">PNG or JPG recommended. Shown on certificates, report PDFs, and email notifications.</div>
-        {% if brand.logo_url %}
-        <div class="mt-3 p-3 border rounded d-inline-block" style="background: {{ brand.accent_color }};">
-          <img src="{{ brand.logo_url }}?v={{ brand.logo_path }}" alt="Brand logo" style="max-height: 72px; max-width: 180px;">
-        </div>
-        <div class="form-check mt-2">
-          {{ form.remove_brand_logo(class='form-check-input', id='remove-logo') }}
-          <label class="form-check-label" for="remove-logo">{{ form.remove_brand_logo.label.text }}</label>
-        </div>
-        {% endif %}
-      </div>
-      <div class="col-md-8 mb-3">
-        <label class="form-label d-block">Certificate preview</label>
-        <div class="d-flex gap-2 flex-wrap mb-3">
-          <span class="badge px-3 py-2" style="background: {{ brand.primary_color }};">Primary {{ brand.primary_color }}</span>
-          <span class="badge px-3 py-2 text-dark" style="background: {{ brand.secondary_color }};">Secondary {{ brand.secondary_color }}</span>
-          <span class="badge px-3 py-2 text-dark border" style="background: {{ brand.accent_color }};">Accent {{ brand.accent_color }}</span>
-        </div>
-        <a href="{{ url_for('app_settings.preview_certificate') }}" class="btn btn-soft-danger">
-          Download sample certificate PDF
-        </a>
-        <div class="form-text">Uses the currently saved brand and certificate wording. Save changes first to preview updates.</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="card mb-3" id="certificate-content">
-  <div class="card-header"><h5 class="card-title mb-0">Certificate content</h5></div>
-  <div class="card-body">
-    <p class="text-muted fs-13 mb-3">
-      Every title, label, footer line, currency symbol, and signature on monthly certificates is editable here.
-      Placeholders: <code>{period_label}</code> and <code>{company_name}</code>.
-    </p>
-    <div class="row">
-      <div class="col-md-6 mb-3">
-        <label class="form-label">{{ form.cert_title.label.text }}</label>
-        {{ form.cert_title(class='form-control') }}
-      </div>
-      <div class="col-md-6 mb-3">
-        <label class="form-label">{{ form.cert_subtitle.label.text }}</label>
-        {{ form.cert_subtitle(class='form-control') }}
-      </div>
-      <div class="col-md-6 mb-3">
-        <label class="form-label">{{ form.cert_intro_text.label.text }}</label>
-        {{ form.cert_intro_text(class='form-control') }}
-      </div>
-      <div class="col-md-6 mb-3">
-        <label class="form-label">{{ form.cert_allocation_text.label.text }}</label>
-        {{ form.cert_allocation_text(class='form-control') }}
-        <div class="form-text">Include <code>{period_label}</code> where the month should appear.</div>
-      </div>
-      <div class="col-md-3 mb-3">
-        <label class="form-label">{{ form.cert_profit_label.label.text }}</label>
-        {{ form.cert_profit_label(class='form-control') }}
-      </div>
-      <div class="col-md-3 mb-3">
-        <label class="form-label">{{ form.cert_loss_label.label.text }}</label>
-        {{ form.cert_loss_label(class='form-control') }}
-      </div>
-      <div class="col-md-3 mb-3">
-        <label class="form-label">{{ form.cert_currency_symbol.label.text }}</label>
-        {{ form.cert_currency_symbol(class='form-control') }}
-      </div>
-      <div class="col-md-3 mb-3">
-        <label class="form-label">{{ form.cert_number_prefix.label.text }}</label>
-        {{ form.cert_number_prefix(class='form-control') }}
-        <div class="form-text">Used for newly issued certificates only.</div>
-      </div>
-      <div class="col-md-4 mb-3">
-        <label class="form-label">{{ form.cert_approver_fallback.label.text }}</label>
-        {{ form.cert_approver_fallback(class='form-control') }}
-      </div>
-      <div class="col-md-4 mb-3">
-        <label class="form-label">{{ form.cert_owner_label.label.text }}</label>
-        {{ form.cert_owner_label(class='form-control') }}
-      </div>
-      <div class="col-md-4 mb-3">
-        <label class="form-label">{{ form.cert_roster_title.label.text }}</label>
-        {{ form.cert_roster_title(class='form-control') }}
-      </div>
-      <div class="col-md-3 mb-3">
-        <label class="form-label">{{ form.cert_label_company_pl.label.text }}</label>
-        {{ form.cert_label_company_pl(class='form-control') }}
-      </div>
-      <div class="col-md-3 mb-3">
-        <label class="form-label">{{ form.cert_label_base_share.label.text }}</label>
-        {{ form.cert_label_base_share(class='form-control') }}
-      </div>
-      <div class="col-md-3 mb-3">
-        <label class="form-label">{{ form.cert_label_ytd.label.text }}</label>
-        {{ form.cert_label_ytd(class='form-control') }}
-      </div>
-      <div class="col-md-3 mb-3">
-        <label class="form-label">{{ form.cert_label_odoo.label.text }}</label>
-        {{ form.cert_label_odoo(class='form-control') }}
-      </div>
-      <div class="col-md-6 mb-3">
-        <label class="form-label">{{ form.cert_footer_disclaimer.label.text }}</label>
-        {{ form.cert_footer_disclaimer(class='form-control') }}
-      </div>
-      <div class="col-md-6 mb-3">
-        <label class="form-label">{{ form.cert_footer_confidential.label.text }}</label>
-        {{ form.cert_footer_confidential(class='form-control') }}
-        <div class="form-text">Include <code>{company_name}</code> if needed.</div>
-      </div>
-      <div class="col-12 mb-3">
-        <label class="form-label">{{ form.cert_legal_text.label.text }}</label>
-        {{ form.cert_legal_text(class='form-control', rows=3) }}
-      </div>
-      <div class="col-md-6 mb-3">
-        <div class="form-check">
-          {{ form.cert_show_roster(class='form-check-input', id='cert-show-roster') }}
-          <label class="form-check-label" for="cert-show-roster">{{ form.cert_show_roster.label.text }}</label>
-        </div>
-      </div>
-      <div class="col-md-6 mb-3">
-        <div class="form-check">
-          {{ form.cert_show_odoo_reference(class='form-check-input', id='cert-show-odoo') }}
-          <label class="form-check-label" for="cert-show-odoo">{{ form.cert_show_odoo_reference.label.text }}</label>
-        </div>
-      </div>
-      <div class="col-md-4 mb-3">
-        <label class="form-label">{{ form.cert_signature_name.label.text }}</label>
-        {{ form.cert_signature_name(class='form-control') }}
-      </div>
-      <div class="col-md-4 mb-3">
-        <label class="form-label">{{ form.cert_signature_title.label.text }}</label>
-        {{ form.cert_signature_title(class='form-control') }}
-      </div>
-      <div class="col-md-4 mb-3">
-        <label class="form-label">{{ form.cert_signature_image.label.text }}</label>
-        {{ form.cert_signature_image(class='form-control') }}
-        {% if cert.signature_url %}
-        <div class="mt-2 p-2 border rounded d-inline-block bg-white">
-          <img src="{{ cert.signature_url }}?v={{ cert.signature_image_path }}" alt="Signature" style="max-height: 48px; max-width: 160px;">
-        </div>
-        <div class="form-check mt-2">
-          {{ form.remove_cert_signature(class='form-check-input', id='remove-signature') }}
-          <label class="form-check-label" for="remove-signature">{{ form.remove_cert_signature.label.text }}</label>
-        </div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="card mb-3">
-  <div class="card-header"><h5 class="card-title mb-0">Email &amp; delivery</h5></div>
-  <div class="card-body">
-    <div class="mb-3 form-check">
-      {{ form.auto_email_on_approval(class='form-check-input', id='auto-email') }}
-      <label class="form-check-label" for="auto-email">{{ form.auto_email_on_approval.label.text }}</label>
-    </div>
-    <div class="mb-3 form-check">
-      {{ form.sms_notifications_enabled(class='form-check-input', id='sms-notify') }}
-      <label class="form-check-label" for="sms-notify">{{ form.sms_notifications_enabled.label.text }}</label>
-    </div>
-    <div class="mb-3 form-check">
-      {{ form.whatsapp_attach_pdfs(class='form-check-input', id='wa-pdfs') }}
-      <label class="form-check-label" for="wa-pdfs">{{ form.whatsapp_attach_pdfs.label.text }}</label>
-    </div>
-    <div class="mb-3 form-check">
-      {{ form.whatsapp_auto_reply_enabled(class='form-check-input', id='wa-autoreply') }}
-      <label class="form-check-label" for="wa-autoreply">{{ form.whatsapp_auto_reply_enabled.label.text }}</label>
-    </div>
-    <div class="mb-3">
-      <label class="form-label" for="wa-autoreply-text">{{ form.whatsapp_auto_reply_text.label.text }}</label>
-      {{ form.whatsapp_auto_reply_text(class='form-control', id='wa-autoreply-text', rows='2') }}
-    </div>
-    <div class="mb-3">
-      <label class="form-label" for="public-base-url">{{ form.public_base_url.label.text }}</label>
-      {{ form.public_base_url(class='form-control', id='public-base-url', placeholder='https://your-domain.com') }}
-      <div class="form-text">{{ form.public_base_url.description }}</div>
-    </div>
-    <div class="mb-3 form-check">
-      {{ form.notify_management_on_review(class='form-check-input', id='notify-review') }}
-      <label class="form-check-label" for="notify-review">{{ form.notify_management_on_review.label.text }}</label>
-    </div>
-    <div class="mb-3 form-check">
-      {{ form.email_portal_credentials(class='form-check-input', id='email-portal') }}
-      <label class="form-check-label" for="email-portal">{{ form.email_portal_credentials.label.text }}</label>
-    </div>
-    <div class="mb-3 form-check">
-      {{ form.email_staff_invite(class='form-check-input', id='email-staff') }}
-      <label class="form-check-label" for="email-staff">{{ form.email_staff_invite.label.text }}</label>
-    </div>
-    <div class="mb-3 form-check">
-      {{ form.email_password_change(class='form-check-input', id='email-password') }}
-      <label class="form-check-label" for="email-password">{{ form.email_password_change.label.text }}</label>
-    </div>
-    <div class="mb-3 form-check">
-      {{ form.notify_shareholders_on_profit_update(class='form-check-input', id='notify-profit-update') }}
-      <label class="form-check-label" for="notify-profit-update">{{ form.notify_shareholders_on_profit_update.label.text }}</label>
-    </div>
-    <div class="alert alert-info py-2 fs-13">
-      <strong>Certificates</strong> always use your company name, brand colors, logo, and the certificate wording above when a period is approved.
-      Configure SMTP below and keep <em>auto email on approval</em> enabled so each shareholder receives an email
-      with the branded certificate PDF and profit report attached.
-      <strong>Email and WhatsApp use the same events</strong>: period review, reject/reopen, profit updates, reports,
-      payment completed, withdrawals, portal/staff credentials, password changes, and login OTP.
-      Enable the WhatsApp toggle and set Twilio credentials so every notice goes out on both channels when a phone is on file.
-      Store phones as <code>+252…</code> or local <code>061…</code>; staff phones are on Users → Edit.
-      Use SMTP port <strong>587</strong> (STARTTLS) or <strong>465</strong> (SSL).
-      Staff topbar notifications follow the audit trail for period, shareholder, arrangement, certificate, and settings activity.
-    </div>
-    {% if whatsapp_status %}
-    <div class="alert alert-{{ 'success' if whatsapp_status.configured else 'warning' }} py-2 fs-13">
-      <strong>{{ whatsapp_status.headline }}</strong>
-      <div class="mt-1">{{ whatsapp_status.detail }}</div>
-      {% if whatsapp_status.status_callback_url %}
-      <div class="mt-2 fs-12">
-        <div><strong>Status callback:</strong> <code>{{ whatsapp_status.status_callback_url }}</code></div>
-        <div><strong>Inbound webhook:</strong> <code>{{ whatsapp_status.inbound_webhook_url }}</code></div>
-        <div class="mt-1">Paste these into the Twilio WhatsApp sender / Messaging Service configuration.</div>
-      </div>
-      {% endif %}
-      <div class="mt-2">
-        <a href="{{ url_for('app_settings.whatsapp_messages') }}" class="btn btn-sm btn-soft-primary">WhatsApp message log</a>
-      </div>
-    </div>
-    {% endif %}
-    {% if whatsapp_test_form %}
-    <div class="border rounded p-3 mb-3 bg-light-subtle">
-      <div class="fw-semibold fs-14 mb-2">Send test WhatsApp</div>
-      <p class="text-muted fs-13 mb-2 mb-md-3">
-        Uses current Twilio credentials (does not require the master toggle). Join the sandbox first if you use Twilio’s trial sender.
-      </p>
-      <form method="post" action="{{ url_for('app_settings.whatsapp_test_send') }}" class="row g-2 align-items-end">
-        {{ whatsapp_test_form.hidden_tag() }}
-        <div class="col-md-6">
-          <label class="form-label" for="wa-test-phone">{{ whatsapp_test_form.phone.label.text }}</label>
-          {{ whatsapp_test_form.phone(class='form-control', id='wa-test-phone', placeholder='+25261…') }}
-        </div>
-        <div class="col-md-auto">
-          {{ whatsapp_test_form.submit(class='btn btn-outline-primary') }}
-        </div>
-      </form>
-    </div>
-    {% endif %}
-    <div class="border rounded p-3 mb-3">
-      <div class="fw-semibold fs-14 mb-2">Meta Content Template SIDs (production)</div>
-      <p class="text-muted fs-13 mb-3">
-        Optional. Outside the 24-hour session window, Twilio requires approved Content Templates.
-        Leave blank to send free-form text (sandbox / open session). Variable order is typically
-        <code>1=name</code>, <code>2=period/code</code>, <code>3=amount/detail</code>.
-      </p>
-      <div class="row">
-        <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_otp.label.text }}</label>{{ form.twilio_content_sid_otp(class='form-control form-control-sm') }}</div>
-        <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_report.label.text }}</label>{{ form.twilio_content_sid_report(class='form-control form-control-sm') }}</div>
-        <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_credentials.label.text }}</label>{{ form.twilio_content_sid_credentials(class='form-control form-control-sm') }}</div>
-        <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_period_update.label.text }}</label>{{ form.twilio_content_sid_period_update(class='form-control form-control-sm') }}</div>
-        <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_payment.label.text }}</label>{{ form.twilio_content_sid_payment(class='form-control form-control-sm') }}</div>
-        <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_withdrawal.label.text }}</label>{{ form.twilio_content_sid_withdrawal(class='form-control form-control-sm') }}</div>
-        <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_staff_invite.label.text }}</label>{{ form.twilio_content_sid_staff_invite(class='form-control form-control-sm') }}</div>
-        <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_password.label.text }}</label>{{ form.twilio_content_sid_password(class='form-control form-control-sm') }}</div>
-        <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_review.label.text }}</label>{{ form.twilio_content_sid_review(class='form-control form-control-sm') }}</div>
-        <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_generic.label.text }}</label>{{ form.twilio_content_sid_generic(class='form-control form-control-sm') }}</div>
-      </div>
-    </div>
-    <div class="row">
-      <div class="col-md-4 mb-3"><label class="form-label">Report delivery day</label>{{ form.report_delivery_day(class='form-control') }}</div>
-      <div class="col-md-4 mb-3"><label class="form-label">From email</label>{{ form.mail_from(class='form-control') }}</div>
-      <div class="col-md-4 mb-3"><label class="form-label">SMTP server</label>{{ form.mail_server(class='form-control') }}</div>
-      <div class="col-md-4 mb-3"><label class="form-label">SMTP port</label>{{ form.mail_port(class='form-control') }}</div>
-      <div class="col-md-4 mb-3"><label class="form-label">SMTP username</label>{{ form.mail_username(class='form-control') }}</div>
-      <div class="col-md-4 mb-3"><label class="form-label">SMTP password</label>{{ form.mail_password(class='form-control') }}</div>
-    </div>
-  </div>
-</div>
-
-{{ form.submit(class='btn btn-primary') }}
-</form>
 {% endblock page_content %}
 {% block extra_javascript %}{% include 'partials/vendor.html' %}{% endblock extra_javascript %}

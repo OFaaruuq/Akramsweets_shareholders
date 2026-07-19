@@ -12,7 +12,7 @@
     <a href="{{ url_for('app_settings.whatsapp_messages', direction='outbound') }}" class="btn btn-sm btn-soft-primary {% if direction == 'outbound' %}active{% endif %}">Outbound</a>
     <a href="{{ url_for('app_settings.whatsapp_messages', direction='inbound') }}" class="btn btn-sm btn-soft-secondary {% if direction == 'inbound' %}active{% endif %}">Inbound</a>
     <a href="{{ url_for('app_settings.whatsapp_messages') }}" class="btn btn-sm btn-light">All</a>
-    <a href="{{ url_for('app_settings.system_settings') }}" class="btn btn-sm btn-soft-secondary">Back to Settings</a>
+    <a href="{{ url_for('app_settings.system_settings', section='whatsapp') }}" class="btn btn-sm btn-soft-secondary">Back to WhatsApp settings</a>
   </div>
 </div>
 

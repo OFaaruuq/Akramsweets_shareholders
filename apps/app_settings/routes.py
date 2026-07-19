@@ -192,49 +192,14 @@ def dashboard_settings():
     return render_template('settings/dashboard.html', form=form, segment='dashboard-settings')
 
 
-@blueprint.route('/system', methods=['GET', 'POST'])
-@management_required
-def system_settings():
-    from apps.services.brand_service import ensure_default_brand_settings, get_brand_settings, save_brand_settings
-    from apps.services.certificate_settings_service import (
-        ensure_default_certificate_settings,
-        get_certificate_settings,
-        save_certificate_settings,
-    )
-    from apps.services.share_value_service import (
-        ensure_default_share_settings,
-        get_share_settings,
-        save_share_settings,
-    )
-    from apps.services.mudarabah_service import (
-        ensure_default_mudarabah_settings,
-        get_mudarabah_settings,
-        save_mudarabah_settings,
-    )
-    from apps.services.capital_withdrawal_service import (
-        ensure_default_withdrawal_settings,
-        get_capital_return_deadline_days,
-        get_capital_return_deadline_months_label,
-        save_capital_return_deadline_days,
-    )
+def _bool_setting(key, default='true'):
+    return str(SystemSetting.get(key, default)).lower() in ('1', 'true', 'yes', 'on')
 
-    ensure_default_brand_settings()
-    ensure_default_certificate_settings()
-    ensure_default_share_settings()
-    ensure_default_mudarabah_settings()
-    ensure_default_withdrawal_settings()
-    from apps.services.twilio_whatsapp_service import get_whatsapp_delivery_status
 
-    brand = get_brand_settings()
-    cert = get_certificate_settings()
-    share = get_share_settings()
-    mudarabah = get_mudarabah_settings()
-    capital_return = get_capital_return_deadline_months_label()
-    whatsapp_status = get_whatsapp_delivery_status()
-    def _bool_setting(key, default='true'):
-        return str(SystemSetting.get(key, default)).lower() in ('1', 'true', 'yes', 'on')
+def _system_settings_form(brand, cert, share, mudarabah):
+    from apps.services.capital_withdrawal_service import get_capital_return_deadline_days
 
-    form = SystemSettingsForm(
+    return SystemSettingsForm(
         auto_email_on_approval=_bool_setting('auto_email_on_approval', 'true'),
         sms_notifications_enabled=_bool_setting('sms_notifications_enabled', 'false'),
         whatsapp_attach_pdfs=_bool_setting('whatsapp_attach_pdfs', 'true'),
@@ -295,9 +260,100 @@ def system_settings():
         cert_signature_title=cert['signature_title'],
     )
 
-    if form.validate_on_submit():
+
+def _save_system_settings_section(form, section):
+    """Persist only the active settings category. Raises ValueError on domain errors."""
+    from apps.services.brand_service import save_brand_settings
+    from apps.services.capital_withdrawal_service import save_capital_return_deadline_days
+    from apps.services.certificate_settings_service import save_certificate_settings
+    from apps.services.mudarabah_service import save_mudarabah_settings
+    from apps.services.share_value_service import save_share_settings
+
+    if section == 'profit':
+        save_share_settings(
+            form.share_value.data,
+            form.total_company_shares.data,
+            company_owned_assets=form.company_owned_assets.data,
+        )
+        save_mudarabah_settings(form.mudarabah_shareholder_percent.data)
+        save_capital_return_deadline_days(form.capital_return_deadline_days.data)
+        return 'Profit & capital settings saved.'
+
+    if section == 'brand':
+        save_brand_settings(
+            form.brand_company_name.data,
+            form.brand_primary_color.data,
+            form.brand_secondary_color.data,
+            form.brand_accent_color.data,
+            logo_file=form.brand_logo.data,
+            remove_logo=form.remove_brand_logo.data,
+        )
+        return 'Brand settings saved. New certificates and emails will use the updated look.'
+
+    if section == 'certificates':
+        save_certificate_settings(
+            {
+                'subtitle': form.cert_subtitle.data,
+                'title': form.cert_title.data,
+                'intro_text': form.cert_intro_text.data,
+                'allocation_text': form.cert_allocation_text.data,
+                'profit_label': form.cert_profit_label.data,
+                'loss_label': form.cert_loss_label.data,
+                'currency_symbol': form.cert_currency_symbol.data,
+                'number_prefix': form.cert_number_prefix.data,
+                'approver_fallback': form.cert_approver_fallback.data,
+                'owner_label': form.cert_owner_label.data,
+                'roster_title': form.cert_roster_title.data,
+                'label_company_pl': form.cert_label_company_pl.data,
+                'label_base_share': form.cert_label_base_share.data,
+                'label_ytd': form.cert_label_ytd.data,
+                'label_odoo': form.cert_label_odoo.data,
+                'footer_disclaimer': form.cert_footer_disclaimer.data,
+                'footer_confidential': form.cert_footer_confidential.data,
+                'legal_text': form.cert_legal_text.data,
+                'show_roster': form.cert_show_roster.data,
+                'show_odoo_reference': form.cert_show_odoo_reference.data,
+                'signature_name': form.cert_signature_name.data,
+                'signature_title': form.cert_signature_title.data,
+            },
+            signature_file=form.cert_signature_image.data,
+            remove_signature=form.remove_cert_signature.data,
+        )
+        return 'Certificate wording saved.'
+
+    if section == 'email':
         SystemSetting.set('auto_email_on_approval', 'true' if form.auto_email_on_approval.data else 'false')
-        SystemSetting.set('sms_notifications_enabled', 'true' if form.sms_notifications_enabled.data else 'false')
+        SystemSetting.set(
+            'notify_management_on_review',
+            'true' if form.notify_management_on_review.data else 'false',
+        )
+        SystemSetting.set(
+            'email_portal_credentials',
+            'true' if form.email_portal_credentials.data else 'false',
+        )
+        SystemSetting.set('email_staff_invite', 'true' if form.email_staff_invite.data else 'false')
+        SystemSetting.set('email_password_change', 'true' if form.email_password_change.data else 'false')
+        SystemSetting.set(
+            'notify_shareholders_on_profit_update',
+            'true' if form.notify_shareholders_on_profit_update.data else 'false',
+        )
+        for key in (
+            'report_delivery_day',
+            'mail_from',
+            'mail_server',
+            'mail_port',
+            'mail_username',
+            'mail_password',
+        ):
+            value = getattr(form, key).data
+            SystemSetting.set(key, '' if value is None else str(value))
+        return 'Email & SMTP settings saved.'
+
+    if section == 'whatsapp':
+        SystemSetting.set(
+            'sms_notifications_enabled',
+            'true' if form.sms_notifications_enabled.data else 'false',
+        )
         SystemSetting.set('whatsapp_attach_pdfs', 'true' if form.whatsapp_attach_pdfs.data else 'false')
         SystemSetting.set(
             'whatsapp_auto_reply_enabled',
@@ -318,109 +374,91 @@ def system_settings():
             'twilio_content_sid_generic',
         ):
             SystemSetting.set(sid_key, (getattr(form, sid_key).data or '').strip())
-        SystemSetting.set('notify_management_on_review', 'true' if form.notify_management_on_review.data else 'false')
-        SystemSetting.set('email_portal_credentials', 'true' if form.email_portal_credentials.data else 'false')
-        SystemSetting.set('email_staff_invite', 'true' if form.email_staff_invite.data else 'false')
-        SystemSetting.set('email_password_change', 'true' if form.email_password_change.data else 'false')
-        SystemSetting.set(
-            'notify_shareholders_on_profit_update',
-            'true' if form.notify_shareholders_on_profit_update.data else 'false',
-        )
-        try:
-            save_share_settings(
-                form.share_value.data,
-                form.total_company_shares.data,
-                company_owned_assets=form.company_owned_assets.data,
-            )
-            save_mudarabah_settings(form.mudarabah_shareholder_percent.data)
-            save_capital_return_deadline_days(form.capital_return_deadline_days.data)
-        except ValueError as exc:
-            flash(str(exc), 'danger')
-            return render_template(
-                'settings/system.html',
-                form=form,
-                whatsapp_test_form=WhatsAppTestForm(),
-                brand=brand,
-                cert=cert,
-                mudarabah=mudarabah,
-                capital_return=capital_return,
-                whatsapp_status=whatsapp_status,
-                segment='settings',
-            )
-        for key in (
-            'report_delivery_day',
-            'mail_from',
-            'mail_server',
-            'mail_port',
-            'mail_username',
-            'mail_password',
-        ):
-            value = getattr(form, key).data
-            SystemSetting.set(key, '' if value is None else str(value))
-        try:
-            save_brand_settings(
-                form.brand_company_name.data,
-                form.brand_primary_color.data,
-                form.brand_secondary_color.data,
-                form.brand_accent_color.data,
-                logo_file=form.brand_logo.data,
-                remove_logo=form.remove_brand_logo.data,
-            )
-            save_certificate_settings(
-                {
-                    'subtitle': form.cert_subtitle.data,
-                    'title': form.cert_title.data,
-                    'intro_text': form.cert_intro_text.data,
-                    'allocation_text': form.cert_allocation_text.data,
-                    'profit_label': form.cert_profit_label.data,
-                    'loss_label': form.cert_loss_label.data,
-                    'currency_symbol': form.cert_currency_symbol.data,
-                    'number_prefix': form.cert_number_prefix.data,
-                    'approver_fallback': form.cert_approver_fallback.data,
-                    'owner_label': form.cert_owner_label.data,
-                    'roster_title': form.cert_roster_title.data,
-                    'label_company_pl': form.cert_label_company_pl.data,
-                    'label_base_share': form.cert_label_base_share.data,
-                    'label_ytd': form.cert_label_ytd.data,
-                    'label_odoo': form.cert_label_odoo.data,
-                    'footer_disclaimer': form.cert_footer_disclaimer.data,
-                    'footer_confidential': form.cert_footer_confidential.data,
-                    'legal_text': form.cert_legal_text.data,
-                    'show_roster': form.cert_show_roster.data,
-                    'show_odoo_reference': form.cert_show_odoo_reference.data,
-                    'signature_name': form.cert_signature_name.data,
-                    'signature_title': form.cert_signature_title.data,
-                },
-                signature_file=form.cert_signature_image.data,
-                remove_signature=form.remove_cert_signature.data,
-            )
-        except ValueError as exc:
-            flash(str(exc), 'danger')
-            return render_template(
-                'settings/system.html',
-                form=form,
-                whatsapp_test_form=WhatsAppTestForm(),
-                brand=get_brand_settings(),
-                cert=get_certificate_settings(),
-                mudarabah=get_mudarabah_settings(),
-                capital_return=get_capital_return_deadline_months_label(),
-                whatsapp_status=whatsapp_status,
-                segment='settings',
-            )
+        return 'WhatsApp settings saved.'
 
-        log_action('update', 'system_settings', None, 'Updated system, brand, and certificate settings')
-        flash('Settings saved. New certificates will use the updated brand and certificate content.', 'success')
-        return redirect(url_for('app_settings.system_settings'))
+    raise ValueError('Unknown settings section.')
+
+
+@blueprint.route('/system', defaults={'section': 'profit'}, methods=['GET', 'POST'])
+@blueprint.route('/system/<section>', methods=['GET', 'POST'])
+@management_required
+def system_settings(section='profit'):
+    from apps.services.brand_service import ensure_default_brand_settings, get_brand_settings
+    from apps.services.capital_withdrawal_service import (
+        ensure_default_withdrawal_settings,
+        get_capital_return_deadline_months_label,
+    )
+    from apps.services.certificate_settings_service import (
+        ensure_default_certificate_settings,
+        get_certificate_settings,
+    )
+    from apps.services.mudarabah_service import (
+        ensure_default_mudarabah_settings,
+        get_mudarabah_settings,
+    )
+    from apps.services.share_value_service import (
+        ensure_default_share_settings,
+        get_share_settings,
+    )
+    from apps.services.system_settings_ui import (
+        SETTINGS_SECTIONS,
+        normalize_section,
+        section_meta,
+        validate_section,
+    )
+    from apps.services.twilio_whatsapp_service import get_whatsapp_delivery_status
+
+    section = normalize_section(section)
+    raw = (request.view_args or {}).get('section')
+    if raw and normalize_section(raw) != raw:
+        return redirect(url_for('app_settings.system_settings', section=section))
+
+    ensure_default_brand_settings()
+    ensure_default_certificate_settings()
+    ensure_default_share_settings()
+    ensure_default_mudarabah_settings()
+    ensure_default_withdrawal_settings()
+
+    brand = get_brand_settings()
+    cert = get_certificate_settings()
+    share = get_share_settings()
+    mudarabah = get_mudarabah_settings()
+    capital_return = get_capital_return_deadline_months_label()
+    whatsapp_status = get_whatsapp_delivery_status()
+    meta = section_meta(section)
+    form = _system_settings_form(brand, cert, share, mudarabah)
+
+    if request.method == 'POST':
+        form = SystemSettingsForm()
+        if validate_section(form, section):
+            try:
+                message = _save_system_settings_section(form, section)
+            except ValueError as exc:
+                flash(str(exc), 'danger')
+            else:
+                log_action(
+                    'update',
+                    'system_settings',
+                    None,
+                    f'Updated system settings ({meta["label"]})',
+                )
+                flash(message, 'success')
+                return redirect(url_for('app_settings.system_settings', section=section))
+        else:
+            flash('Please fix the errors below.', 'danger')
 
     return render_template(
         'settings/system.html',
         form=form,
         whatsapp_test_form=WhatsAppTestForm(),
-        brand=brand,
-        cert=cert,
-        mudarabah=mudarabah,
+        brand=get_brand_settings(),
+        cert=get_certificate_settings(),
+        mudarabah=get_mudarabah_settings(),
         capital_return=capital_return,
         whatsapp_status=whatsapp_status,
+        section=section,
+        section_meta=meta,
+        settings_sections=SETTINGS_SECTIONS,
         segment='settings',
     )
 
@@ -465,12 +503,12 @@ def whatsapp_test_send():
     form = WhatsAppTestForm()
     if not form.validate_on_submit():
         flash('Enter a valid phone number to send a WhatsApp test.', 'danger')
-        return redirect(url_for('app_settings.system_settings'))
+        return redirect(url_for('app_settings.system_settings', section='whatsapp'))
 
     if not twilio_whatsapp_configured():
         status = get_whatsapp_delivery_status()
         flash(status.get('detail') or 'Twilio WhatsApp is not configured.', 'warning')
-        return redirect(url_for('app_settings.system_settings'))
+        return redirect(url_for('app_settings.system_settings', section='whatsapp'))
 
     phone = form.phone.data.strip()
     result = send_whatsapp_message(
@@ -501,7 +539,7 @@ def whatsapp_test_send():
             f'WhatsApp test failed: {result.get("reason") or result.get("error") or "unknown error"}.',
             'danger',
         )
-    return redirect(url_for('app_settings.system_settings'))
+    return redirect(url_for('app_settings.system_settings', section='whatsapp'))
 
 
 @blueprint.route('/system/preview-certificate')

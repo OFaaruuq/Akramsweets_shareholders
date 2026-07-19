@@ -1,0 +1,67 @@
+<div class="card mb-3">
+  <div class="card-header"><h5 class="card-title mb-0">Brand identity</h5></div>
+  <div class="card-body">
+    <p class="text-muted fs-13">
+      Certificates, PDF reports, and shareholder emails use these brand colors and logo.
+      Defaults match Akram Sweets maroon and gold.
+      Manage all application images (logo, signature, login background, banners) in
+      <a href="{{ url_for('app_settings.manage_images') }}">Manage Images</a>.
+    </p>
+    <div class="row align-items-start">
+      <div class="col-md-4 mb-3">
+        <label class="form-label">{{ form.brand_company_name.label.text }}</label>
+        {{ form.brand_company_name(class='form-control') }}
+      </div>
+      <div class="col-md-2 mb-3">
+        <label class="form-label">{{ form.brand_primary_color.label.text }}</label>
+        <div class="input-group">
+          <input type="color" class="form-control form-control-color" value="{{ brand.primary_color }}" oninput="document.getElementById('brand_primary_color').value=this.value">
+          {{ form.brand_primary_color(class='form-control', id='brand_primary_color') }}
+        </div>
+        {% for err in form.brand_primary_color.errors %}<div class="text-danger fs-12">{{ err }}</div>{% endfor %}
+      </div>
+      <div class="col-md-2 mb-3">
+        <label class="form-label">{{ form.brand_secondary_color.label.text }}</label>
+        <div class="input-group">
+          <input type="color" class="form-control form-control-color" value="{{ brand.secondary_color }}" oninput="document.getElementById('brand_secondary_color').value=this.value">
+          {{ form.brand_secondary_color(class='form-control', id='brand_secondary_color') }}
+        </div>
+        {% for err in form.brand_secondary_color.errors %}<div class="text-danger fs-12">{{ err }}</div>{% endfor %}
+      </div>
+      <div class="col-md-2 mb-3">
+        <label class="form-label">{{ form.brand_accent_color.label.text }}</label>
+        <div class="input-group">
+          <input type="color" class="form-control form-control-color" value="{{ brand.accent_color }}" oninput="document.getElementById('brand_accent_color').value=this.value">
+          {{ form.brand_accent_color(class='form-control', id='brand_accent_color') }}
+        </div>
+        {% for err in form.brand_accent_color.errors %}<div class="text-danger fs-12">{{ err }}</div>{% endfor %}
+      </div>
+      <div class="col-md-4 mb-3">
+        <label class="form-label">{{ form.brand_logo.label.text }}</label>
+        {{ form.brand_logo(class='form-control') }}
+        <div class="form-text">PNG or JPG recommended. Shown on certificates, report PDFs, and email notifications.</div>
+        {% if brand.logo_url %}
+        <div class="mt-3 p-3 border rounded d-inline-block" style="background: {{ brand.accent_color }};">
+          <img src="{{ brand.logo_url }}?v={{ brand.logo_path }}" alt="Brand logo" style="max-height: 72px; max-width: 180px;">
+        </div>
+        <div class="form-check mt-2">
+          {{ form.remove_brand_logo(class='form-check-input', id='remove-logo') }}
+          <label class="form-check-label" for="remove-logo">{{ form.remove_brand_logo.label.text }}</label>
+        </div>
+        {% endif %}
+      </div>
+      <div class="col-md-8 mb-3">
+        <label class="form-label d-block">Certificate preview</label>
+        <div class="d-flex gap-2 flex-wrap mb-3">
+          <span class="badge px-3 py-2" style="background: {{ brand.primary_color }};">Primary {{ brand.primary_color }}</span>
+          <span class="badge px-3 py-2 text-dark" style="background: {{ brand.secondary_color }};">Secondary {{ brand.secondary_color }}</span>
+          <span class="badge px-3 py-2 text-dark border" style="background: {{ brand.accent_color }};">Accent {{ brand.accent_color }}</span>
+        </div>
+        <a href="{{ url_for('app_settings.preview_certificate') }}" class="btn btn-soft-danger">
+          Download sample certificate PDF
+        </a>
+        <div class="form-text">Uses the currently saved brand and certificate wording. Save changes first to preview updates.</div>
+      </div>
+    </div>
+  </div>
+</div>

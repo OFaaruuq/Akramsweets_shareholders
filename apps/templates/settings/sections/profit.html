@@ -1,0 +1,96 @@
+<div class="card mb-3">
+  <div class="card-header"><h5 class="card-title mb-0">Mudarabah (profit sharing)</h5></div>
+  <div class="card-body">
+    <p class="text-muted fs-13 mb-3">
+      The company operates under a Mudarabah agreement.
+      Monthly Net Profit from Odoo is split between the <strong>shareholders' profit pool</strong>
+      and <strong>{{ mudarabah.partner_name if mudarabah else (brand.company_name if brand else company_name) }}</strong> (managing partner).
+      Only the shareholders' pool is then distributed by ownership %. Change the % below anytime — new periods use the latest value.
+    </p>
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <label class="form-label">{{ form.mudarabah_shareholder_percent.label.text }}</label>
+        <div class="input-group">
+          {{ form.mudarabah_shareholder_percent(class='form-control', step='0.0001', placeholder=mudarabah.shareholder_percent_label if mudarabah else '50') }}
+          <span class="input-group-text">%</span>
+        </div>
+        <div class="form-text">{{ form.mudarabah_shareholder_percent.description }}</div>
+        {% for error in form.mudarabah_shareholder_percent.errors %}<div class="text-danger fs-13">{{ error }}</div>{% endfor %}
+      </div>
+      <div class="col-md-8 mb-3">
+        <label class="form-label">Current split</label>
+        <div class="border rounded p-3 bg-light">
+          <div class="fw-semibold">{{ mudarabah.label }}</div>
+          <div class="text-muted fs-13 mt-1">
+            Example: Net Profit {{ currency_symbol }}30,000 → Shareholders' pool
+            {{ currency_symbol }}{{ '%.0f'|format(30000 * (mudarabah.shareholder_percent / 100)) }},
+            {{ mudarabah.partner_name }} {{ currency_symbol }}{{ '%.0f'|format(30000 * (mudarabah.partner_percent / 100)) }}.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header"><h5 class="card-title mb-0">Capital withdrawal deadline</h5></div>
+  <div class="card-body">
+    <p class="text-muted fs-13 mb-3">
+      After management approves a capital withdrawal, the company has this many days to return capital.
+      Currently: <strong>{{ capital_return.label if capital_return else 'configurable' }}</strong>.
+    </p>
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <label class="form-label">{{ form.capital_return_deadline_days.label.text }}</label>
+        {{ form.capital_return_deadline_days(class='form-control', min='1', max='3650') }}
+        <div class="form-text">{{ form.capital_return_deadline_days.description }}</div>
+        {% for error in form.capital_return_deadline_days.errors %}<div class="text-danger fs-13">{{ error }}</div>{% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header"><h5 class="card-title mb-0">Shareholder capital register</h5></div>
+  <div class="card-body">
+    <p class="text-muted fs-13 mb-3">
+      Matches the Excel capital register used by the company.
+      <strong>1 share = {{ currency_symbol }}1,000</strong> by default.
+      Shareholder capital and company-owned assets are for <strong>reporting / dashboard</strong> only —
+      monthly Mudarabah distribution uses <strong>Net Profit from Odoo</strong>, never these asset totals.
+    </p>
+    <div class="row">
+      <div class="col-md-3 mb-3">
+        <label class="form-label">{{ form.share_value.label.text }}</label>
+        <div class="input-group">
+          <span class="input-group-text">1 share = {{ currency_symbol }}</span>
+          {{ form.share_value(class='form-control', step='0.01', placeholder='1000') }}
+        </div>
+        {% for error in form.share_value.errors %}<div class="text-danger fs-13">{{ error }}</div>{% endfor %}
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">{{ form.total_company_shares.label.text }}</label>
+        {{ form.total_company_shares(class='form-control', step='0.0001', placeholder='1220') }}
+        <div class="form-text">{{ form.total_company_shares.description }}</div>
+        {% for error in form.total_company_shares.errors %}<div class="text-danger fs-13">{{ error }}</div>{% endfor %}
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">{{ form.company_owned_assets.label.text }}</label>
+        <div class="input-group">
+          <span class="input-group-text">{{ currency_symbol }}</span>
+          {{ form.company_owned_assets(class='form-control', step='0.01', placeholder='423000.00') }}
+        </div>
+        <div class="form-text">{{ form.company_owned_assets.description }}</div>
+        {% for error in form.company_owned_assets.errors %}<div class="text-danger fs-13">{{ error }}</div>{% endfor %}
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Preview</label>
+        <div class="border rounded p-3 bg-light fs-13">
+          <div class="fw-semibold">{{ share_value_label or ('1 share = ' ~ currency_symbol ~ '1,000.00') }}</div>
+          <div class="text-muted mt-1">Total shares: {{ '%.0f'|format(form.total_company_shares.data or 0) }}</div>
+          <div class="text-muted">Company assets: {{ currency_symbol }}{{ '{:,.2f}'.format(form.company_owned_assets.data or 0) }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

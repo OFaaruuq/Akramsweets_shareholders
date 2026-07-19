@@ -112,7 +112,7 @@ def _notification_url(action, entity_type, entity_id):
         if entity_type == 'media_image':
             return url_for('app_settings.manage_images')
         if entity_type == 'system_settings':
-            return url_for('app_settings.system_settings')
+            return url_for('app_settings.system_settings', section='profit')
         if entity_type == 'dashboard_settings':
             return url_for('app_settings.dashboard_settings')
         if entity_type == 'staff_user':

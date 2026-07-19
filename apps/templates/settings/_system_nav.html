@@ -1,0 +1,42 @@
+{# Shared category nav for System Settings #}
+<style>
+  .settings-cat-nav { gap: .5rem; }
+  .settings-cat-nav .nav-link {
+    border: 1px solid var(--bs-border-color);
+    border-radius: .5rem;
+    color: inherit;
+    padding: .65rem .9rem;
+    background: var(--bs-body-bg);
+  }
+  .settings-cat-nav .nav-link:hover { background: var(--bs-tertiary-bg); }
+  .settings-cat-nav .nav-link.active {
+    background: {{ brand.primary_color if brand else '#8A1B24' }};
+    border-color: {{ brand.primary_color if brand else '#8A1B24' }};
+    color: #fff;
+  }
+  .settings-cat-nav .nav-link .cat-desc {
+    display: block;
+    font-size: 11px;
+    opacity: .75;
+    font-weight: 400;
+    margin-top: 2px;
+  }
+  .settings-cat-nav .nav-link.active .cat-desc { opacity: .9; }
+  @media (max-width: 767.98px) {
+    .settings-cat-nav .nav-link .cat-desc { display: none; }
+  }
+</style>
+<ul class="nav settings-cat-nav flex-wrap mb-3">
+  {% for cat in settings_sections %}
+  <li class="nav-item">
+    <a class="nav-link {% if section == cat.id %}active{% endif %}"
+       href="{{ url_for('app_settings.system_settings', section=cat.id) }}">
+      <span class="d-inline-flex align-items-center gap-1">
+        <iconify-icon icon="{{ cat.icon }}" width="18"></iconify-icon>
+        <strong>{{ cat.label }}</strong>
+      </span>
+      <span class="cat-desc">{{ cat.description }}</span>
+    </a>
+  </li>
+  {% endfor %}
+</ul>

@@ -6,7 +6,7 @@ from email.mime.application import MIMEApplication
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.utils import formataddr
+from email.utils import formataddr, formatdate, make_msgid, parseaddr
 from pathlib import Path
 
 from flask import current_app, render_template
@@ -127,13 +127,57 @@ def _build_from_header(mail_from, company_name):
     return formataddr((company_name, mail_from))
 
 
+def _mail_address(value):
+    """Extract bare email from `Name <addr@host>` or plain address."""
+    if not value:
+        return ''
+    _name, addr = parseaddr(value)
+    return (addr or value).strip()
+
+
+def _apply_standard_headers(message, mail_from, company_name, *, reply_to=None):
+    """RFC5322 headers that improve acceptance by Zoho/Gmail/corporate filters."""
+    message['From'] = _build_from_header(mail_from, company_name)
+    if 'Date' not in message:
+        message['Date'] = formatdate(localtime=True)
+    if 'Message-ID' not in message:
+        domain = _mail_address(mail_from).split('@')[-1] if '@' in (mail_from or '') else 'localhost'
+        message['Message-ID'] = make_msgid(domain=domain)
+    reply = _mail_address(reply_to or mail_from)
+    if reply and 'Reply-To' not in message:
+        message['Reply-To'] = reply
+    # Mark as machine-generated transactional mail (not marketing)
+    if 'Auto-Submitted' not in message:
+        message['Auto-Submitted'] = 'auto-generated'
+    if 'X-Auto-Response-Suppress' not in message:
+        message['X-Auto-Response-Suppress'] = 'OOF, AutoReply'
+
+
 def _send_smtp(message, mail_server, mail_port, mail_user, mail_password, use_tls=True):
     context = ssl.create_default_context()
+    # Envelope MAIL FROM should match the authenticated mailbox whenever possible.
+    envelope_from = _mail_address(mail_user) or _mail_address(message.get('From'))
+    envelope_to = [
+        addr
+        for addr in (
+            _mail_address(message.get('To')),
+            *(_mail_address(p) for p in (message.get_all('Cc') or [])),
+            *(_mail_address(p) for p in (message.get_all('Bcc') or [])),
+        )
+        if addr
+    ]
+
+    def _dispatch(server):
+        if mail_user and mail_password:
+            server.login(mail_user, mail_password)
+        if envelope_to:
+            server.send_message(message, from_addr=envelope_from or None, to_addrs=envelope_to)
+        else:
+            server.send_message(message, from_addr=envelope_from or None)
+
     if mail_port == 465:
         with smtplib.SMTP_SSL(mail_server, mail_port, context=context) as server:
-            if mail_user and mail_password:
-                server.login(mail_user, mail_password)
-            server.send_message(message)
+            _dispatch(server)
         return
 
     with smtplib.SMTP(mail_server, mail_port, timeout=60) as server:
@@ -145,9 +189,7 @@ def _send_smtp(message, mail_server, mail_port, mail_user, mail_password, use_tl
             except smtplib.SMTPException:
                 # Some local/dev SMTP servers do not support STARTTLS.
                 pass
-        if mail_user and mail_password:
-            server.login(mail_user, mail_password)
-        server.send_message(message)
+        _dispatch(server)
 
 
 def send_login_otp_email(user, code, expires_minutes=10):
@@ -159,7 +201,6 @@ def send_login_otp_email(user, code, expires_minutes=10):
     brand = _brand_for_email()
     company_name = brand.get('company_name') or 'Akram Sweets'
     subject = f'{company_name} — Login verification code'
-    has_email_header, email_header_cid = _email_header_flags()
     body_text = render_template(
         'emails/login_otp.txt',
         user=user,
@@ -167,6 +208,8 @@ def send_login_otp_email(user, code, expires_minutes=10):
         expires_minutes=expires_minutes,
         company_name=company_name,
     )
+    # No CID/logo embeds for OTP — keeps the message small and less “phishing-like”
+    # when SMTP is a personal Gmail mailbox delivering into Zoho/corporate inboxes.
     body_html = render_template(
         'emails/login_otp.html',
         user=user,
@@ -175,9 +218,9 @@ def send_login_otp_email(user, code, expires_minutes=10):
         company_name=company_name,
         brand=brand,
         logo_cid=LOGO_CID,
-        has_logo=bool(brand.get('logo_filesystem_path')),
-        has_email_header=has_email_header,
-        email_header_cid=email_header_cid,
+        has_logo=False,
+        has_email_header=False,
+        email_header_cid=EMAIL_HEADER_CID,
     )
 
     mail_server, mail_port, mail_user, mail_password, mail_from, use_tls = _mail_settings()
@@ -190,20 +233,19 @@ def send_login_otp_email(user, code, expires_minutes=10):
             'recipient': recipient,
         }
 
-    message = MIMEMultipart('mixed')
-    message['From'] = _build_from_header(mail_from, company_name)
+    # OTP uses a lightweight multipart/alternative (no CID images).
+    # Branded HTML + inline logos from a personal Gmail mailbox often land in Zoho quarantine.
+    message = MIMEMultipart('alternative')
+    _apply_standard_headers(
+        message,
+        mail_from,
+        f'{company_name} Portal',
+        reply_to=mail_from,
+    )
     message['To'] = recipient
     message['Subject'] = subject
-
-    related = MIMEMultipart('related')
-    alternative = MIMEMultipart('alternative')
-    alternative.attach(MIMEText(body_text, 'plain', 'utf-8'))
-    alternative.attach(MIMEText(body_html, 'html', 'utf-8'))
-    related.attach(alternative)
-    _attach_brand_logo(related, brand)
-    if has_email_header:
-        _attach_email_header(related)
-    message.attach(related)
+    message.attach(MIMEText(body_text, 'plain', 'utf-8'))
+    message.attach(MIMEText(body_html, 'html', 'utf-8'))
 
     try:
         _send_smtp(message, mail_server, mail_port, mail_user, mail_password, use_tls=use_tls)
@@ -217,7 +259,7 @@ def send_login_otp_email(user, code, expires_minutes=10):
             'recipient': recipient,
         }
 
-    logger.info('Login OTP emailed to %s', recipient)
+    logger.info('Login OTP emailed to %s (from %s via %s)', recipient, mail_from, mail_server)
     return {'sent': True, 'mode': 'smtp', 'recipient': recipient}
 
 
@@ -281,7 +323,7 @@ def send_system_notice(
         }
 
     message = MIMEMultipart('mixed')
-    message['From'] = _build_from_header(mail_from, company_name)
+    _apply_standard_headers(message, mail_from, company_name)
     message['To'] = recipient
     message['Subject'] = f'{company_name} — {subject}' if company_name not in subject else subject
 
@@ -384,7 +426,7 @@ def send_shareholder_report(report_data, certificate_data):
         }
 
     message = MIMEMultipart('mixed')
-    message['From'] = _build_from_header(mail_from, company_name)
+    _apply_standard_headers(message, mail_from, company_name)
     message['To'] = recipient
     message['Subject'] = subject
 
