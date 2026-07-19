@@ -1,0 +1,98 @@
+{% extends 'layouts/vertical.html' %}
+{% block title %}WhatsApp message log{% endblock title %}
+{% block css %}{% include 'partials/head-css.html' %}{% endblock css %}
+{% block body_attribute %}data-menu-color="dark" data-sidebar="default"{% endblock body_attribute %}
+{% block page_content %}
+<div class="py-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+  <div>
+    <h4 class="fs-18 fw-semibold m-0">WhatsApp message log</h4>
+    <p class="text-muted mb-0 fs-13">Outbound delivery status and inbound replies from Twilio.</p>
+  </div>
+  <div class="d-flex gap-1">
+    <a href="{{ url_for('app_settings.whatsapp_messages', direction='outbound') }}" class="btn btn-sm btn-soft-primary {% if direction == 'outbound' %}active{% endif %}">Outbound</a>
+    <a href="{{ url_for('app_settings.whatsapp_messages', direction='inbound') }}" class="btn btn-sm btn-soft-secondary {% if direction == 'inbound' %}active{% endif %}">Inbound</a>
+    <a href="{{ url_for('app_settings.whatsapp_messages') }}" class="btn btn-sm btn-light">All</a>
+    <a href="{{ url_for('app_settings.system_settings') }}" class="btn btn-sm btn-soft-secondary">Back to Settings</a>
+  </div>
+</div>
+
+{% if whatsapp_status %}
+<div class="alert alert-{{ 'success' if whatsapp_status.configured else 'warning' }} py-2 fs-13 mb-3">
+  <strong>{{ whatsapp_status.headline }}</strong>
+  <div>{{ whatsapp_status.detail }}</div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 fs-13">
+        <thead>
+          <tr>
+            <th>When</th>
+            <th>Dir</th>
+            <th>To / From</th>
+            <th>Event</th>
+            <th>Status</th>
+            <th>Body</th>
+            <th>SID</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for msg in messages %}
+          <tr>
+            <td class="text-nowrap">{{ msg.created_at.strftime('%Y-%m-%d %H:%M') if msg.created_at else '—' }}</td>
+            <td>
+              {% if msg.direction == 'inbound' %}
+              <span class="badge bg-info-subtle text-info">In</span>
+              {% else %}
+              <span class="badge bg-primary-subtle text-primary">Out</span>
+              {% endif %}
+            </td>
+            <td class="text-nowrap">
+              {% if msg.direction == 'inbound' %}
+              {{ msg.from_address or '—' }}
+              {% else %}
+              {{ msg.to_address or '—' }}
+              {% endif %}
+            </td>
+            <td>{{ msg.event_key or '—' }}</td>
+            <td>
+              {% set st = (msg.status or '')|lower %}
+              {% if st in ('delivered', 'read') %}
+              <span class="badge bg-success-subtle text-success">{{ msg.status }}</span>
+              {% elif st in ('failed', 'undelivered') %}
+              <span class="badge bg-danger-subtle text-danger">{{ msg.status }}</span>
+              {% elif st == 'stub' %}
+              <span class="badge bg-secondary-subtle text-secondary">stub</span>
+              {% else %}
+              <span class="badge bg-warning-subtle text-warning">{{ msg.status or '—' }}</span>
+              {% endif %}
+              {% if msg.error_message %}<div class="text-danger fs-12 mt-1">{{ msg.error_message[:120] }}</div>{% endif %}
+            </td>
+            <td style="max-width:280px;">{{ (msg.body or '')[:160] }}{% if msg.body and msg.body|length > 160 %}…{% endif %}</td>
+            <td class="fs-12 text-muted">{{ msg.twilio_sid or '—' }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7" class="text-muted text-center py-4">No WhatsApp messages logged yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% if pagination and pagination.pages > 1 %}
+  <div class="card-footer d-flex justify-content-between align-items-center">
+    <span class="text-muted fs-13">Page {{ pagination.page }} of {{ pagination.pages }}</span>
+    <div class="d-flex gap-1">
+      {% if pagination.has_prev %}
+      <a class="btn btn-sm btn-light" href="{{ url_for('app_settings.whatsapp_messages', page=pagination.prev_num, direction=direction) }}">Prev</a>
+      {% endif %}
+      {% if pagination.has_next %}
+      <a class="btn btn-sm btn-light" href="{{ url_for('app_settings.whatsapp_messages', page=pagination.next_num, direction=direction) }}">Next</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock page_content %}
+{% block extra_javascript %}{% include 'partials/vendor.html' %}{% endblock extra_javascript %}

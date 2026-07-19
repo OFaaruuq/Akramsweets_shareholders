@@ -15,6 +15,9 @@
     <a href="{{ url_for('reports.certificates_register') }}" class="btn btn-soft-danger">Monthly Certificates</a>
     <a href="{{ url_for('contacts.list_contacts') }}" class="btn btn-soft-secondary">Contacts</a>
     {% if current_user.can_edit_shareholders() %}
+    <a href="{{ url_for('shareholders.export_capital_register_xlsx', status=status_filter or 'active') }}" class="btn btn-soft-success">
+      <i class="mdi mdi-microsoft-excel"></i> Export Excel
+    </a>
     <a href="{{ url_for('shareholders.import_capital_register') }}" class="btn btn-soft-primary">Replace from Excel / CSV</a>
     {% if current_user.is_superadmin() %}
     <a href="{{ url_for('shareholders.import_capital_register') }}#purge" class="btn btn-soft-danger">Clean all shareholders</a>

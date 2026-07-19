@@ -15,6 +15,14 @@
     <p class="text-muted mb-0 fs-13">{{ period.workflow_label }}</p>
   </div>
   <div class="text-end d-flex flex-wrap gap-1 justify-content-end">
+    {% if calculations %}
+    <a href="{{ url_for('periods.export_period_xlsx', period_id=period.id) }}" class="btn btn-soft-success">
+      <i class="mdi mdi-microsoft-excel"></i> Export Excel
+    </a>
+    <a href="{{ url_for('periods.export_period_csv', period_id=period.id) }}" class="btn btn-soft-secondary">
+      <i class="mdi mdi-download"></i> Export CSV
+    </a>
+    {% endif %}
     {% if period.is_editable %}
     <a href="{{ url_for('periods.edit_period', period_id=period.id) }}" class="btn btn-light">Edit figures</a>
     <form method="post" action="{{ url_for('periods.recalculate_period', period_id=period.id) }}" class="d-inline">
@@ -139,9 +147,17 @@
 
   <div class="col-xl-8">
     <div class="card">
-      <div class="card-header">
-        <h5 class="card-title mb-0">Shareholder Distribution</h5>
-        <p class="text-muted fs-12 mb-0 mt-1">Normal distribution → Apply special arrangements → Final profit</p>
+      <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <div>
+          <h5 class="card-title mb-0">Shareholder Distribution</h5>
+          <p class="text-muted fs-12 mb-0 mt-1">Normal distribution → Apply special arrangements → Final profit</p>
+        </div>
+        {% if calculations %}
+        <div class="d-flex gap-1">
+          <a href="{{ url_for('periods.export_period_xlsx', period_id=period.id) }}" class="btn btn-sm btn-soft-success">Export Excel</a>
+          <a href="{{ url_for('periods.export_period_csv', period_id=period.id) }}" class="btn btn-sm btn-soft-secondary">Export CSV</a>
+        </div>
+        {% endif %}
       </div>
       <div class="card-body p-0">
         <div class="table-responsive">
@@ -213,7 +229,8 @@
   <div class="card-header"><h5 class="card-title mb-0">Send update to shareholders</h5></div>
   <div class="card-body">
     <p class="text-muted fs-13 mb-3">
-      Emails every shareholder on this period with the current Net Profit and their distribution amount.
+      Sends email + WhatsApp to every shareholder on this period with the current Net Profit and their distribution amount
+      (WhatsApp requires the toggle and Twilio credentials under Settings → System).
     </p>
     <form method="post" action="{{ url_for('periods.send_shareholder_update', period_id=period.id) }}">
       {{ update_form.hidden_tag() }}

@@ -48,7 +48,20 @@ def get_mail_delivery_status():
 
     smtp_configured = not missing
     otp_enabled = otp_is_enabled()
-    otp_blocked = otp_enabled and not smtp_configured
+
+    whatsapp_ready = False
+    whatsapp_enabled = False
+    try:
+        from apps.services.notification_service import whatsapp_notifications_enabled
+        from apps.services.twilio_whatsapp_service import twilio_whatsapp_configured
+
+        whatsapp_enabled = whatsapp_notifications_enabled()
+        whatsapp_ready = twilio_whatsapp_configured() and whatsapp_enabled
+    except Exception:
+        pass
+
+    # OTP can deliver via email (SMTP) and/or WhatsApp when both are configured
+    otp_blocked = otp_enabled and not smtp_configured and not whatsapp_ready
 
     settings_url = None
     try:
@@ -57,36 +70,47 @@ def get_mail_delivery_status():
         settings_url = '/settings/system'
 
     if otp_blocked:
-        headline = 'Login OTP needs SMTP before anyone can sign in'
+        headline = 'Login OTP needs email or WhatsApp before anyone can sign in'
         detail = (
-            'Email one-time codes are enabled, but SMTP is incomplete '
-            f"(missing: {', '.join(missing)}). "
-            'Add mail settings under System Settings or in `.env`, '
+            'One-time codes are enabled, but neither SMTP nor Twilio WhatsApp is ready '
+            f"(SMTP missing: {', '.join(missing) or 'none'}). "
+            'Configure SMTP and/or Twilio + enable WhatsApp under System Settings, '
             'or set `LOGIN_OTP_ENABLED=false` for local development only.'
         )
     elif not smtp_configured:
         headline = 'SMTP is not configured'
         detail = (
             'Certificate and report emails will be logged only until SMTP is set. '
-            f"Missing: {', '.join(missing)}."
+            f"Missing: {', '.join(missing)}. "
+            + (
+                'WhatsApp can still deliver notices when Twilio is configured and enabled.'
+                if whatsapp_ready
+                else 'Enable Twilio WhatsApp as a second channel once SMTP is set.'
+            )
         )
     elif otp_enabled:
-        headline = 'SMTP ready — login OTP enabled'
+        channels = [f'email via {server}:{port}']
+        if whatsapp_ready:
+            channels.append('WhatsApp (Twilio)')
+        headline = 'Delivery ready — login OTP enabled'
         detail = (
-            f'OTP codes and shareholder emails will send via {server}:{port} '
-            f'from {mail_from}.'
+            f'OTP and shareholder notices use {" + ".join(channels)} '
+            f'(from {mail_from}).'
         )
     else:
         headline = 'SMTP ready — login OTP disabled'
         detail = (
             'Password-only login is active (`LOGIN_OTP_ENABLED=false`). '
-            'Shareholder report emails can still use SMTP.'
+            'Shareholder report emails can still use SMTP'
+            + (' and WhatsApp.' if whatsapp_ready else '.')
         )
 
     return {
         'smtp_configured': smtp_configured,
         'otp_enabled': otp_enabled,
         'otp_blocked': otp_blocked,
+        'whatsapp_ready': whatsapp_ready,
+        'whatsapp_enabled': whatsapp_enabled,
         'missing': missing,
         'mail_server': server,
         'mail_port': port,

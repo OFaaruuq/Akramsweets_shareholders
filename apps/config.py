@@ -129,6 +129,10 @@ class Config(object):
     TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN') or None
     TWILIO_WHATSAPP_FROM = os.getenv('TWILIO_WHATSAPP_FROM') or None
     TWILIO_MESSAGING_SERVICE_SID = os.getenv('TWILIO_MESSAGING_SERVICE_SID') or None
+    # Optional Meta-approved Content Template SID for production outbound messages
+    TWILIO_WHATSAPP_CONTENT_SID = os.getenv('TWILIO_WHATSAPP_CONTENT_SID') or None
+    # Public HTTPS origin so Twilio can fetch PDF media and post webhooks
+    PUBLIC_BASE_URL = (os.getenv('PUBLIC_BASE_URL') or '').rstrip('/') or None
 
 
 class ProductionConfig(Config):

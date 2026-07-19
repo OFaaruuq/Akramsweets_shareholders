@@ -111,7 +111,13 @@ def build_shareholder_report(period, calculation):
         'currency_symbol': cert.get('currency_symbol') or '$',
         'shareholder_name': shareholder.name,
         'shareholder_email': shareholder.email,
-        'shareholder_phone': shareholder.phone,
+        'shareholder_phone': (
+            (shareholder.phone or '').strip()
+            or (
+                (getattr(getattr(shareholder, 'user_account', None), 'phone', None) or '').strip()
+            )
+            or None
+        ),
         'ownership_percent': calculation.ownership_percent,
         'base_share': calculation.base_share,
         'arrangement_deduction': calculation.arrangement_deduction,

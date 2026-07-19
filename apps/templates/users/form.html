@@ -17,6 +17,12 @@
     <div class="col-md-6 mb-3"><label class="form-label">Full name</label>{{ form.full_name(class='form-control') }}</div>
     <div class="col-md-6 mb-3"><label class="form-label">Email</label>{{ form.email(class='form-control') }}</div>
     <div class="col-md-6 mb-3">
+      <label class="form-label">WhatsApp phone</label>
+      {{ form.phone(class='form-control', placeholder='+25261… or 061…') }}
+      <div class="form-text">Used for staff alerts and login OTP when WhatsApp is enabled.</div>
+      {% for error in form.phone.errors %}<div class="text-danger fs-13">{{ error }}</div>{% endfor %}
+    </div>
+    <div class="col-md-6 mb-3">
       <label class="form-label">Role</label>
       {{ form.role(class='form-select') }}
       <div class="form-text">Super Admin (Owner) has full system control.</div>

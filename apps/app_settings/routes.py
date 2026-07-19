@@ -1,7 +1,7 @@
 from datetime import datetime
 from io import BytesIO
 
-from flask import flash, redirect, render_template, send_file, url_for
+from flask import flash, redirect, render_template, request, send_file, url_for
 
 from apps.app_settings import blueprint
 from apps.auth.decorators import management_required
@@ -12,6 +12,7 @@ from apps.forms import (
     DashboardSettingsForm,
     MediaLibraryUploadForm,
     SystemSettingsForm,
+    WhatsAppTestForm,
 )
 from apps.models.arrangement import SpecialArrangement
 from apps.models.audit import AuditLog
@@ -230,17 +231,31 @@ def system_settings():
     mudarabah = get_mudarabah_settings()
     capital_return = get_capital_return_deadline_months_label()
     whatsapp_status = get_whatsapp_delivery_status()
+    def _bool_setting(key, default='true'):
+        return str(SystemSetting.get(key, default)).lower() in ('1', 'true', 'yes', 'on')
+
     form = SystemSettingsForm(
-        auto_email_on_approval=str(SystemSetting.get('auto_email_on_approval', 'true')).lower() in ('1', 'true', 'yes', 'on'),
-        sms_notifications_enabled=str(SystemSetting.get('sms_notifications_enabled', 'false')).lower() in ('1', 'true', 'yes', 'on'),
-        notify_management_on_review=str(SystemSetting.get('notify_management_on_review', 'true')).lower() in ('1', 'true', 'yes', 'on'),
-        email_portal_credentials=str(SystemSetting.get('email_portal_credentials', 'true')).lower() in ('1', 'true', 'yes', 'on'),
-        email_staff_invite=str(SystemSetting.get('email_staff_invite', 'true')).lower() in ('1', 'true', 'yes', 'on'),
-        email_password_change=str(SystemSetting.get('email_password_change', 'true')).lower() in ('1', 'true', 'yes', 'on'),
-        notify_shareholders_on_profit_update=str(
-            SystemSetting.get('notify_shareholders_on_profit_update', 'true')
-        ).lower()
-        in ('1', 'true', 'yes', 'on'),
+        auto_email_on_approval=_bool_setting('auto_email_on_approval', 'true'),
+        sms_notifications_enabled=_bool_setting('sms_notifications_enabled', 'false'),
+        whatsapp_attach_pdfs=_bool_setting('whatsapp_attach_pdfs', 'true'),
+        whatsapp_auto_reply_enabled=_bool_setting('whatsapp_auto_reply_enabled', 'true'),
+        whatsapp_auto_reply_text=SystemSetting.get('whatsapp_auto_reply_text') or '',
+        public_base_url=SystemSetting.get('public_base_url') or '',
+        twilio_content_sid_otp=SystemSetting.get('twilio_content_sid_otp') or '',
+        twilio_content_sid_report=SystemSetting.get('twilio_content_sid_report') or '',
+        twilio_content_sid_credentials=SystemSetting.get('twilio_content_sid_credentials') or '',
+        twilio_content_sid_period_update=SystemSetting.get('twilio_content_sid_period_update') or '',
+        twilio_content_sid_payment=SystemSetting.get('twilio_content_sid_payment') or '',
+        twilio_content_sid_withdrawal=SystemSetting.get('twilio_content_sid_withdrawal') or '',
+        twilio_content_sid_staff_invite=SystemSetting.get('twilio_content_sid_staff_invite') or '',
+        twilio_content_sid_password=SystemSetting.get('twilio_content_sid_password') or '',
+        twilio_content_sid_review=SystemSetting.get('twilio_content_sid_review') or '',
+        twilio_content_sid_generic=SystemSetting.get('twilio_content_sid_generic') or '',
+        notify_management_on_review=_bool_setting('notify_management_on_review', 'true'),
+        email_portal_credentials=_bool_setting('email_portal_credentials', 'true'),
+        email_staff_invite=_bool_setting('email_staff_invite', 'true'),
+        email_password_change=_bool_setting('email_password_change', 'true'),
+        notify_shareholders_on_profit_update=_bool_setting('notify_shareholders_on_profit_update', 'true'),
         share_value=share['share_value'],
         total_company_shares=share['total_company_shares'] if share['has_total_shares'] else None,
         company_owned_assets=share.get('company_owned_assets'),
@@ -283,6 +298,26 @@ def system_settings():
     if form.validate_on_submit():
         SystemSetting.set('auto_email_on_approval', 'true' if form.auto_email_on_approval.data else 'false')
         SystemSetting.set('sms_notifications_enabled', 'true' if form.sms_notifications_enabled.data else 'false')
+        SystemSetting.set('whatsapp_attach_pdfs', 'true' if form.whatsapp_attach_pdfs.data else 'false')
+        SystemSetting.set(
+            'whatsapp_auto_reply_enabled',
+            'true' if form.whatsapp_auto_reply_enabled.data else 'false',
+        )
+        SystemSetting.set('whatsapp_auto_reply_text', (form.whatsapp_auto_reply_text.data or '').strip())
+        SystemSetting.set('public_base_url', (form.public_base_url.data or '').strip().rstrip('/'))
+        for sid_key in (
+            'twilio_content_sid_otp',
+            'twilio_content_sid_report',
+            'twilio_content_sid_credentials',
+            'twilio_content_sid_period_update',
+            'twilio_content_sid_payment',
+            'twilio_content_sid_withdrawal',
+            'twilio_content_sid_staff_invite',
+            'twilio_content_sid_password',
+            'twilio_content_sid_review',
+            'twilio_content_sid_generic',
+        ):
+            SystemSetting.set(sid_key, (getattr(form, sid_key).data or '').strip())
         SystemSetting.set('notify_management_on_review', 'true' if form.notify_management_on_review.data else 'false')
         SystemSetting.set('email_portal_credentials', 'true' if form.email_portal_credentials.data else 'false')
         SystemSetting.set('email_staff_invite', 'true' if form.email_staff_invite.data else 'false')
@@ -304,6 +339,7 @@ def system_settings():
             return render_template(
                 'settings/system.html',
                 form=form,
+                whatsapp_test_form=WhatsAppTestForm(),
                 brand=brand,
                 cert=cert,
                 mudarabah=mudarabah,
@@ -363,6 +399,7 @@ def system_settings():
             return render_template(
                 'settings/system.html',
                 form=form,
+                whatsapp_test_form=WhatsAppTestForm(),
                 brand=get_brand_settings(),
                 cert=get_certificate_settings(),
                 mudarabah=get_mudarabah_settings(),
@@ -378,6 +415,7 @@ def system_settings():
     return render_template(
         'settings/system.html',
         form=form,
+        whatsapp_test_form=WhatsAppTestForm(),
         brand=brand,
         cert=cert,
         mudarabah=mudarabah,
@@ -385,6 +423,85 @@ def system_settings():
         whatsapp_status=whatsapp_status,
         segment='settings',
     )
+
+
+@blueprint.route('/whatsapp-messages')
+@management_required
+def whatsapp_messages():
+    """Delivery log for outbound/inbound Twilio WhatsApp messages."""
+    from apps.models.whatsapp_message import WhatsAppMessage
+
+    page = max(1, request.args.get('page', 1, type=int) or 1)
+    per_page = 50
+    query = WhatsAppMessage.query.order_by(WhatsAppMessage.created_at.desc())
+    direction = (request.args.get('direction') or '').strip().lower()
+    if direction in ('inbound', 'outbound'):
+        query = query.filter_by(direction=direction)
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    from apps.services.twilio_whatsapp_service import get_whatsapp_delivery_status
+
+    return render_template(
+        'settings/whatsapp_messages.html',
+        messages=pagination.items,
+        pagination=pagination,
+        direction=direction,
+        whatsapp_status=get_whatsapp_delivery_status(),
+        segment='settings',
+    )
+
+
+@blueprint.route('/system/whatsapp-test', methods=['POST'])
+@management_required
+def whatsapp_test_send():
+    """Send a one-off WhatsApp message to verify Twilio credentials."""
+    from flask_login import current_user
+
+    from apps.services.twilio_whatsapp_service import (
+        get_whatsapp_delivery_status,
+        send_whatsapp_message,
+        twilio_whatsapp_configured,
+    )
+
+    form = WhatsAppTestForm()
+    if not form.validate_on_submit():
+        flash('Enter a valid phone number to send a WhatsApp test.', 'danger')
+        return redirect(url_for('app_settings.system_settings'))
+
+    if not twilio_whatsapp_configured():
+        status = get_whatsapp_delivery_status()
+        flash(status.get('detail') or 'Twilio WhatsApp is not configured.', 'warning')
+        return redirect(url_for('app_settings.system_settings'))
+
+    phone = form.phone.data.strip()
+    result = send_whatsapp_message(
+        phone,
+        'Akram Sweets WhatsApp test: Twilio delivery is working for the shareholders portal.',
+    )
+    if result.get('sent'):
+        log_action(
+            'whatsapp_test',
+            'system_settings',
+            None,
+            f'Test WhatsApp sent to {result.get("recipient")} (sid={result.get("sid")})',
+            user=current_user,
+        )
+        flash(
+            f'Test WhatsApp sent to {result.get("recipient")}. '
+            f'Status: {result.get("status") or "queued"}.',
+            'success',
+        )
+    elif result.get('mode') == 'stub':
+        flash(
+            'Twilio is not fully configured — message was logged only (stub mode). '
+            f'Target would be {result.get("recipient")}.',
+            'warning',
+        )
+    else:
+        flash(
+            f'WhatsApp test failed: {result.get("reason") or result.get("error") or "unknown error"}.',
+            'danger',
+        )
+    return redirect(url_for('app_settings.system_settings'))
 
 
 @blueprint.route('/system/preview-certificate')

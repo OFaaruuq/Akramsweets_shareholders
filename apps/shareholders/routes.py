@@ -284,6 +284,32 @@ def download_capital_template():
     )
 
 
+@blueprint.route('/export.xlsx')
+@finance_or_management_required
+def export_capital_register_xlsx():
+    """Download the current capital register as Excel."""
+    from io import BytesIO
+
+    from flask import send_file
+
+    from apps.services.distribution_export_service import build_capital_register_xlsx
+
+    active_only = (request.args.get('status') or 'active').lower() != 'all'
+    payload, filename = build_capital_register_xlsx(active_only=active_only)
+    log_action(
+        'export',
+        'shareholder',
+        None,
+        f'Capital register Excel ({"active" if active_only else "all"})',
+    )
+    return send_file(
+        BytesIO(payload),
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=filename,
+    )
+
+
 @blueprint.route('/')
 @finance_or_management_required
 def list_shareholders():

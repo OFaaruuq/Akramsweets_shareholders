@@ -30,10 +30,20 @@
                     </div>
 
                     <div class="auth-title-section mb-3 text-center">
-                      <h3 class="text-primary fw-semibold mb-1">Email verification</h3>
+                      <h3 class="text-primary fw-semibold mb-1">Login verification</h3>
                       <p class="text-muted fs-14 mb-0">
                         Enter the {{ otp_length }}-digit code sent to
+                        {% if 'email' in otp_channels %}
                         <strong>{{ masked_email }}</strong>
+                        {% endif %}
+                        {% if 'email' in otp_channels and 'whatsapp' in otp_channels %}
+                        and WhatsApp
+                        {% elif 'whatsapp' in otp_channels %}
+                        WhatsApp
+                        {% endif %}
+                        {% if 'whatsapp' in otp_channels and masked_phone %}
+                        <strong>{{ masked_phone }}</strong>
+                        {% endif %}
                       </p>
                     </div>
 

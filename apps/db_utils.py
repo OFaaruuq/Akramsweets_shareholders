@@ -28,6 +28,7 @@ REQUIRED_TABLES = {
     'todo_dismissals',
     'login_otps',
     'capital_withdrawal_requests',
+    'whatsapp_messages',
 }
 
 REQUIRED_COLUMNS = {
@@ -45,7 +46,7 @@ REQUIRED_COLUMNS = {
         'investment_amount', 'share_count', 'investment_date',
     },
     'users': {
-        'email', 'password_hash', 'full_name', 'role', 'is_active', 'avatar_path',
+        'email', 'password_hash', 'full_name', 'phone', 'role', 'is_active', 'avatar_path',
     },
     'special_arrangements': {
         'name', 'recipient_shareholder_id', 'bonus_percent', 'applies_to_all_others',

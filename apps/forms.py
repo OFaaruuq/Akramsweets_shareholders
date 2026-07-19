@@ -242,31 +242,58 @@ class ArrangementForm(FlaskForm):
 
 class SystemSettingsForm(FlaskForm):
     auto_email_on_approval = BooleanField(
-        'Automatically email shareholders with certificates when a period is approved',
+        'Automatically send shareholders certificates by email (+ WhatsApp notice when enabled) when a period is approved',
         default=True,
     )
     sms_notifications_enabled = BooleanField(
-        'Also send WhatsApp via Twilio when a phone number is on file (requires TWILIO_* in .env)',
+        'Also send WhatsApp via Twilio (alerts, reports, and login OTP when a phone is on file; requires TWILIO_* in .env)',
         default=False,
     )
+    whatsapp_attach_pdfs = BooleanField(
+        'Attach certificate/report PDFs on WhatsApp when reports are sent (requires PUBLIC_BASE_URL)',
+        default=True,
+    )
+    whatsapp_auto_reply_enabled = BooleanField(
+        'Auto-reply to inbound WhatsApp messages',
+        default=True,
+    )
+    whatsapp_auto_reply_text = TextAreaField(
+        'Inbound WhatsApp auto-reply text',
+        validators=[Optional(), Length(max=1000)],
+    )
+    public_base_url = StringField(
+        'Public base URL (HTTPS)',
+        validators=[Optional(), Length(max=255)],
+        description='e.g. https://shareholders.example.com — required for Twilio PDF media + webhooks',
+    )
+    twilio_content_sid_otp = StringField('Content SID — Login OTP', validators=[Optional(), Length(max=64)])
+    twilio_content_sid_report = StringField('Content SID — Reports', validators=[Optional(), Length(max=64)])
+    twilio_content_sid_credentials = StringField('Content SID — Portal credentials', validators=[Optional(), Length(max=64)])
+    twilio_content_sid_period_update = StringField('Content SID — Profit updates', validators=[Optional(), Length(max=64)])
+    twilio_content_sid_payment = StringField('Content SID — Payment completed', validators=[Optional(), Length(max=64)])
+    twilio_content_sid_withdrawal = StringField('Content SID — Withdrawals', validators=[Optional(), Length(max=64)])
+    twilio_content_sid_staff_invite = StringField('Content SID — Staff invite', validators=[Optional(), Length(max=64)])
+    twilio_content_sid_password = StringField('Content SID — Password change', validators=[Optional(), Length(max=64)])
+    twilio_content_sid_review = StringField('Content SID — Period review/approval', validators=[Optional(), Length(max=64)])
+    twilio_content_sid_generic = StringField('Content SID — Generic fallback', validators=[Optional(), Length(max=64)])
     notify_management_on_review = BooleanField(
-        'Email owners/admins when a period is submitted for review',
+        'Notify owners/admins by email + WhatsApp when a period is submitted for review or approved',
         default=True,
     )
     email_portal_credentials = BooleanField(
-        'Email shareholders their portal login details when access is granted or reset',
+        'Notify shareholders by email + WhatsApp with portal login details when access is granted or reset',
         default=True,
     )
     email_staff_invite = BooleanField(
-        'Email new staff users their account credentials',
+        'Notify new staff by email + WhatsApp with their account credentials',
         default=True,
     )
     email_password_change = BooleanField(
-        'Email confirmation when a shareholder changes their password',
+        'Notify by email + WhatsApp when a password is changed',
         default=True,
     )
     notify_shareholders_on_profit_update = BooleanField(
-        'Automatically email all shareholders when monthly profit figures are updated',
+        'Automatically notify all shareholders by email + WhatsApp when monthly profit figures are updated',
         default=True,
     )
     share_value = DecimalField(
@@ -474,6 +501,18 @@ class ShareholderUpdateForm(FlaskForm):
     message = TextAreaField(
         'Optional message to shareholders',
         validators=[Optional(), Length(max=2000)],
-        description='Included in the email update to every shareholder on this period.',
+        description='Included in the email + WhatsApp update to every shareholder on this period.',
     )
-    submit = SubmitField('Send Update to Shareholders')
+    submit = SubmitField('Send Update (Email + WhatsApp)')
+
+
+class WhatsAppTestForm(FlaskForm):
+    phone = StringField(
+        'Test phone number',
+        validators=[
+            DataRequired(message='Enter a phone number to test.'),
+            Length(max=40),
+            Regexp(r'^[\d\s\+\-\(\)\.]*$', message='Use digits and phone punctuation only.'),
+        ],
+    )
+    submit = SubmitField('Send test WhatsApp')

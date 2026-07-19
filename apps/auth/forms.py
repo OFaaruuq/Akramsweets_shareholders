@@ -15,7 +15,7 @@ class OTPForm(FlaskForm):
     code = StringField(
         'Verification code',
         validators=[
-            DataRequired(message='Enter the verification code from your email.'),
+            DataRequired(message='Enter the verification code from your email or WhatsApp.'),
             Length(min=4, max=8),
             Regexp(r'^\d+$', message='The code must contain digits only.'),
         ],
@@ -36,6 +36,18 @@ class ChangePasswordForm(FlaskForm):
         EqualTo('new_password', message='Passwords must match.'),
     ])
     submit = SubmitField('Update Password')
+
+
+class ProfilePhoneForm(FlaskForm):
+    phone = StringField(
+        'WhatsApp phone',
+        validators=[
+            Optional(),
+            Length(max=40),
+            Regexp(r'^[\d\s\+\-\(\)\.]*$', message='Use digits and phone punctuation only.'),
+        ],
+    )
+    submit = SubmitField('Save phone')
 
 
 class ProfileAvatarForm(FlaskForm):
@@ -60,6 +72,14 @@ class ShareholderPortalAccountForm(FlaskForm):
 class StaffUserForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email(), Length(max=120)])
     full_name = StringField('Full name', validators=[DataRequired(), Length(max=120)])
+    phone = StringField(
+        'WhatsApp phone',
+        validators=[
+            Optional(),
+            Length(max=40),
+            Regexp(r'^[\d\s\+\-\(\)\.]*$', message='Use digits and phone punctuation only.'),
+        ],
+    )
     role = SelectField('Role', choices=[], validators=[DataRequired()])
     password = PasswordField('Password', validators=[Optional(), Length(min=6, max=128)])
     is_active = BooleanField('Active', default=True)

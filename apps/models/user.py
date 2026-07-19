@@ -27,6 +27,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(256), nullable=False)
     full_name = db.Column(db.String(120), nullable=False)
+    phone = db.Column(db.String(40), nullable=True)
     role = db.Column(db.String(20), nullable=False, default=ROLE_FINANCE)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     shareholder_id = db.Column(db.Integer, db.ForeignKey('shareholders.id'), nullable=True)

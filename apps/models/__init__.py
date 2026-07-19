@@ -7,6 +7,7 @@ from apps.models.settings import SystemSetting
 from apps.models.shareholder import CapitalWithdrawalRequest, OwnershipRecord, Shareholder
 from apps.models.todo import TodoDismissal
 from apps.models.user import User
+from apps.models.whatsapp_message import WhatsAppMessage
 
 __all__ = [
     'User',
@@ -22,4 +23,5 @@ __all__ = [
     'SystemSetting',
     'TodoDismissal',
     'LoginOTP',
+    'WhatsAppMessage',
 ]

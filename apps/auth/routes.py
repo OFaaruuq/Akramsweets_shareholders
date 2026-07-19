@@ -9,6 +9,7 @@ from apps.services.otp_service import (
     begin_otp_challenge,
     clear_otp_session,
     mask_email,
+    otp_delivery_hint,
     otp_enabled,
     otp_length,
     pending_otp_user,
@@ -16,6 +17,17 @@ from apps.services.otp_service import (
     resend_otp as send_new_otp,
     verify_otp_code,
 )
+
+
+def _otp_sent_flash(reason: str, user: User) -> str:
+    hint = otp_delivery_hint()
+    email = hint.get('masked_email') or mask_email(user.email)
+    phone = hint.get('masked_phone') or ''
+    if reason == 'sent_both' and phone:
+        return f'A verification code was sent to {email} and WhatsApp {phone}.'
+    if reason == 'sent_whatsapp' and phone:
+        return f'A verification code was sent by WhatsApp to {phone}.'
+    return f'A verification code was sent to {email}.'
 
 
 @blueprint.route('/login', methods=['GET', 'POST'])
@@ -37,19 +49,27 @@ def login():
             if not ok:
                 if reason == 'smtp_not_configured':
                     flash(
-                        'Login verification email could not be sent. '
-                        'Configure SMTP in .env or Settings → System.',
+                        'Login verification could not be sent. '
+                        'Configure SMTP and/or Twilio WhatsApp (with a phone on your account) '
+                        'in Settings → System.',
                         'danger',
                     )
                 else:
                     flash(
-                        'Could not send the verification code to your email. Please try again.',
+                        'Could not send the verification code. '
+                        'Check email/WhatsApp settings and try again.',
                         'danger',
                     )
                 return render_template('pages/auth-login.html', form=form, segment='auth-login')
 
-            log_action('otp_sent', 'user', user.id, f'OTP emailed to {mask_email(user.email)}', user=user)
-            flash(f'A verification code was sent to {mask_email(user.email)}.', 'success')
+            log_action(
+                'otp_sent',
+                'user',
+                user.id,
+                f'OTP delivered ({reason}) to {mask_email(user.email)}',
+                user=user,
+            )
+            flash(_otp_sent_flash(reason, user), 'success')
             next_page = request.args.get('next')
             if next_page:
                 return redirect(url_for('auth.verify_otp', next=next_page))
@@ -100,11 +120,14 @@ def verify_otp():
             clear_otp_session()
             return redirect(url_for('auth.login'))
 
+    hint = otp_delivery_hint()
     return render_template(
         'pages/auth-verify-otp.html',
         form=form,
         resend_form=resend_form,
-        masked_email=mask_email(user.email),
+        masked_email=hint.get('masked_email') or mask_email(user.email),
+        masked_phone=hint.get('masked_phone') or '',
+        otp_channels=hint.get('channels') or ['email'],
         otp_length=otp_length(),
         segment='auth-verify-otp',
     )
@@ -132,12 +155,18 @@ def resend_otp():
                 'otp_resend',
                 'user',
                 user.id,
-                f'OTP resent to {mask_email(user.email)}',
+                f'OTP resent ({reason}) to {mask_email(user.email)}',
                 user=user,
             )
-        flash('A new verification code has been sent to your email.', 'success')
+            flash(_otp_sent_flash(reason, user), 'success')
+        else:
+            flash('A new verification code has been sent.', 'success')
     elif reason == 'smtp_not_configured':
-        flash('SMTP is not configured — cannot resend the verification code.', 'danger')
+        flash(
+            'Neither email nor WhatsApp could deliver a code. '
+            'Configure SMTP or Twilio WhatsApp in Settings.',
+            'danger',
+        )
     else:
         flash('Could not resend the verification code. Please try again.', 'danger')
     return redirect(url_for('auth.verify_otp'))
@@ -155,14 +184,22 @@ def logout():
 @blueprint.route('/account', methods=['GET', 'POST'])
 @login_required
 def account():
-    """Self-service profile photo + password for every logged-in user."""
+    """Self-service profile photo, WhatsApp phone, and password for every logged-in user."""
     from apps import db
-    from apps.auth.forms import ChangePasswordForm, ProfileAvatarForm
+    from apps.auth.forms import ChangePasswordForm, ProfileAvatarForm, ProfilePhoneForm
     from apps.services.avatar_service import clear_user_avatar, save_user_avatar
 
     avatar_form = ProfileAvatarForm(prefix='avatar')
     password_form = ChangePasswordForm(prefix='password')
+    phone_form = ProfilePhoneForm(prefix='phone')
     action = request.form.get('form_action') if request.method == 'POST' else None
+
+    if request.method == 'GET':
+        phone_form.phone.data = current_user.phone or (
+            current_user.shareholder.phone
+            if current_user.is_shareholder() and current_user.shareholder
+            else ''
+        )
 
     if action == 'avatar' and avatar_form.validate_on_submit():
         try:
@@ -180,6 +217,17 @@ def account():
                 flash('Choose an image to upload, or check remove.', 'warning')
         except ValueError as exc:
             flash(str(exc), 'danger')
+        return redirect(url_for('auth.account'))
+
+    if action == 'phone' and phone_form.validate_on_submit():
+        phone = (phone_form.phone.data or '').strip() or None
+        current_user.phone = phone
+        # Keep shareholder contact in sync for portal users
+        if current_user.is_shareholder() and current_user.shareholder:
+            current_user.shareholder.phone = phone
+        db.session.commit()
+        log_action('phone_update', 'user', current_user.id, phone or 'cleared')
+        flash('WhatsApp phone saved.', 'success')
         return redirect(url_for('auth.account'))
 
     if action == 'password' and password_form.validate_on_submit():
@@ -202,5 +250,6 @@ def account():
         'account/profile.html',
         avatar_form=avatar_form,
         password_form=password_form,
+        phone_form=phone_form,
         segment='account-profile',
     )

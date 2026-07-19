@@ -47,6 +47,7 @@ def register_blueprints(app):
         'portal',
         'users',
         'pages',
+        'whatsapp',
     ):
         package = import_module(f'apps.{module_name}')
         app.register_blueprint(package.blueprint)

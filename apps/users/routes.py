@@ -77,6 +77,7 @@ def create_user():
                 user = User(
                     email=email,
                     full_name=form.full_name.data.strip(),
+                    phone=(form.phone.data or '').strip() or None,
                     role=form.role.data,
                     is_active=form.is_active.data,
                 )
@@ -103,7 +104,10 @@ def create_user():
                     notify_staff_invite(user, form.password.data, created_by=current_user)
                 except Exception:
                     pass
-                flash('Staff user created. An invite email was queued if SMTP is configured.', 'success')
+                flash(
+                    'Staff user created. Invite sent by email + WhatsApp when those channels are configured.',
+                    'success',
+                )
                 return redirect(url_for('users.list_users'))
 
     return render_template(
@@ -166,6 +170,7 @@ def edit_user(user_id):
             )
 
         user.full_name = form.full_name.data.strip()
+        user.phone = (form.phone.data or '').strip() or None
         user.role = new_role
         user.is_active = form.is_active.data
         new_email = form.email.data.strip().lower()

@@ -268,6 +268,18 @@ def mark_payment_completed(period: MonthlyPeriod, user=None):
     from apps.services.audit_service import log_action
 
     log_action('payment_completed', 'monthly_period', period.id, period.period_label)
+
+    try:
+        from apps.services.notification_service import notify_shareholders_payment_completed
+
+        notify_shareholders_payment_completed(period, actor=user)
+    except Exception:
+        # Payment status must not roll back if a channel fails
+        import logging
+
+        logging.getLogger(__name__).exception(
+            'Payment-completed notifications failed for period %s', period.id
+        )
     return period
 
 

@@ -1,5 +1,6 @@
-from flask import flash, jsonify, redirect, render_template, request, url_for
+from flask import flash, jsonify, redirect, render_template, request, send_file, url_for
 from flask_login import current_user
+from io import BytesIO
 
 from apps import db
 from apps.auth.decorators import finance_or_management_required, management_required
@@ -423,10 +424,57 @@ def mark_period_payment(period_id):
     period = MonthlyPeriod.query.get_or_404(period_id)
     try:
         mark_payment_completed(period, current_user)
-        flash('Period marked as Payment Completed.', 'success')
+        flash(
+            'Period marked as Payment Completed. Shareholders were notified by email + WhatsApp when enabled.',
+            'success',
+        )
     except ValueError as exc:
         flash(str(exc), 'danger')
     return redirect(url_for('periods.detail_period', period_id=period.id))
+
+
+@blueprint.route('/<int:period_id>/export.xlsx')
+@finance_or_management_required
+def export_period_xlsx(period_id):
+    """Download monthly profit distribution as Excel (sheet-style workbook)."""
+    period = MonthlyPeriod.query.get_or_404(period_id)
+    try:
+        from apps.services.distribution_export_service import build_period_distribution_xlsx
+
+        payload, filename = build_period_distribution_xlsx(period)
+    except ValueError as exc:
+        flash(str(exc), 'warning')
+        return redirect(url_for('periods.detail_period', period_id=period.id))
+
+    log_action('export', 'monthly_period', period.id, f'{period.period_label} Excel export')
+    return send_file(
+        BytesIO(payload),
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=filename,
+    )
+
+
+@blueprint.route('/<int:period_id>/export.csv')
+@finance_or_management_required
+def export_period_csv(period_id):
+    """Download monthly profit distribution as CSV."""
+    period = MonthlyPeriod.query.get_or_404(period_id)
+    try:
+        from apps.services.distribution_export_service import build_period_distribution_csv
+
+        payload, filename = build_period_distribution_csv(period)
+    except ValueError as exc:
+        flash(str(exc), 'warning')
+        return redirect(url_for('periods.detail_period', period_id=period.id))
+
+    log_action('export', 'monthly_period', period.id, f'{period.period_label} CSV export')
+    return send_file(
+        BytesIO(payload.encode('utf-8-sig')),
+        mimetype='text/csv; charset=utf-8',
+        as_attachment=True,
+        download_name=filename,
+    )
 
 
 @blueprint.route('/<int:period_id>/edit', methods=['GET', 'POST'])
@@ -604,51 +652,48 @@ def approve_period_view(period_id):
         approve_period(period, current_user)
         log_action('approve', 'monthly_period', period.id, period.period_label)
         try:
+            from apps.services.notification_service import notify_management_period_approved
+
+            notify_management_period_approved(period, approved_by=current_user)
+        except Exception:
+            pass
+        try:
             results = auto_send_period_reports(period)
             if results:
+                from apps.services.notification_service import count_dual_results, flash_dual_summary
+
                 failed = [r for r in results if not r.get('ok', True)]
-                smtp_sent = [r for r in results if (r.get('email') or {}).get('sent')]
-                logged_only = [
-                    r for r in results
-                    if (r.get('email') or {}).get('mode') == 'log'
-                ]
+                dual_rows = []
+                for r in results:
+                    dual_rows.append({
+                        'email': r.get('email') or {},
+                        'whatsapp': (r.get('notifications') or {}).get('whatsapp') or {},
+                    })
+                counts = count_dual_results(dual_rows)
                 log_action('send_reports', 'monthly_period', period.id, period.period_label)
                 if failed:
                     names = ', '.join(r['shareholder'] for r in failed)
                     flash(
                         'Period approved and branded certificates generated. '
-                        f'Some shareholder emails failed ({names}). Use Send Reports Now to retry.',
-                        'warning',
-                    )
-                elif smtp_sent:
-                    flash(
-                        f'Period approved. Branded certificates generated and '
-                        f'{len(smtp_sent)} shareholder email notification(s) sent.',
-                        'success',
-                    )
-                elif logged_only:
-                    flash(
-                        'Period approved and branded certificates generated. '
-                        'Emails were logged only — configure SMTP under Settings → System '
-                        'so shareholders can receive notifications, then use Send Reports Now.',
+                        f'Some shareholder notifications failed ({names}). Use Send Reports Now to retry.',
                         'warning',
                     )
                 else:
+                    msg, cat = flash_dual_summary(counts, noun='shareholder report')
                     flash(
-                        'Period approved and branded certificates generated. '
-                        'No shareholder emails were delivered.',
-                        'warning',
+                        f'Period approved. Branded certificates generated. {msg}',
+                        cat,
                     )
             else:
                 flash(
                     'Period approved and branded certificates generated automatically. '
-                    'Email delivery is disabled in system settings — enable it under Settings → System, '
-                    'or use Send Reports Now.',
+                    'Report delivery is disabled in system settings — enable email/WhatsApp under '
+                    'Settings → System, or use Send Reports Now.',
                     'success',
                 )
         except ValueError as exc:
             flash(
-                f'Period approved and certificates generated, but automatic email failed: {exc}. '
+                f'Period approved and certificates generated, but automatic delivery failed: {exc}. '
                 'Use Send Reports Now from the period page.',
                 'warning',
             )
@@ -665,25 +710,26 @@ def send_reports_view(period_id):
     try:
         results = send_period_reports(period, force=force)
         log_action('send_reports', 'monthly_period', period.id, period.period_label)
-        smtp_sent = [r for r in (results or []) if (r.get('email') or {}).get('sent')]
-        logged_only = [r for r in (results or []) if (r.get('email') or {}).get('mode') == 'log']
+        from apps.services.notification_service import count_dual_results, flash_dual_summary
+
+        dual_rows = []
+        for r in results or []:
+            dual_rows.append({
+                'email': r.get('email') or {},
+                'whatsapp': (r.get('notifications') or {}).get('whatsapp') or {},
+            })
+        counts = count_dual_results(dual_rows)
         failed = [r for r in (results or []) if not r.get('ok', True)]
         if failed:
             names = ', '.join(r['shareholder'] for r in failed)
-            flash(f'Some notifications failed ({names}). Check SMTP settings and shareholder emails.', 'warning')
-        elif smtp_sent:
             flash(
-                f'{len(smtp_sent)} shareholder notification(s) emailed with branded report & certificate PDFs.',
-                'success',
-            )
-        elif logged_only:
-            flash(
-                'Certificates are ready, but SMTP is not configured — emails were logged only. '
-                'Add SMTP under Settings → System, then click Send Reports Now again.',
+                f'Some notifications failed ({names}). '
+                'Check SMTP, Twilio WhatsApp, and shareholder emails/phones.',
                 'warning',
             )
         else:
-            flash('Shareholder reports processed.', 'success')
+            msg, cat = flash_dual_summary(counts, noun='shareholder report')
+            flash(msg, cat)
     except ValueError as exc:
         flash(str(exc), 'danger')
     return redirect(url_for('periods.detail_period', period_id=period.id))
@@ -692,7 +738,7 @@ def send_reports_view(period_id):
 @blueprint.route('/<int:period_id>/send-update', methods=['POST'])
 @finance_or_management_required
 def send_shareholder_update(period_id):
-    """Manually email all shareholders on this period with a profit / distribution update."""
+    """Email + WhatsApp all shareholders on this period with a profit / distribution update."""
     period = MonthlyPeriod.query.get_or_404(period_id)
     form = ShareholderUpdateForm()
     if not form.validate_on_submit():
@@ -704,7 +750,10 @@ def send_shareholder_update(period_id):
         return redirect(url_for('periods.detail_period', period_id=period.id))
 
     try:
-        from apps.services.notification_service import notify_shareholders_period_update
+        from apps.services.notification_service import (
+            flash_dual_summary,
+            notify_shareholders_period_update,
+        )
 
         result = notify_shareholders_period_update(
             period,
@@ -716,26 +765,11 @@ def send_shareholder_update(period_id):
         if not result.get('ok'):
             flash('No shareholder updates were sent.', 'warning')
         else:
-            smtp_ok = sum(
-                1 for r in result.get('results', []) if (r.get('email') or {}).get('sent')
+            msg, cat = flash_dual_summary(
+                result.get('counts') or {},
+                noun='shareholder update',
             )
-            logged = sum(
-                1 for r in result.get('results', []) if (r.get('email') or {}).get('mode') == 'log'
-            )
-            if smtp_ok:
-                flash(f'Update emailed to {smtp_ok} shareholder(s).', 'success')
-            elif logged:
-                flash(
-                    'Update logged for shareholders, but SMTP is not configured. '
-                    'Add SMTP under Settings → System.',
-                    'warning',
-                )
-            else:
-                flash(
-                    'Update processed, but no valid shareholder emails were delivered. '
-                    'Check shareholder email addresses.',
-                    'warning',
-                )
+            flash(msg, cat)
     except Exception as exc:
         flash(f'Could not send shareholder update: {exc}', 'danger')
 
@@ -756,7 +790,10 @@ def reject_period_view(period_id):
                 notify_finance_period_rejected(period, rejected_by=current_user)
             except Exception:
                 pass
-            flash('Period returned to draft. Finance has been notified to make changes and re-submit.', 'warning')
+            flash(
+                'Period returned to draft. Finance has been notified by email/WhatsApp to make changes and re-submit.',
+                'warning',
+            )
         except ValueError as exc:
             flash(str(exc), 'danger')
     else:
@@ -773,8 +810,15 @@ def reopen_correction(period_id):
         try:
             _, reason = reopen_for_correction(period, form.reason.data, user=current_user)
             log_action('correction_reopen', 'monthly_period', period.id, reason)
+            try:
+                from apps.services.notification_service import notify_finance_period_rejected
+
+                notify_finance_period_rejected(period, rejected_by=current_user)
+            except Exception:
+                pass
             flash(
-                'Period reopened as draft. Edit figures, recalculate, then submit for review again before approval.',
+                'Period reopened as draft. Finance was notified by email/WhatsApp. '
+                'Edit figures, recalculate, then submit for review again before approval.',
                 'warning',
             )
         except ValueError as exc:

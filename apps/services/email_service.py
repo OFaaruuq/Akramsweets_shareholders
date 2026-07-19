@@ -434,7 +434,7 @@ def distribute_period_reports(period):
 
     results = []
     sms_enabled = str(SystemSetting.get('sms_notifications_enabled', 'false')).lower() in ('1', 'true', 'yes', 'on')
-    any_smtp_sent = False
+    any_channel_sent = False
 
     for calculation in period.calculations:
         shareholder_name = calculation.shareholder.name
@@ -446,7 +446,7 @@ def distribute_period_reports(period):
 
             if email_result.get('sent'):
                 status = 'sent'
-                any_smtp_sent = True
+                any_channel_sent = True
             elif email_result.get('mode') == 'skipped':
                 status = 'skipped'
             elif email_result.get('mode') == 'log':
@@ -455,18 +455,45 @@ def distribute_period_reports(period):
                 status = 'failed'
 
             mark_certificate_emailed(certificate, status=status)
-            # Pass report payload (has period_label / final_amount / phone) for SMS + logging
-            notification_result = notify_shareholder(report, email_result, sms_enabled)
+            # Pair WhatsApp notice (+ optional PDF media) with the same report/certificate event
+            report_pdf_bytes = None
+            cert_pdf_bytes = None
+            try:
+                from apps.services.pdf_service import (
+                    generate_shareholder_certificate_pdf,
+                    generate_shareholder_report_pdf,
+                )
+
+                report_pdf_bytes = generate_shareholder_report_pdf(report)
+                cert_pdf_bytes = generate_shareholder_certificate_pdf(certificate_data)
+            except Exception:
+                logger.exception('PDF generation for WhatsApp media failed')
+
+            notification_result = notify_shareholder(
+                report,
+                email_result,
+                sms_enabled,
+                certificate_pdf=cert_pdf_bytes,
+                report_pdf=report_pdf_bytes,
+                shareholder_id=getattr(calculation.shareholder, 'id', None),
+            )
+            wa_sent = bool((notification_result.get('whatsapp') or {}).get('sent'))
+            if wa_sent:
+                any_channel_sent = True
             results.append({
                 'shareholder': shareholder_name,
                 'email': email_result,
                 'certificate_number': certificate.certificate_number,
                 'notifications': notification_result,
-                'ok': bool(email_result.get('sent') or email_result.get('mode') == 'log'),
+                'ok': bool(
+                    email_result.get('sent')
+                    or email_result.get('mode') == 'log'
+                    or wa_sent
+                ),
             })
         except Exception as exc:
             logger.exception(
-                'Failed to email shareholder update for %s (period %s)',
+                'Failed to notify shareholder for %s (period %s)',
                 shareholder_name,
                 period.id,
             )
@@ -478,9 +505,9 @@ def distribute_period_reports(period):
                 'ok': False,
             })
 
-    # Only mark the period as emailed when at least one real SMTP delivery succeeded.
-    # Log-only / skipped runs stay pending so the scheduler can retry after SMTP is configured.
-    if any_smtp_sent:
+    # Mark reports sent when email and/or WhatsApp actually delivered.
+    # Log-only / skipped runs stay pending so the scheduler can retry after SMTP/Twilio is configured.
+    if any_channel_sent:
         period.reports_sent_at = datetime.utcnow()
         db.session.commit()
     return results

@@ -323,6 +323,23 @@
       <label class="form-check-label" for="sms-notify">{{ form.sms_notifications_enabled.label.text }}</label>
     </div>
     <div class="mb-3 form-check">
+      {{ form.whatsapp_attach_pdfs(class='form-check-input', id='wa-pdfs') }}
+      <label class="form-check-label" for="wa-pdfs">{{ form.whatsapp_attach_pdfs.label.text }}</label>
+    </div>
+    <div class="mb-3 form-check">
+      {{ form.whatsapp_auto_reply_enabled(class='form-check-input', id='wa-autoreply') }}
+      <label class="form-check-label" for="wa-autoreply">{{ form.whatsapp_auto_reply_enabled.label.text }}</label>
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="wa-autoreply-text">{{ form.whatsapp_auto_reply_text.label.text }}</label>
+      {{ form.whatsapp_auto_reply_text(class='form-control', id='wa-autoreply-text', rows='2') }}
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="public-base-url">{{ form.public_base_url.label.text }}</label>
+      {{ form.public_base_url(class='form-control', id='public-base-url', placeholder='https://your-domain.com') }}
+      <div class="form-text">{{ form.public_base_url.description }}</div>
+    </div>
+    <div class="mb-3 form-check">
       {{ form.notify_management_on_review(class='form-check-input', id='notify-review') }}
       <label class="form-check-label" for="notify-review">{{ form.notify_management_on_review.label.text }}</label>
     </div>
@@ -346,21 +363,67 @@
       <strong>Certificates</strong> always use your company name, brand colors, logo, and the certificate wording above when a period is approved.
       Configure SMTP below and keep <em>auto email on approval</em> enabled so each shareholder receives an email
       with the branded certificate PDF and profit report attached.
-      When profit figures change, shareholders also get an update notice if that option is enabled.
-      You can send a manual update anytime from the period page.
-      Use port <strong>587</strong> (STARTTLS) or <strong>465</strong> (SSL).
-      WhatsApp (Twilio) is optional: store shareholder phones in E.164 (+country…), set
-      <code>TWILIO_ACCOUNT_SID</code>, <code>TWILIO_AUTH_TOKEN</code>, and
-      <code>TWILIO_WHATSAPP_FROM</code> in <code>.env</code>, then enable the toggle above.
-      Staff WhatsApp alerts use a phone only when that user is linked to a shareholder with a number.
+      <strong>Email and WhatsApp use the same events</strong>: period review, reject/reopen, profit updates, reports,
+      payment completed, withdrawals, portal/staff credentials, password changes, and login OTP.
+      Enable the WhatsApp toggle and set Twilio credentials so every notice goes out on both channels when a phone is on file.
+      Store phones as <code>+252…</code> or local <code>061…</code>; staff phones are on Users → Edit.
+      Use SMTP port <strong>587</strong> (STARTTLS) or <strong>465</strong> (SSL).
       Staff topbar notifications follow the audit trail for period, shareholder, arrangement, certificate, and settings activity.
     </div>
     {% if whatsapp_status %}
     <div class="alert alert-{{ 'success' if whatsapp_status.configured else 'warning' }} py-2 fs-13">
       <strong>{{ whatsapp_status.headline }}</strong>
       <div class="mt-1">{{ whatsapp_status.detail }}</div>
+      {% if whatsapp_status.status_callback_url %}
+      <div class="mt-2 fs-12">
+        <div><strong>Status callback:</strong> <code>{{ whatsapp_status.status_callback_url }}</code></div>
+        <div><strong>Inbound webhook:</strong> <code>{{ whatsapp_status.inbound_webhook_url }}</code></div>
+        <div class="mt-1">Paste these into the Twilio WhatsApp sender / Messaging Service configuration.</div>
+      </div>
+      {% endif %}
+      <div class="mt-2">
+        <a href="{{ url_for('app_settings.whatsapp_messages') }}" class="btn btn-sm btn-soft-primary">WhatsApp message log</a>
+      </div>
     </div>
     {% endif %}
+    {% if whatsapp_test_form %}
+    <div class="border rounded p-3 mb-3 bg-light-subtle">
+      <div class="fw-semibold fs-14 mb-2">Send test WhatsApp</div>
+      <p class="text-muted fs-13 mb-2 mb-md-3">
+        Uses current Twilio credentials (does not require the master toggle). Join the sandbox first if you use Twilio’s trial sender.
+      </p>
+      <form method="post" action="{{ url_for('app_settings.whatsapp_test_send') }}" class="row g-2 align-items-end">
+        {{ whatsapp_test_form.hidden_tag() }}
+        <div class="col-md-6">
+          <label class="form-label" for="wa-test-phone">{{ whatsapp_test_form.phone.label.text }}</label>
+          {{ whatsapp_test_form.phone(class='form-control', id='wa-test-phone', placeholder='+25261…') }}
+        </div>
+        <div class="col-md-auto">
+          {{ whatsapp_test_form.submit(class='btn btn-outline-primary') }}
+        </div>
+      </form>
+    </div>
+    {% endif %}
+    <div class="border rounded p-3 mb-3">
+      <div class="fw-semibold fs-14 mb-2">Meta Content Template SIDs (production)</div>
+      <p class="text-muted fs-13 mb-3">
+        Optional. Outside the 24-hour session window, Twilio requires approved Content Templates.
+        Leave blank to send free-form text (sandbox / open session). Variable order is typically
+        <code>1=name</code>, <code>2=period/code</code>, <code>3=amount/detail</code>.
+      </p>
+      <div class="row">
+        <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_otp.label.text }}</label>{{ form.twilio_content_sid_otp(class='form-control form-control-sm') }}</div>
+        <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_report.label.text }}</label>{{ form.twilio_content_sid_report(class='form-control form-control-sm') }}</div>
+        <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_credentials.label.text }}</label>{{ form.twilio_content_sid_credentials(class='form-control form-control-sm') }}</div>
+        <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_period_update.label.text }}</label>{{ form.twilio_content_sid_period_update(class='form-control form-control-sm') }}</div>
+        <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_payment.label.text }}</label>{{ form.twilio_content_sid_payment(class='form-control form-control-sm') }}</div>
+        <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_withdrawal.label.text }}</label>{{ form.twilio_content_sid_withdrawal(class='form-control form-control-sm') }}</div>
+        <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_staff_invite.label.text }}</label>{{ form.twilio_content_sid_staff_invite(class='form-control form-control-sm') }}</div>
+        <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_password.label.text }}</label>{{ form.twilio_content_sid_password(class='form-control form-control-sm') }}</div>
+        <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_review.label.text }}</label>{{ form.twilio_content_sid_review(class='form-control form-control-sm') }}</div>
+        <div class="col-md-6 mb-2"><label class="form-label fs-13">{{ form.twilio_content_sid_generic.label.text }}</label>{{ form.twilio_content_sid_generic(class='form-control form-control-sm') }}</div>
+      </div>
+    </div>
     <div class="row">
       <div class="col-md-4 mb-3"><label class="form-label">Report delivery day</label>{{ form.report_delivery_day(class='form-control') }}</div>
       <div class="col-md-4 mb-3"><label class="form-label">From email</label>{{ form.mail_from(class='form-control') }}</div>
