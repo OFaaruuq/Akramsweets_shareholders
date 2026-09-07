@@ -146,6 +146,9 @@
     .who { font-family: system-ui, sans-serif; font-size: 12.5px; color: var(--muted); margin: 0 0 10px; }
     .uc { font-family: system-ui, sans-serif; }
     .uc li { font-size: 14px; color: var(--ink); margin: 6px 0; }
+    ol.check { margin: 0; padding-left: 22px; }
+    ol.check li { font-size: 13.5px; margin: 4px 0; color: var(--ink); line-height: 1.38; }
+    .cfg { font-size: 12px; color: var(--wine); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin: 0 0 8px; font-family: system-ui, sans-serif; }
     @media print {
       html, body, .deck { height: auto; overflow: visible; background: #fff; }
       .slide { display: flex !important; height: auto; min-height: 100vh; page-break-after: always; position: relative; overflow: visible; }
@@ -164,6 +167,7 @@
     <div class="cover-cta">
       <button type="button" data-goto="toc">Open contents</button>
       <button type="button" class="alt" data-goto="calc-steps">How profit is calculated</button>
+      <button type="button" class="alt" data-goto="ops-howto">How to use Operations</button>
       <button type="button" class="alt" data-goto="features">All features &amp; use cases</button>
     </div>
     <div class="foot"><span>Akram Sweets</span><span>Confidential</span></div>
@@ -178,6 +182,7 @@
       <button type="button" class="toc-item" data-goto="rhythm"><span class="toc-n">C · Each month</span><strong>How the office closes a month</strong><span class="desc">Finance enters, management certifies, investors see it</span></button>
       <button type="button" class="toc-item" data-goto="features"><span class="toc-n">D · Features</span><strong>Every menu: description + use cases</strong><span class="desc">Click through Dashboard, Periods, Shareholders, Portal…</span></button>
       <button type="button" class="toc-item" data-goto="howto-finance"><span class="toc-n">E · How to</span><strong>Step-by-step for Finance &amp; Admin</strong><span class="desc">Enter profit, approve, add an investor, give portal access</span></button>
+      <button type="button" class="toc-item" data-goto="ops-howto"><span class="toc-n">G · Operations</span><strong>How to use &amp; configure every Operations screen</strong><span class="desc">Periods, Approvals, Shareholders, Directory, Withdrawals, Arrangements, Certificates, Mudarabah, History</span></button>
       <button type="button" class="toc-item" data-goto="scope"><span class="toc-n">F · Go-live</span><strong>What is in / out, checklist, rehearsal</strong><span class="desc">No live Odoo, no bank — then the live practice</span></button>
     </div>
     <p class="hint" style="margin-top:16px">During the meeting: stay on this page and click whatever the client asks. Arrow keys still go slide by slide. Contents is always on the bottom right.</p>
@@ -426,7 +431,7 @@
         <tr><td><strong>Send reports / mark paid</strong></td><td>Retry email/WhatsApp. Record that cash went out (not a bank transfer).</td><td>Resend a failed message; close the cash step</td></tr>
       </tbody>
     </table>
-    <div class="links"><button type="button" class="jump inline" data-goto="calc-steps">Calculation steps</button><button type="button" class="jump inline" data-goto="howto-finance">Finance how-to</button><button type="button" class="jump inline" data-goto="feat-approvals">Approvals</button></div>
+    <div class="links"><button type="button" class="jump inline" data-goto="ops-periods">Deep how-to: use &amp; configure</button><button type="button" class="jump inline" data-goto="howto-finance">Finance how-to</button><button type="button" class="jump inline" data-goto="feat-approvals">Approvals</button></div>
     <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
   </section>
 
@@ -452,7 +457,7 @@
         </ul>
       </div>
     </div>
-    <div class="links"><button type="button" class="jump inline" data-goto="howto-approve">How to approve a month</button><button type="button" class="jump inline" data-goto="feat-withdrawals">Withdrawals</button><button type="button" class="jump inline" data-goto="features">All features</button></div>
+    <div class="links"><button type="button" class="jump inline" data-goto="ops-approvals">Deep how-to: use &amp; configure</button><button type="button" class="jump inline" data-goto="howto-approve">How to approve a month</button><button type="button" class="jump inline" data-goto="feat-withdrawals">Withdrawals</button></div>
     <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
   </section>
 
@@ -472,7 +477,7 @@
         <tr><td><strong>Purge</strong></td><td>Super Admin only. Wipes register, months, certificates, portal users. Keeps staff</td><td>A bad first import must be started again</td></tr>
       </tbody>
     </table>
-    <div class="links"><button type="button" class="jump inline" data-goto="howto-shareholders">How to add an investor</button><button type="button" class="jump inline" data-goto="capital">Capital vs profit</button><button type="button" class="jump inline" data-goto="features">All features</button></div>
+    <div class="links"><button type="button" class="jump inline" data-goto="ops-shareholders">Deep how-to: use &amp; configure</button><button type="button" class="jump inline" data-goto="howto-shareholders">How to add an investor</button><button type="button" class="jump inline" data-goto="features">All features</button></div>
     <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
   </section>
 
@@ -484,7 +489,7 @@
       <div class="card"><h3>Description</h3><p>Search name or email. Filter country and active/inactive. Opens the real Shareholder or Staff User record. Top-bar country filter uses the same list.</p></div>
       <div class="card accent"><h3>Use cases</h3><ul class="uc"><li>“Who are our UAE investors?”</li><li>Find a phone number quickly</li><li>Diaspora list for a meeting</li></ul></div>
     </div>
-    <div class="links"><button type="button" class="jump inline" data-goto="feat-shareholders">Shareholders</button><button type="button" class="jump inline" data-goto="features">All features</button></div>
+    <div class="links"><button type="button" class="jump inline" data-goto="ops-directory">Deep how-to: use &amp; configure</button><button type="button" class="jump inline" data-goto="feat-shareholders">Shareholders</button><button type="button" class="jump inline" data-goto="features">All features</button></div>
     <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
   </section>
 
@@ -511,7 +516,7 @@
         </ul>
       </div>
     </div>
-    <div class="links"><button type="button" class="jump inline" data-goto="howto-withdraw">How the request flows</button><button type="button" class="jump inline" data-goto="feat-portal">Portal</button><button type="button" class="jump inline" data-goto="features">All features</button></div>
+    <div class="links"><button type="button" class="jump inline" data-goto="ops-withdrawals">Deep how-to: use &amp; configure</button><button type="button" class="jump inline" data-goto="howto-withdraw">How the request flows</button><button type="button" class="jump inline" data-goto="feat-portal">Portal</button></div>
     <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
   </section>
 
@@ -540,7 +545,7 @@
         </ul>
       </div>
     </div>
-    <div class="links"><button type="button" class="jump inline" data-goto="arrangements">Numbers example</button><button type="button" class="jump inline" data-goto="howto-arrangement">How to set the rule</button><button type="button" class="jump inline" data-goto="features">All features</button></div>
+    <div class="links"><button type="button" class="jump inline" data-goto="ops-arrangements">Deep how-to: use &amp; configure</button><button type="button" class="jump inline" data-goto="arrangements">Numbers example</button><button type="button" class="jump inline" data-goto="howto-arrangement">How to set the rule</button></div>
     <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
   </section>
 
@@ -552,7 +557,7 @@
       <div class="card"><h3>Description</h3><p>One certificate per shareholder per approved month. Wording, logo, and signature come from System Settings. Preview before go-live. Reopening a month sets send-status back to pending.</p></div>
       <div class="card accent"><h3>Use cases</h3><ul class="uc"><li>After approve, confirm everyone has a certificate</li><li>Re-download March for an investor who lost the email</li><li>Show the signed document in a meeting</li></ul></div>
     </div>
-    <div class="links"><button type="button" class="jump inline" data-goto="feat-mudarabah">Mudarabah Summary</button><button type="button" class="jump inline" data-goto="feat-settings">Certificate wording</button><button type="button" class="jump inline" data-goto="features">All features</button></div>
+    <div class="links"><button type="button" class="jump inline" data-goto="ops-certificates">Deep how-to: use &amp; configure</button><button type="button" class="jump inline" data-goto="feat-settings">Certificate wording</button><button type="button" class="jump inline" data-goto="features">All features</button></div>
     <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
   </section>
 
@@ -564,7 +569,7 @@
       <div class="card"><h3>Description</h3><p>Recent calculated months: Net Profit, shareholders’ pool, Akram Sweets share, % used that month, amount distributed. Also lists outstanding capital-return requests.</p></div>
       <div class="card accent"><h3>Use cases</h3><ul class="uc"><li>Show a partner that 50/50 (or the agreed %) was applied</li><li>Prove the pool still adds up across the year</li><li>See open withdrawals next to profit history</li></ul></div>
     </div>
-    <div class="links"><button type="button" class="jump inline" data-goto="calc-example">Worked example</button><button type="button" class="jump inline" data-goto="feat-history">Reports History</button><button type="button" class="jump inline" data-goto="features">All features</button></div>
+    <div class="links"><button type="button" class="jump inline" data-goto="ops-mudarabah">Deep how-to: use &amp; configure</button><button type="button" class="jump inline" data-goto="calc-example">Worked example</button><button type="button" class="jump inline" data-goto="feat-history">Reports History</button></div>
     <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
   </section>
 
@@ -576,7 +581,7 @@
       <div class="card"><h3>Description</h3><p>Approved months only. Open a person’s statement or PDF. Use with Send Reports Now on the period if delivery failed.</p></div>
       <div class="card accent"><h3>Use cases</h3><ul class="uc"><li>Audit what was sent for a locked month</li><li>Find a statement without opening Periods</li></ul></div>
     </div>
-    <div class="links"><button type="button" class="jump inline" data-goto="feat-certificates">Certificates</button><button type="button" class="jump inline" data-goto="features">All features</button></div>
+    <div class="links"><button type="button" class="jump inline" data-goto="ops-history">Deep how-to: use &amp; configure</button><button type="button" class="jump inline" data-goto="feat-certificates">Certificates</button><button type="button" class="jump inline" data-goto="features">All features</button></div>
     <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
   </section>
 
@@ -843,7 +848,313 @@
       <div class="arrow">→</div>
       <div class="step"><n>04</n><b>Complete</b><span>When cash has gone, mark returned. Then update % on Shareholders.</span></div>
     </div>
-    <div class="links"><button type="button" class="jump inline" data-goto="feat-withdrawals">Withdrawals feature</button><button type="button" class="jump inline" data-goto="feat-portal">Portal</button></div>
+    <div class="links"><button type="button" class="jump inline" data-goto="ops-withdrawals">Deep how-to: use &amp; configure</button><button type="button" class="jump inline" data-goto="feat-portal">Portal</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="ops-howto">
+    <p class="kicker">G · Operations · click a screen</p>
+    <h2>How to use and configure each Operations item</h2>
+    <p class="lede">Staff menu only. Finance can enter and view. Super Admin / System Admin (including Company Owner) can approve, edit the register, and change rules. Click a card for numbered steps.</p>
+    <div class="grid g3">
+      <button type="button" class="toc-item" data-goto="ops-periods"><span class="toc-n">1</span><strong>Monthly Periods</strong><span class="desc">Enter Odoo Net Profit, calculate, submit, lock</span></button>
+      <button type="button" class="toc-item" data-goto="ops-approvals"><span class="toc-n">2</span><strong>Approvals</strong><span class="desc">Inbox for months and capital returns</span></button>
+      <button type="button" class="toc-item" data-goto="ops-shareholders"><span class="toc-n">3</span><strong>Shareholders</strong><span class="desc">Register, 100% ownership, portal, import</span></button>
+      <button type="button" class="toc-item" data-goto="ops-directory"><span class="toc-n">4</span><strong>Directory</strong><span class="desc">Find people by country and phone</span></button>
+      <button type="button" class="toc-item" data-goto="ops-withdrawals"><span class="toc-n">5</span><strong>Capital Withdrawals</strong><span class="desc">Approve, reject, mark capital returned</span></button>
+      <button type="button" class="toc-item" data-goto="ops-arrangements"><span class="toc-n">6</span><strong>Special Arrangements</strong><span class="desc">Owner/partner bonus after the pool split</span></button>
+      <button type="button" class="toc-item" data-goto="ops-certificates"><span class="toc-n">7</span><strong>Certificates</strong><span class="desc">Download PDFs and set wording</span></button>
+      <button type="button" class="toc-item" data-goto="ops-mudarabah"><span class="toc-n">8</span><strong>Mudarabah Summary</strong><span class="desc">Pool vs company share across months</span></button>
+      <button type="button" class="toc-item" data-goto="ops-history"><span class="toc-n">9</span><strong>Reports History</strong><span class="desc">Approved months already sent</span></button>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="features">Feature cards</button><button type="button" class="jump inline" data-goto="toc">Contents</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="ops-periods">
+    <p class="kicker">Operations · 1 · Monthly Periods</p>
+    <h2>Use and configure the profit engine</h2>
+    <p class="who">Who: Finance enters and submits · Super Admin / Admin approve, reopen, mark paid, send reports · Menu: Operations → Monthly Periods</p>
+    <div class="grid g2">
+      <div class="card accent">
+        <p class="cfg">How to use — every month</p>
+        <ol class="check">
+          <li>Confirm Shareholders <strong>Active ownership = 100%</strong>. If not, Save &amp; Calculate stays disabled.</li>
+          <li>Open <strong>Monthly Periods → Monthly Mudarabah Profit Distribution</strong>.</li>
+          <li>Set <strong>Year</strong> and <strong>Month</strong> (one record per calendar month).</li>
+          <li>Type <strong>Approved Monthly Net Profit (from Odoo)</strong>. Use a minus for a loss. Optional Odoo reference and notes.</li>
+          <li>Click <strong>Preview Distribution</strong> to see the pool and each person, then <strong>Save &amp; Calculate</strong> (status: Draft).</li>
+          <li>On the period page: check Original / Adjustment / Final. Add a one-off with <strong>Add Manual Adjustment</strong> (shareholder, amount, reason).</li>
+          <li>If figures are wrong while still Draft: <strong>Edit figures</strong> or <strong>Recalculate</strong>.</li>
+          <li>Click <strong>Submit for Finance / Management Review</strong>. Figures freeze until management returns them.</li>
+          <li>Management: <strong>Approve &amp; Lock</strong> (certificates issue) or <strong>Return to Draft</strong> (reason, min 5 characters).</li>
+          <li>When cash has really been paid: <strong>Mark Payment Completed</strong>. If email failed: <strong>Send Reports Now</strong> / <strong>Resend Reports</strong>.</li>
+          <li>To fix a locked month <em>before</em> payment: <strong>Reopen for Correction</strong> (reason min 10 characters). It becomes Draft and must be certified again.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <p class="cfg">How to configure</p>
+        <ol class="check">
+          <li><strong>System Settings → Profit &amp; Capital:</strong> set <strong>Shareholders' Mudarabah share (%)</strong> (often 50). That splits Net Profit into the shareholders’ pool vs the managing-partner share.</li>
+          <li>Same room: share value, total company shares, Murabaha — shown on the period, not used to split profit.</li>
+          <li><strong>Special Arrangements:</strong> standing bonuses apply on the next calculate (Draft only). Approved months do not change.</li>
+          <li><strong>System Settings → Email &amp; SMTP:</strong> tick auto-send certificates when a period is approved; set report delivery day; fill SMTP.</li>
+          <li><strong>System Settings → WhatsApp:</strong> Twilio on if notices should go to the phone.</li>
+          <li><strong>System Settings → Certificates / Brand:</strong> wording, logo, signature used when you Approve &amp; Lock.</li>
+        </ol>
+        <p class="hint" style="margin-top:10px">Watch: duplicate month is blocked. Open capital withdrawals show a warning but do not block calculate. Prior month not approved is a warning, not a lock.</p>
+      </div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="ops-approvals">Next: Approvals</button><button type="button" class="jump inline" data-goto="ops-howto">All Operations</button><button type="button" class="jump inline" data-goto="calc-steps">Calculation steps</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="ops-approvals">
+    <p class="kicker">Operations · 2 · Approvals</p>
+    <h2>Use and configure the inbox</h2>
+    <p class="who">Who: all staff can open it · only Super Admin / Admin can decide · Finance sees a view-only notice · Menu: Operations → Approvals (also the bell)</p>
+    <div class="grid g2">
+      <div class="card accent">
+        <p class="cfg">How to use</p>
+        <ol class="check">
+          <li>Open <strong>Approvals</strong>. Tiles show periods in review, pending withdrawals, and overdue capital returns.</li>
+          <li>Filter tabs: <strong>All open</strong>, <strong>Needs decision</strong>, <strong>Capital tracking</strong>, <strong>Periods only</strong>, <strong>Withdrawals only</strong>.</li>
+          <li>Period waiting: click <strong>Review &amp; approve</strong> (Finance: <strong>View period</strong>) → check Net Profit vs Odoo and that finals add to the pool.</li>
+          <li>Wrong → on the period, <strong>Return to Draft</strong> with a reason. Finance fixes and re-submits.</li>
+          <li>Right → <strong>Approve &amp; Lock</strong>.</li>
+          <li>Pending withdrawal: <strong>Approve / reject</strong> → <strong>Approve</strong>, <strong>Reject</strong> (review notes required), or <strong>Cancel Request</strong>.</li>
+          <li>Approved withdrawal: <strong>Mark returned</strong> → set <strong>Capital return date</strong> → <strong>Mark Capital Returned</strong>.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <p class="cfg">How to configure</p>
+        <ol class="check">
+          <li><strong>System Settings → Profit &amp; Capital:</strong> <strong>Capital return deadline (days after approval)</strong> (default 183 / ~6 months). This fills the Deadline column and overdue alerts.</li>
+          <li><strong>System Settings → Email &amp; SMTP:</strong> notify owners/admins when a period is submitted or approved.</li>
+          <li><strong>System Settings → WhatsApp:</strong> same notices on the phone if Twilio is on.</li>
+        </ol>
+        <p class="hint" style="margin-top:10px">Finance cannot approve from this inbox. Period return needs ≥ 5 characters. Rejection of a withdrawal needs review notes.</p>
+      </div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="ops-shareholders">Next: Shareholders</button><button type="button" class="jump inline" data-goto="ops-howto">All Operations</button><button type="button" class="jump inline" data-goto="ops-withdrawals">Withdrawals</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="ops-shareholders">
+    <p class="kicker">Operations · 3 · Shareholders</p>
+    <h2>Use and configure the capital register</h2>
+    <p class="who">Who: Finance views and exports · Super Admin / Admin add, edit, import, portal · Super Admin only: Clean all shareholders · Menu: Operations → Shareholders</p>
+    <div class="grid g2">
+      <div class="card accent">
+        <p class="cfg">How to use</p>
+        <ol class="check">
+          <li>Open <strong>Shareholders</strong>. The <strong>Active ownership</strong> tile must read 100% before any month can calculate.</li>
+          <li><strong>Register Shareholder:</strong> Name, Email, Country, Ownership %, Effective from. Optional phone, shares, capital, investment date.</li>
+          <li>Tick <strong>Company owner</strong> if this person should be Super Admin once they have a login. Tick <strong>Active</strong>.</li>
+          <li>Optional: <strong>Also create portal login</strong> + password, or later <strong>Save Portal Access</strong>.</li>
+          <li><strong>Save Shareholder</strong>. If the total is not 100%, you get a warning — rebalance others.</li>
+          <li>To change %: edit with a new Effective from (history is kept). To exit: <strong>Deactivate</strong> (company owner cannot be deactivated).</li>
+          <li><strong>Export Excel</strong> for a backup. Filters: search, country, status, Has portal / No portal.</li>
+          <li>First go-live load: <strong>Replace from Excel / CSV</strong> → tick <strong>Preview only</strong> first → then <strong>Replace Register from File</strong> (missing rows are deactivated).</li>
+        </ol>
+      </div>
+      <div class="card">
+        <p class="cfg">How to configure</p>
+        <ol class="check">
+          <li><strong>System Settings → Profit &amp; Capital:</strong> share value, total company shares, company-owned Murabaha assets. These drive the shares/capital columns and Auto-fill shares from ownership %.</li>
+          <li>On import, you can override <strong>Company-owned assets (Murabaha)</strong> and set <strong>Ownership effective from</strong>.</li>
+          <li>Download <strong>CSV template</strong> from the import page if the office sheet is empty.</li>
+          <li>Super Admin only, last resort: import page <strong>Delete all shareholders &amp; assets</strong> (type RESET SHAREHOLDERS). Wipes register, months, certificates, portal users; keeps staff Super Admins.</li>
+        </ol>
+        <p class="hint" style="margin-top:10px">Watch: unique emails. Shares/investment must match derived values when total company shares is set. Last Super Admin cannot lose Company owner.</p>
+      </div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="ops-directory">Next: Directory</button><button type="button" class="jump inline" data-goto="ops-howto">All Operations</button><button type="button" class="jump inline" data-goto="howto-portal">Portal login</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="ops-directory">
+    <p class="kicker">Operations · 4 · Directory</p>
+    <h2>Use and configure contacts</h2>
+    <p class="who">Who: all staff · Finance sees investor cards · Super Admin / Admin also see Internal staff and Add Staff User · Menu: Operations → Directory</p>
+    <div class="grid g2">
+      <div class="card accent">
+        <p class="cfg">How to use</p>
+        <ol class="check">
+          <li>Open <strong>Directory</strong> when you need a person, not the full capital table.</li>
+          <li>Search name, email, phone, or country. Filter Country and Status (default: active). Click <strong>Filter</strong>.</li>
+          <li>On a shareholder card: <strong>Edit contact</strong> (management), <strong>Send email</strong>, <strong>Call</strong>, or <strong>View in shareholders</strong>.</li>
+          <li>Top-bar country flags use this same list — pick a flag to jump here filtered.</li>
+          <li>Management: <strong>Add Shareholder</strong> or <strong>Shareholders table</strong> for the full register.</li>
+          <li>Management: <strong>Add Staff User</strong> opens Staff Users. Internal staff table has <strong>Edit</strong> per row.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <p class="cfg">How to configure</p>
+        <ol class="check">
+          <li>There is no Directory settings room. People come from <strong>Shareholders</strong> and <strong>Staff Users</strong>.</li>
+          <li>Keep phone and country filled on the shareholder form so search and flags work.</li>
+          <li>Portal badge appears when a login exists — create it under Shareholders → Portal Access.</li>
+        </ol>
+        <p class="hint" style="margin-top:10px">Finance can view cards but cannot edit the register from here. Staff table is hidden unless you can manage users.</p>
+      </div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="ops-withdrawals">Next: Capital Withdrawals</button><button type="button" class="jump inline" data-goto="ops-howto">All Operations</button><button type="button" class="jump inline" data-goto="ops-shareholders">Shareholders</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="ops-withdrawals">
+    <p class="kicker">Operations · 5 · Capital Withdrawals</p>
+    <h2>Use and configure return of capital</h2>
+    <p class="who">Who: investor requests in the portal · Finance views · Super Admin / Admin decide · Menu: Operations → Capital Withdrawals (also Approvals)</p>
+    <div class="grid g2">
+      <div class="card accent">
+        <p class="cfg">How to use</p>
+        <ol class="check">
+          <li>Investor: Portal → <strong>Capital Withdrawal</strong> → amount + reason → <strong>Submit Withdrawal Request</strong>.</li>
+          <li>Staff: open <strong>Capital Withdrawals</strong>. Tabs: All, Pending, Approved, Completed, Rejected, Cancelled. Click <strong>Open</strong>.</li>
+          <li>Pending: read amount and reason. Optional <strong>Review notes</strong>.</li>
+          <li><strong>Approve</strong> starts the deadline clock. <strong>Reject</strong> needs review notes. <strong>Cancel Request</strong> stops it.</li>
+          <li>When cash has actually left the company: set <strong>Capital return date</strong> → <strong>Mark Capital Returned</strong>.</li>
+          <li>Then edit <strong>Shareholders</strong> so ownership still totals 100% — or the next month will not calculate.</li>
+          <li>Track overdue items under <strong>Approvals → Capital tracking</strong>.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <p class="cfg">How to configure</p>
+        <ol class="check">
+          <li><strong>System Settings → Profit &amp; Capital:</strong> <strong>Capital return deadline (days after approval)</strong> (default 183). Deadline starts from approval, not from the request date.</li>
+          <li><strong>System Settings → WhatsApp:</strong> withdrawal template / Content SID if notices should go to the phone.</li>
+          <li>Email notices follow Email &amp; SMTP if those toggles are on.</li>
+        </ol>
+        <p class="hint" style="margin-top:10px">The system does not pay the bank. It does not change ownership by itself. An approved withdrawal only warns on the period form until you update %.</p>
+      </div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="ops-arrangements">Next: Special Arrangements</button><button type="button" class="jump inline" data-goto="ops-howto">All Operations</button><button type="button" class="jump inline" data-goto="ops-approvals">Approvals</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="ops-arrangements">
+    <p class="kicker">Operations · 6 · Special Arrangements</p>
+    <h2>Use and configure a standing bonus</h2>
+    <p class="who">Who: Super Admin / Admin only (Finance does not see this menu) · effect shows on the period and the investor statement</p>
+    <div class="grid g2">
+      <div class="card accent">
+        <p class="cfg">How to use</p>
+        <ol class="check">
+          <li>Open <strong>Special Arrangements</strong>.</li>
+          <li>On <strong>Add Arrangement</strong>: give it a name (e.g. “Owner 20% from others”).</li>
+          <li>Pick the <strong>Recipient</strong> (must be an active shareholder).</li>
+          <li>Set <strong>Bonus %</strong> — percent of each source’s <strong>base share of the pool</strong>, not of full Net Profit.</li>
+          <li>Set <strong>Effective from</strong>. <strong>Effective to</strong> optional (must be on or after from-date).</li>
+          <li>Either tick <strong>Apply to all other shareholders</strong> or tick named <strong>Source shareholders</strong> (recipient cannot be a source).</li>
+          <li>Tick <strong>Apply on profit</strong> and/or <strong>Apply on loss</strong>. Add notes if needed.</li>
+          <li>Click <strong>Save Arrangement</strong>. Open a Draft month and <strong>Recalculate</strong> (or create a new period) to see it. Check before you approve.</li>
+          <li>To stop: <strong>Deactivate</strong> on the row. To change: <strong>Edit</strong>.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <p class="cfg">How to configure</p>
+        <ol class="check">
+          <li>There is no extra settings room — the form on this page is the configuration.</li>
+          <li>You need active shareholders first (recipient and sources).</li>
+          <li>Inactive recipient is skipped with a warning on the period form.</li>
+          <li>Does <strong>not</strong> change ownership. Does <strong>not</strong> cut the managing-partner share.</li>
+          <li>Approved / locked months stay as certified. Change the rule, then recalculate Draft only.</li>
+        </ol>
+        <p class="hint" style="margin-top:10px">Example: pool 50,000 · 20% of others → Owner. Final: Owner 22,000 · A 16,000 · B 12,000. Pool still 50,000.</p>
+      </div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="ops-certificates">Next: Certificates</button><button type="button" class="jump inline" data-goto="ops-howto">All Operations</button><button type="button" class="jump inline" data-goto="arrangements">Numbers example</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="ops-certificates">
+    <p class="kicker">Operations · 7 · Certificates</p>
+    <h2>Use and configure monthly PDFs</h2>
+    <p class="who">Who: Finance and Admin download here · investors download from My Reports · issued automatically on Approve &amp; Lock</p>
+    <div class="grid g2">
+      <div class="card accent">
+        <p class="cfg">How to use</p>
+        <ol class="check">
+          <li>Approve a month first. No certificate exists until the period is locked.</li>
+          <li>Open <strong>Certificates</strong>. Choose the month. <strong>Open period</strong> jumps to that month’s working.</li>
+          <li>If some rows are missing, the page generates them and flashes that missing certificates were created.</li>
+          <li>Per person: <strong>Certificate PDF</strong>, <strong>Report</strong>, <strong>Report PDF</strong>.</li>
+          <li>Check Email Status: Emailed / Logged / Skipped / Pending. If Pending, open the period → <strong>Send Reports Now</strong>.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <p class="cfg">How to configure</p>
+        <ol class="check">
+          <li>From this page click <strong>Certificate settings</strong>, or <strong>System Settings → Certificates</strong>.</li>
+          <li>Set title, intro, profit/loss labels, currency, number prefix, roster, signature name/title/image, legal footer. Use Preview before go-live.</li>
+          <li><strong>System Settings → Brand:</strong> logo and colours on the PDF.</li>
+          <li><strong>System Settings → Email &amp; SMTP:</strong> auto-send when a period is approved.</li>
+          <li><strong>System Settings → WhatsApp:</strong> optional notice with or without PDF attach.</li>
+        </ol>
+        <p class="hint" style="margin-top:10px">Unapproved months cannot be selected as the register month. Reopening a locked month sets send-status back to pending.</p>
+      </div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="ops-mudarabah">Next: Mudarabah Summary</button><button type="button" class="jump inline" data-goto="ops-howto">All Operations</button><button type="button" class="jump inline" data-goto="feat-settings">Settings rooms</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="ops-mudarabah">
+    <p class="kicker">Operations · 8 · Mudarabah Summary</p>
+    <h2>Use and configure the agreement table</h2>
+    <p class="who">Who: Finance and Admin · read-only rollup · Menu: Operations → Mudarabah Summary</p>
+    <div class="grid g2">
+      <div class="card accent">
+        <p class="cfg">How to use</p>
+        <ol class="check">
+          <li>Open <strong>Mudarabah Summary</strong> to see recent calculated months (last 36), including Draft and In review — status is on each row.</li>
+          <li>Columns: Period, Status, Net Profit (Odoo), Shareholders' pool (with %), managing-partner share, Distributed to SH.</li>
+          <li>Click <strong>Open</strong> to jump to that period’s detail (statements, approve, exports).</li>
+          <li>If the alert shows outstanding capital withdrawals, click <strong>Review withdrawals</strong>.</li>
+          <li>Do not enter profit here. Use <strong>Monthly Periods</strong> for that. Use <strong>Reports History</strong> if you only want approved months.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <p class="cfg">How to configure</p>
+        <ol class="check">
+          <li><strong>System Settings → Profit &amp; Capital:</strong> <strong>Shareholders' Mudarabah share (%)</strong> — the pool column uses this %.</li>
+          <li>Company / partner name on the table comes from Brand / Mudarabah settings.</li>
+          <li>Nothing else is configured on this screen — it reports what already calculated.</li>
+        </ol>
+        <p class="hint" style="margin-top:10px">Distributed to SH is the sum of final amounts after arrangements. It should still add to the shareholders’ pool.</p>
+      </div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="ops-history">Next: Reports History</button><button type="button" class="jump inline" data-goto="ops-howto">All Operations</button><button type="button" class="jump inline" data-goto="ops-periods">Monthly Periods</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="ops-history">
+    <p class="kicker">Operations · 9 · Reports History</p>
+    <h2>Use and configure the approved archive</h2>
+    <p class="who">Who: staff · ordinary investors are redirected to My Reports · Menu: Operations → Reports History</p>
+    <div class="grid g2">
+      <div class="card accent">
+        <p class="cfg">How to use</p>
+        <ol class="check">
+          <li>Open <strong>Reports History</strong> for <strong>approved months only</strong> (drafts are not listed).</li>
+          <li>Scan Net Profit, pool, partner share, Payment Completed/Pending, approved date, Reports Sent.</li>
+          <li>Click <strong>Distribution</strong> to open the period and download per-person <strong>Statement</strong> / <strong>PDF</strong> / <strong>Certificate</strong>.</li>
+          <li>Shortcuts on the page: <strong>Mudarabah Summary</strong>, <strong>Certificates</strong>, <strong>Audit Report</strong>.</li>
+          <li>If Reports Sent is blank, open the period → <strong>Send Reports Now</strong>.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <p class="cfg">How to configure</p>
+        <ol class="check">
+          <li><strong>System Settings → Email &amp; SMTP:</strong> auto-send on approval; report delivery day of month; SMTP so Reports Sent actually fills.</li>
+          <li>Payment column is set on the period with <strong>Mark Payment Completed</strong> (management) — it is a record, not a bank payment.</li>
+          <li>Certificate look comes from Certificates + Brand settings (same as the Certificates menu).</li>
+        </ol>
+        <p class="hint" style="margin-top:10px">This is the archive. In-progress months live under Monthly Periods and Mudarabah Summary.</p>
+      </div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="ops-howto">All Operations</button><button type="button" class="jump inline" data-goto="ops-certificates">Certificates</button><button type="button" class="jump inline" data-goto="toc">Contents</button></div>
     <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
   </section>
 
@@ -927,11 +1238,12 @@
 
   <section class="slide" data-id="practice">
     <p class="kicker">F · Live practice</p>
-    <h2>Three short rehearsals — click for the how-to</h2>
-    <div class="grid g3">
+    <h2>Four short rehearsals — click for the how-to</h2>
+    <div class="grid g4">
       <button type="button" class="toc-item" data-goto="howto-finance"><span class="toc-n">1 · Finance · 20 min</span><strong>Enter a sample month</strong><span class="desc">Use a future month. Calculate, read the split, submit.</span></button>
       <button type="button" class="toc-item" data-goto="howto-approve"><span class="toc-n">2 · Management · 15 min</span><strong>Return, then approve</strong><span class="desc">Send back with a reason, re-submit, certify, open a certificate.</span></button>
       <button type="button" class="toc-item" data-goto="feat-portal"><span class="toc-n">3 · Investor · 15 min</span><strong>Open the portal</strong><span class="desc">Find the certified month, download PDF and certificate.</span></button>
+      <button type="button" class="toc-item" data-goto="ops-howto"><span class="toc-n">4 · Operations</span><strong>Walk the Operations menu</strong><span class="desc">Periods through Reports History — use and configure.</span></button>
     </div>
     <div class="links"><button type="button" class="jump inline" data-goto="toc">Back to contents</button></div>
     <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
@@ -943,7 +1255,7 @@
     <p>Use Contents any time the client asks “what does this screen do?” — every feature has a description and use cases.</p>
     <div class="cover-cta">
       <button type="button" data-goto="toc">Contents</button>
-      <button type="button" class="alt" data-goto="features">Features &amp; use cases</button>
+      <button type="button" class="alt" data-goto="ops-howto">How to use Operations</button>
       <button type="button" class="alt" data-goto="calc-steps">How we calculate</button>
     </div>
     <div class="foot"><span>Akram Sweets · Shareholders</span><span>Confidential</span></div>
