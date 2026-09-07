@@ -1,11 +1,25 @@
 # -*- encoding: utf-8 -*-
 
+from pathlib import Path
+
 from apps.pages import blueprint
-from flask import Response, flash, redirect, render_template, request, url_for
+from flask import Response, flash, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required
 from jinja2 import TemplateNotFound
 
 from apps.services.dashboard_service import get_dashboard_metrics, get_shareholder_dashboard_metrics
+
+# Public client deck: docs/present.html (server rename) or docs/HANDOVER_PRESENTATION.html
+_PRESENTATION_NAMES = ('present.html', 'HANDOVER_PRESENTATION.html')
+
+
+def _public_presentation_path():
+    docs_dir = Path(__file__).resolve().parents[2] / 'docs'
+    for name in _PRESENTATION_NAMES:
+        path = docs_dir / name
+        if path.is_file():
+            return path
+    return None
 
 # Only real public/error pages remain reachable via the catch-all.
 # Theme demos (ui-*, charts-*, forms-*, tables-*, maps-*, widgets, etc.) redirect home.
@@ -114,6 +128,16 @@ def analytics_export():
 @blueprint.route('/auth-login')
 def legacy_login():
     return redirect(url_for('auth.login'))
+
+
+@blueprint.route('/present')
+@blueprint.route('/present.html')
+def public_presentation():
+    """Client handover deck — no login required."""
+    path = _public_presentation_path()
+    if not path:
+        return render_template('pages/error-404.html'), 404
+    return send_file(path, mimetype='text/html; charset=utf-8')
 
 
 @blueprint.route('/auth-register')
