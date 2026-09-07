@@ -143,6 +143,9 @@
               <div class="fs-12 text-muted">{{ row.shareholder.email }}</div>
               {% if row.shareholder.phone %}<div class="fs-12 text-muted">{{ row.shareholder.phone }}</div>{% endif %}
               {% if row.shareholder.is_owner %}<span class="badge bg-primary mt-1">Company owner</span>{% endif %}
+              {% if row.shareholder.user_account and row.shareholder.user_account.is_superadmin() %}
+              <span class="badge bg-danger mt-1">Super Admin</span>
+              {% endif %}
             </td>
             <td>
               {% if row.shareholder.country_code %}

@@ -10,6 +10,7 @@ from apps.models.user import User
 
 
 PORTAL_USERS = (
+    ('Pocly (Owner)', 'pocly@akramsweets.com', 'Pocly (Owner)', 'owner123'),
     ('Shareholder A', 'shareholder.a@akramsweets.com', 'Shareholder A', 'shareholder123'),
     ('Shareholder B', 'shareholder.b@akramsweets.com', 'Shareholder B', 'shareholder123'),
 )
@@ -36,10 +37,17 @@ def _demo_seed_enabled():
     return str(os.getenv('DEBUG', 'False')).strip().lower() in ('1', 'true', 'yes', 'on')
 
 
+def _sync_company_owner_logins():
+    from apps.services.portal_service import sync_all_company_owner_superadmins
+
+    sync_all_company_owner_superadmins()
+
+
 def seed_if_empty():
     if User.query.count():
         if _demo_seed_enabled():
             seed_portal_users_if_missing()
+        _sync_company_owner_logins()
         return
 
     if not _demo_seed_enabled():
@@ -113,7 +121,7 @@ def seed_if_empty():
 
     db.session.add_all([admin, finance, system_admin])
     db.session.flush()
-    _create_portal_users([shareholder_a, shareholder_b])
+    _create_portal_users([owner, shareholder_a, shareholder_b])
     SystemSetting.set('auto_email_on_approval', 'true')
     from apps.services.brand_service import ensure_default_brand_settings
     from apps.services.mudarabah_service import ensure_default_mudarabah_settings
@@ -123,6 +131,7 @@ def seed_if_empty():
     ensure_default_share_settings()
     ensure_default_mudarabah_settings()
     db.session.commit()
+    _sync_company_owner_logins()
 
 
 def seed_portal_users_if_missing():
@@ -147,7 +156,7 @@ def seed_portal_users_if_missing():
         user = User(
             email=email,
             full_name=full_name,
-            role=User.ROLE_SHAREHOLDER,
+            role=User.ROLE_OWNER if shareholder.is_owner else User.ROLE_SHAREHOLDER,
             shareholder_id=shareholder.id,
         )
         user.set_password(password)
@@ -166,7 +175,7 @@ def _create_portal_users(shareholders):
         user = User(
             email=email,
             full_name=full_name,
-            role=User.ROLE_SHAREHOLDER,
+            role=User.ROLE_OWNER if shareholder.is_owner else User.ROLE_SHAREHOLDER,
             shareholder_id=shareholder.id,
         )
         user.set_password(password)

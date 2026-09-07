@@ -71,7 +71,7 @@ def shareholder_portal_required(view):
     @wraps(view)
     @login_required
     def wrapped(*args, **kwargs):
-        if not current_user.is_shareholder():
+        if not current_user.has_shareholder_portal():
             flash('You do not have permission to access that page.', 'danger')
             return _redirect_home()
         return view(*args, **kwargs)

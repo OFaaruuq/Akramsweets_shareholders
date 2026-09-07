@@ -50,7 +50,15 @@ def _portal_user_ids(actor=None):
         )
     ).all()
     actor_id = getattr(actor, 'id', None)
-    return [u.id for u in rows if actor_id is None or u.id != actor_id]
+    ids = []
+    for u in rows:
+        if actor_id is not None and u.id == actor_id:
+            continue
+        # Keep Super Admin logins (including Company Owner) so a purge cannot lock the system out.
+        if u.role == User.ROLE_OWNER:
+            continue
+        ids.append(u.id)
+    return ids
 
 
 def purge_all_shareholders_and_assets(*, actor=None, reset_capital_settings=True, wipe_periods=True):

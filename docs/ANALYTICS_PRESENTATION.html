@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Akram Sweets — Analytics module</title>
+  <style>
+    :root {
+      --wine: #8A1B24; --wine-dark: #5c1018; --ink: #1a1714; --muted: #5c564e;
+      --line: #e4ddd4; --paper: #f7f3ee; --card: #fff; --gold: #b8893a;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; font-family: Georgia, "Times New Roman", serif; background: #2a221e; color: var(--ink); }
+    .deck { height: 100%; overflow: hidden; }
+    .slide {
+      display: none; height: 100%; padding: 40px 56px 76px; background: var(--paper);
+      flex-direction: column; position: relative; overflow: auto;
+    }
+    .slide.on { display: flex; }
+    .slide.cover { background: var(--wine); color: #fff; justify-content: flex-end; padding: 64px; overflow: hidden; }
+    .kicker { font-family: system-ui, sans-serif; font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--gold); font-weight: 600; margin: 0 0 8px; }
+    .cover .kicker { color: #f0d9a8; }
+    h1 { font-size: 38px; font-weight: 600; margin: 0 0 12px; line-height: 1.15; }
+    .cover h1 { font-size: 42px; max-width: 18ch; }
+    h2 { font-size: 26px; font-weight: 600; margin: 0 0 14px; }
+    h3 { font-size: 14px; font-family: system-ui, sans-serif; font-weight: 700; margin: 0 0 8px; }
+    p, li { font-size: 16.5px; line-height: 1.42; color: var(--muted); }
+    .cover p { color: rgba(255,255,255,.88); max-width: 48ch; font-size: 18px; }
+    .lede { font-size: 18px; color: var(--ink); max-width: 64ch; margin: 0 0 16px; }
+    .grid { display: grid; gap: 12px; }
+    .g2 { grid-template-columns: 1fr 1fr; }
+    .g3 { grid-template-columns: 1fr 1fr 1fr; }
+    .g4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+    .card p, .card li { font-size: 14px; margin: 0; }
+    .card ul { margin: 0; padding-left: 18px; }
+    .card li { margin: 4px 0; }
+    .card.accent { border-left: 4px solid var(--wine); }
+    table { width: 100%; border-collapse: collapse; font-family: system-ui, sans-serif; font-size: 13.5px; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+    td { color: var(--ink); }
+    .foot {
+      position: absolute; left: 56px; right: 200px; bottom: 20px;
+      display: flex; justify-content: space-between; font-family: system-ui, sans-serif; font-size: 11px; color: #8a837a;
+    }
+    .cover .foot { color: rgba(255,255,255,.55); right: 56px; }
+    .nav { position: fixed; right: 16px; bottom: 16px; z-index: 8; display: flex; gap: 6px; font-family: system-ui, sans-serif; }
+    .nav button, .jump, .toc-item, .cover-cta button { font-family: system-ui, sans-serif; cursor: pointer; }
+    .nav button { background: var(--wine); color: #fff; border: 0; border-radius: 6px; padding: 8px 12px; font-size: 13px; }
+    .nav button.ghost { background: #fff; color: var(--wine); border: 1px solid var(--wine); }
+    .nav button:hover { background: var(--wine-dark); }
+    .nav button.ghost:hover { background: var(--paper); }
+    .hint { font-family: system-ui, sans-serif; font-size: 13px; color: var(--muted); }
+    .who { font-family: system-ui, sans-serif; font-size: 12.5px; color: var(--muted); margin: 0 0 10px; }
+    .toc-item, .jump {
+      appearance: none; text-align: left; width: 100%; background: var(--card);
+      border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; color: inherit;
+    }
+    .toc-item:hover, .jump:hover { border-color: var(--wine); background: #fffaf8; }
+    .toc-item strong { display: block; font-size: 14.5px; color: var(--ink); margin: 2px 0 4px; font-family: Georgia, serif; }
+    .toc-item span.desc { display: block; font-size: 12.5px; color: var(--muted); line-height: 1.35; }
+    .toc-n { font-family: system-ui, sans-serif; font-size: 10px; letter-spacing: .12em; color: var(--wine); font-weight: 700; }
+    .jump.inline { display: inline-block; width: auto; padding: 5px 10px; font-size: 12px; font-weight: 600; color: var(--wine); margin: 2px 4px 2px 0; }
+    .cover-cta { margin-top: 28px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .cover-cta button { background: #fff; color: var(--wine); border: 0; border-radius: 6px; padding: 10px 16px; font-size: 14px; font-weight: 600; }
+    .cover-cta button.alt { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.45); }
+    .links { margin-top: 12px; }
+    .uc li { font-size: 14px; color: var(--ink); margin: 5px 0; }
+    @media print {
+      html, body, .deck { height: auto; overflow: visible; background: #fff; }
+      .slide { display: flex !important; height: auto; min-height: 100vh; page-break-after: always; overflow: visible; }
+      .nav { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+  <section class="slide cover on" data-id="cover">
+    <p class="kicker">Module briefing · Click any topic</p>
+    <h1>Analytics</h1>
+    <p>Year dashboard for certified profit, investor payouts, and (for staff) operating display figures. Charts do not calculate the month — they report what was already approved.</p>
+    <div class="cover-cta">
+      <button type="button" data-goto="toc">Open contents</button>
+      <button type="button" class="alt" data-goto="what">What it is</button>
+      <button type="button" class="alt" data-goto="features">All features</button>
+    </div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span>Confidential</span></div>
+  </section>
+
+  <section class="slide" data-id="toc">
+    <p class="kicker">Contents · click a card</p>
+    <h2>Analytics — jump to a topic</h2>
+    <div class="grid g3">
+      <button type="button" class="toc-item" data-goto="what"><span class="toc-n">01</span><strong>What Analytics is</strong><span class="desc">Not the profit engine. Year view of approved months.</span></button>
+      <button type="button" class="toc-item" data-goto="who"><span class="toc-n">02</span><strong>Who sees what</strong><span class="desc">Staff vs investor (Charts &amp; Trends)</span></button>
+      <button type="button" class="toc-item" data-goto="rules"><span class="toc-n">03</span><strong>Data rules</strong><span class="desc">Approved only, Display KPIs vs Net Profit</span></button>
+      <button type="button" class="toc-item" data-goto="features"><span class="toc-n">04</span><strong>Every feature</strong><span class="desc">Year, CSV, tiles, charts, table, workflow</span></button>
+      <button type="button" class="toc-item" data-goto="staff"><span class="toc-n">05</span><strong>Staff screen tour</strong><span class="desc">What management and Finance click</span></button>
+      <button type="button" class="toc-item" data-goto="investor"><span class="toc-n">06</span><strong>Investor screen tour</strong><span class="desc">Charts &amp; Trends — own numbers only</span></button>
+      <button type="button" class="toc-item" data-goto="usecases"><span class="toc-n">07</span><strong>Use-case catalogue</strong><span class="desc">AN-01 to AN-12</span></button>
+      <button type="button" class="toc-item" data-goto="howto"><span class="toc-n">08</span><strong>How to use it</strong><span class="desc">Pick year, read charts, export, open a month</span></button>
+      <button type="button" class="toc-item" data-goto="related"><span class="toc-n">09</span><strong>Related screens &amp; empty states</strong><span class="desc">Dashboard, Periods, Display KPIs</span></button>
+    </div>
+    <p class="hint" style="margin-top:14px">Contents is always bottom-right. Escape returns here. Written guide: docs/ANALYTICS.md</p>
+    <div class="foot"><span>Akram Sweets · Analytics</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="what">
+    <p class="kicker">01 · Purpose</p>
+    <h2>A year dashboard — not where profit is calculated</h2>
+    <p class="lede">Monthly Periods is where Finance enters Net Profit and the system splits it. Analytics is where the office (and each investor) <strong>reads the certified year</strong>.</p>
+    <div class="grid g3">
+      <div class="card accent"><h3>Management</h3><p>See profit vs what was paid to investors, who earned what, best and worst month.</p></div>
+      <div class="card accent"><h3>Finance</h3><p>Confirm approved months exist for the year and export CSV for the board pack.</p></div>
+      <div class="card accent"><h3>Investor</h3><p>Charts &amp; Trends: my payout history, ownership, download my PDF — never anyone else’s money.</p></div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="who">Who sees what</button><button type="button" class="jump inline" data-goto="rules">Data rules</button></div>
+    <div class="foot"><span>Akram Sweets · Analytics</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="who">
+    <p class="kicker">02 · Access</p>
+    <h2>Same URL, two screens</h2>
+    <table>
+      <thead><tr><th>Role</th><th>Menu</th><th>What they get</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Super Admin / Admin / Finance</strong></td><td>Analytics</td><td>Company P/L, all investors’ payouts, workflow counts, Display KPIs</td></tr>
+        <tr><td><strong>Shareholder</strong></td><td>Charts &amp; Trends</td><td>Only their approved payouts, ownership, YTD / lifetime</td></tr>
+        <tr><td>Owner / Admin extra</td><td>Update Dashboard Figures</td><td>Opens Display KPIs to type revenues/expenses for the tiles</td></tr>
+        <tr><td>Not signed in</td><td>—</td><td>Redirect to login</td></tr>
+      </tbody>
+    </table>
+    <p class="hint" style="margin-top:14px">Path: <strong>/analytics</strong> · optional <strong>?year=2026</strong> · export <strong>/analytics/export</strong></p>
+    <div class="links"><button type="button" class="jump inline" data-goto="staff">Staff tour</button><button type="button" class="jump inline" data-goto="investor">Investor tour</button></div>
+    <div class="foot"><span>Akram Sweets · Analytics</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="rules">
+    <p class="kicker">03 · Data rules</p>
+    <h2>What the numbers actually are</h2>
+    <table>
+      <thead><tr><th>Rule</th><th>Meaning for the client</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Charts + year table = approved only</strong></td><td>Draft and in-review months do not appear on the graphs.</td></tr>
+        <tr><td><strong>Year dropdown</strong></td><td>Filters those approved months. Default = current year if it has data, else latest year with periods.</td></tr>
+        <tr><td><strong>YTD Company Profit</strong></td><td>Sum of approved <em>Net Profit</em> (full company), not the shareholders’ pool.</td></tr>
+        <tr><td><strong>Total Distributed</strong></td><td>Sum of investors’ <em>final amounts</em> (after arrangements).</td></tr>
+        <tr><td><strong>Display KPIs</strong></td><td>Typed revenues/expenses on tiles. Never used to split the month.</td></tr>
+        <tr><td><strong>Workflow counts</strong></td><td>Draft / review / approved are <em>all years</em>, not the selected year.</td></tr>
+        <tr><td><strong>Investor privacy</strong></td><td>No stacked breakdown of others, no Display KPIs, no workflow inbox.</td></tr>
+      </tbody>
+    </table>
+    <div class="links"><button type="button" class="jump inline" data-goto="features">Features</button></div>
+    <div class="foot"><span>Akram Sweets · Analytics</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="features">
+    <p class="kicker">04 · Click a feature</p>
+    <h2>Everything on the Analytics page</h2>
+    <div class="grid g3">
+      <button type="button" class="toc-item" data-goto="feat-year"><span class="toc-n">A</span><strong>Year selector</strong><span class="desc">Filter the whole page by calendar year</span></button>
+      <button type="button" class="toc-item" data-goto="feat-csv"><span class="toc-n">B</span><strong>Export CSV</strong><span class="desc">Staff vs investor columns</span></button>
+      <button type="button" class="toc-item" data-goto="feat-kpis"><span class="toc-n">C</span><strong>KPI tiles</strong><span class="desc">Four cards — different for staff and investor</span></button>
+      <button type="button" class="toc-item" data-goto="feat-summary"><span class="toc-n">D</span><strong>Year summary strip</strong><span class="desc">Profit/loss months, average, distributed</span></button>
+      <button type="button" class="toc-item" data-goto="feat-charts"><span class="toc-n">E</span><strong>Charts</strong><span class="desc">Combo, stacked bar, growth, donut</span></button>
+      <button type="button" class="toc-item" data-goto="feat-table"><span class="toc-n">F</span><strong>History table</strong><span class="desc">Up to 8 months, open period or PDF</span></button>
+      <button type="button" class="toc-item" data-goto="feat-workflow"><span class="toc-n">G</span><strong>Workflow &amp; operating</strong><span class="desc">Draft/review counts and Display KPI summary</span></button>
+      <button type="button" class="toc-item" data-goto="feat-display"><span class="toc-n">H</span><strong>Update Dashboard Figures</strong><span class="desc">Owner/Admin only — Display KPIs</span></button>
+      <button type="button" class="toc-item" data-goto="usecases"><span class="toc-n">I</span><strong>Use cases AN-01–12</strong><span class="desc">Jobs the client will actually do</span></button>
+    </div>
+    <div class="foot"><span>Akram Sweets · Analytics</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="feat-year">
+    <p class="kicker">Feature A · Year selector</p>
+    <h2>One control for the whole page</h2>
+    <p class="who">Who: everyone on Analytics / Charts &amp; Trends</p>
+    <div class="grid g2">
+      <div class="card">
+        <h3>Description</h3>
+        <ul>
+          <li>Lists years that have at least one monthly period</li>
+          <li>Changing year reloads <code>?year=</code></li>
+          <li>Charts, summary tiles, table, and CSV all follow it</li>
+        </ul>
+      </div>
+      <div class="card accent">
+        <h3>Use cases</h3>
+        <ul class="uc">
+          <li>AN-12: Switch from 2026 to 2025 without leaving Analytics</li>
+          <li>Compare “how did last year look?” in a board meeting</li>
+        </ul>
+      </div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="feat-csv">CSV export</button><button type="button" class="jump inline" data-goto="features">All features</button></div>
+    <div class="foot"><span>Akram Sweets · Analytics</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="feat-csv">
+    <p class="kicker">Feature B · Export CSV</p>
+    <h2>Take the year into Excel</h2>
+    <p class="who">Who: staff get company + all names · investor gets only their columns</p>
+    <table>
+      <thead><tr><th>Staff file</th><th>Investor file</th></tr></thead>
+      <tbody>
+        <tr><td>Period, Company P/L, Distributed, Type (Profit/Loss), Reports Sent, Shareholder Breakdown (Name: amount · …)</td><td>Period, Ownership %, My Payout, Reports Sent</td></tr>
+      </tbody>
+    </table>
+    <p class="hint" style="margin-top:12px">File: shareholder-analytics-{year}.csv · newest months first · approved periods only</p>
+    <div class="grid g2" style="margin-top:12px">
+      <div class="card accent"><h3>Use cases</h3><ul class="uc"><li>AN-05 Finance: board pack / email attachment</li><li>Investor: own history for an accountant — never other people’s amounts</li></ul></div>
+      <div class="card"><h3>Empty year</h3><p>Headers still download if there are no approved months.</p></div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="feat-table">History table</button><button type="button" class="jump inline" data-goto="features">All features</button></div>
+    <div class="foot"><span>Akram Sweets · Analytics</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="feat-kpis">
+    <p class="kicker">Feature C · KPI tiles</p>
+    <h2>Four cards at the top</h2>
+    <table>
+      <thead><tr><th>Staff tile</th><th>Source</th><th>Investor tile</th><th>Source</th></tr></thead>
+      <tbody>
+        <tr><td>Total Revenues</td><td>Display KPIs (typed)</td><td>Latest Payout</td><td>Last approved final amount</td></tr>
+        <tr><td>Monthly Profit / Loss</td><td>Latest period Net Profit</td><td>Year-to-Date</td><td>Sum of their approved finals in the year</td></tr>
+        <tr><td>Active Shareholders</td><td>Active register count</td><td>Ownership %</td><td>Current effective %</td></tr>
+        <tr><td>YTD Company Profit</td><td>Sum of approved Net Profit in the year</td><td>Lifetime Total</td><td>All their approved finals (all years)</td></tr>
+      </tbody>
+    </table>
+    <p class="hint" style="margin-top:12px">Staff “% change” badge is latest vs previous period <strong>Net Profit</strong>, not revenues. Tiles link through to Periods, Shareholders, Reports, or Dashboard.</p>
+    <div class="links"><button type="button" class="jump inline" data-goto="feat-display">Display KPIs</button><button type="button" class="jump inline" data-goto="feat-summary">Year strip</button></div>
+    <div class="foot"><span>Akram Sweets · Analytics</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="feat-summary">
+    <p class="kicker">Feature D · Year summary strip</p>
+    <h2>Four numbers for the selected year</h2>
+    <p class="who">Built only from <strong>approved</strong> periods in that year</p>
+    <div class="grid g2">
+      <div class="card">
+        <h3>Staff</h3>
+        <ul>
+          <li>Profit months (Net Profit ≥ 0)</li>
+          <li>Loss months</li>
+          <li>Average monthly P/L</li>
+          <li>Total distributed (all investors’ finals)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Investor</h3>
+        <ul>
+          <li>Positive payout months</li>
+          <li>Negative payout months</li>
+          <li>Average payout</li>
+          <li>Best period label</li>
+        </ul>
+      </div>
+    </div>
+    <p class="hint" style="margin-top:12px">Use cases AN-03 / AN-04: count good vs bad months; point at the best month in a review.</p>
+    <div class="links"><button type="button" class="jump inline" data-goto="feat-charts">Charts</button><button type="button" class="jump inline" data-goto="features">All features</button></div>
+    <div class="foot"><span>Akram Sweets · Analytics</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="feat-charts">
+    <p class="kicker">Feature E · Charts</p>
+    <h2>Four visuals (ApexCharts)</h2>
+    <table>
+      <thead><tr><th>Chart</th><th>Staff</th><th>Investor</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Profit &amp; Distribution</strong></td><td>Lines: Company P/L, Distributed. Bars: period revenues &amp; expenses. Download / zoom toolbar.</td><td>Lines: My Payout, Cumulative. No bars.</td></tr>
+        <tr><td><strong>Payout Breakdown by Period</strong></td><td>Stacked bar — one colour per investor</td><td>Hidden (privacy)</td></tr>
+        <tr><td><strong>Growth rate</strong></td><td>Area: Company P/L vs Distributed</td><td>Area: My Payout vs Trend</td></tr>
+        <tr><td><strong>Distribution donut</strong></td><td>Latest approved month: each person’s final + %</td><td>That investor only</td></tr>
+      </tbody>
+    </table>
+    <p class="hint" style="margin-top:12px">Brand colour from settings. Empty data shows N/A / No data. Period revenue/expense bars are period fields (often unused) — not Display KPIs and not the Mudarabah engine.</p>
+    <div class="links"><button type="button" class="jump inline" data-goto="staff">Staff tour</button><button type="button" class="jump inline" data-goto="investor">Investor tour</button></div>
+    <div class="foot"><span>Akram Sweets · Analytics</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="feat-table">
+    <p class="kicker">Feature F · History table</p>
+    <h2>Up to eight latest approved months</h2>
+    <div class="grid g2">
+      <div class="card">
+        <h3>Staff columns</h3>
+        <ul>
+          <li>Period → opens the period</li>
+          <li>Company P/L, Distributed</li>
+          <li>Profit / Loss badge; Sent if reports emailed</li>
+          <li>Every shareholder: name and final amount</li>
+        </ul>
+        <p style="margin-top:8px"><strong>Use case AN-06:</strong> jump into a month to inspect or correct.</p>
+      </div>
+      <div class="card">
+        <h3>Investor columns</h3>
+        <ul>
+          <li>Period → portal statement</li>
+          <li>Ownership % that month, My Payout</li>
+          <li>Approved + Sent badges</li>
+          <li>View report + download PDF</li>
+        </ul>
+        <p style="margin-top:8px"><strong>Use case AN-10:</strong> download my statement without leaving analytics.</p>
+      </div>
+    </div>
+    <p class="hint" style="margin-top:12px">Empty: “No approved periods for {year}.” View All → Periods (staff) or My Reports (investor).</p>
+    <div class="links"><button type="button" class="jump inline" data-goto="feat-csv">CSV has the full year</button><button type="button" class="jump inline" data-goto="features">All features</button></div>
+    <div class="foot"><span>Akram Sweets · Analytics</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="feat-workflow">
+    <p class="kicker">Feature G · Workflow &amp; operating summary</p>
+    <h2>Status of the office vs display P&amp;L</h2>
+    <div class="grid g2">
+      <div class="card">
+        <h3>Period Workflow (staff)</h3>
+        <p>Counts of Draft, In Review, Approved — <strong>all years</strong> — plus active arrangements. Not filtered by the year dropdown.</p>
+        <p style="margin-top:8px"><strong>AN-08:</strong> see that Finance still has drafts outstanding.</p>
+      </div>
+      <div class="card">
+        <h3>Operating Summary (staff)</h3>
+        <p>Display KPI revenues, expenses, COGS, other income, net operating profit, margin, latest distributed, best/worst approved month, notes.</p>
+      </div>
+    </div>
+    <p class="hint" style="margin-top:12px">Investor “My Summary”: approved report count, ownership %, YTD vs lifetime. Operating list: latest / YTD / lifetime / lowest month.</p>
+    <div class="links"><button type="button" class="jump inline" data-goto="feat-display">Display KPIs</button><button type="button" class="jump inline" data-goto="features">All features</button></div>
+    <div class="foot"><span>Akram Sweets · Analytics</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="feat-display">
+    <p class="kicker">Feature H · Update Dashboard Figures</p>
+    <h2>Display KPIs — optional, not the engine</h2>
+    <p class="who">Who: Super Admin and System Admin only (Finance does not see the button)</p>
+    <div class="grid g2">
+      <div class="card">
+        <h3>Description</h3>
+        <p>Opens Settings → Display KPIs. Type Total Revenues, Expenses, COGS, Other Income, notes. They appear on Analytics tiles and Operating Summary.</p>
+      </div>
+      <div class="card accent">
+        <h3>Use case AN-07</h3>
+        <p>Put a board-style “from Odoo” snapshot next to certified Mudarabah numbers. Do not confuse with Net Profit on Monthly Periods.</p>
+      </div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="rules">Data rules</button><button type="button" class="jump inline" data-goto="related">Related screens</button></div>
+    <div class="foot"><span>Akram Sweets · Analytics</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="staff">
+    <p class="kicker">05 · Staff tour</p>
+    <h2>What to click in a management meeting</h2>
+    <ol style="color:var(--ink); font-family:system-ui,sans-serif; font-size:15.5px;">
+      <li>Open <strong>Analytics</strong>. Pick the year under review.</li>
+      <li>Read the strip: how many profit vs loss months; total distributed.</li>
+      <li>Combo chart: company P/L line vs distributed line.</li>
+      <li>Stacked bar: who received what each month (arrangements already in the finals).</li>
+      <li>Donut: latest approved split.</li>
+      <li>Table: open a month if a number looks wrong. Export CSV for the pack.</li>
+      <li>Owner: Update Dashboard Figures only if you want display revenues on the same page.</li>
+    </ol>
+    <div class="links"><button type="button" class="jump inline" data-goto="howto">How-to checklist</button><button type="button" class="jump inline" data-goto="investor">Investor tour</button></div>
+    <div class="foot"><span>Akram Sweets · Analytics</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="investor">
+    <p class="kicker">06 · Investor tour</p>
+    <h2>Charts &amp; Trends — my numbers only</h2>
+    <p class="lede">Title on screen: <strong>My Share Analytics</strong>. Draft months never appear.</p>
+    <div class="grid g2">
+      <div class="card">
+        <h3>They can</h3>
+        <ul>
+          <li>Pick year; see latest payout, YTD, ownership, lifetime</li>
+          <li>Read payout vs trend charts</li>
+          <li>Open a month and download PDF</li>
+          <li>Export CSV of their own rows</li>
+        </ul>
+      </div>
+      <div class="card accent">
+        <h3>They cannot</h3>
+        <ul>
+          <li>See other investors on the stacked chart (it is hidden)</li>
+          <li>See Display KPIs or period workflow</li>
+          <li>Change ownership or calculate a month</li>
+        </ul>
+      </div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="usecases">Use cases AN-09–11</button></div>
+    <div class="foot"><span>Akram Sweets · Analytics</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="usecases">
+    <p class="kicker">07 · Use-case catalogue</p>
+    <h2>Jobs this module is for</h2>
+    <table>
+      <thead><tr><th>ID</th><th>Actor</th><th>Use case</th></tr></thead>
+      <tbody>
+        <tr><td>AN-01</td><td>Management</td><td>Review certified profit vs amount paid to investors for a year</td></tr>
+        <tr><td>AN-02</td><td>Management</td><td>See who earned what each month (stacked bar + table)</td></tr>
+        <tr><td>AN-03</td><td>Management</td><td>Count profit vs loss months</td></tr>
+        <tr><td>AN-04</td><td>Management</td><td>Name the best and worst month</td></tr>
+        <tr><td>AN-05</td><td>Finance</td><td>Export CSV for Excel / board pack</td></tr>
+        <tr><td>AN-06</td><td>Finance</td><td>Open a period from the table to inspect</td></tr>
+        <tr><td>AN-07</td><td>Owner/Admin</td><td>Show typed Odoo display revenues on the same screen</td></tr>
+        <tr><td>AN-08</td><td>Owner/Admin</td><td>See how many months are still draft or in review</td></tr>
+        <tr><td>AN-09</td><td>Investor</td><td>See my payout trend for the year</td></tr>
+        <tr><td>AN-10</td><td>Investor</td><td>Download my statement PDF from the table</td></tr>
+        <tr><td>AN-11</td><td>Investor</td><td>Confirm current ownership while looking at history</td></tr>
+        <tr><td>AN-12</td><td>Anyone</td><td>Switch year without leaving Analytics</td></tr>
+      </tbody>
+    </table>
+    <div class="links"><button type="button" class="jump inline" data-goto="howto">How to</button><button type="button" class="jump inline" data-goto="features">Features</button></div>
+    <div class="foot"><span>Akram Sweets · Analytics</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="howto">
+    <p class="kicker">08 · How to use Analytics</p>
+    <h2>Office steps</h2>
+    <div class="grid g2">
+      <div class="card accent">
+        <h3>Finance / Management</h3>
+        <ul>
+          <li>Sign in → left menu <strong>Analytics</strong></li>
+          <li>Choose the year</li>
+          <li>Read summary strip and combo chart</li>
+          <li>Use stacked bar for per-person month</li>
+          <li>Export CSV if needed</li>
+          <li>Click a period name to open Monthly Periods</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Investor</h3>
+        <ul>
+          <li>Sign in → <strong>Charts &amp; Trends</strong></li>
+          <li>Choose year</li>
+          <li>Read my payout tiles and charts</li>
+          <li>Open a row → statement or PDF</li>
+          <li>Optional: Export CSV of my rows only</li>
+        </ul>
+      </div>
+    </div>
+    <p class="hint" style="margin-top:14px">If the table is empty, no month is <strong>approved</strong> that year yet. Calculating a draft is not enough.</p>
+    <div class="links"><button type="button" class="jump inline" data-goto="related">Empty states &amp; related</button></div>
+    <div class="foot"><span>Akram Sweets · Analytics</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="related">
+    <p class="kicker">09 · Around Analytics</p>
+    <h2>Related screens and empty states</h2>
+    <table>
+      <thead><tr><th>Screen</th><th>How it differs</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Dashboard</strong></td><td>Home: capital register + latest month pools. Not the year charts.</td></tr>
+        <tr><td><strong>Monthly Periods</strong></td><td>Where profit is entered and calculated.</td></tr>
+        <tr><td><strong>Mudarabah Summary</strong></td><td>Pool vs company share table — no charts.</td></tr>
+        <tr><td><strong>Display KPIs</strong></td><td>Where staff type Analytics operating figures.</td></tr>
+        <tr><td><strong>Portal home</strong></td><td>Investor landing; Charts &amp; Trends is this module.</td></tr>
+      </tbody>
+    </table>
+    <p class="hint" style="margin-top:14px">No periods: charts show N/A. Year with only drafts: graphs empty; workflow still shows drafts. Investor with nothing approved: zeros and empty table.</p>
+    <div class="links"><button type="button" class="jump inline" data-goto="toc">Contents</button><button type="button" class="jump inline" data-goto="usecases">Use cases</button></div>
+    <div class="foot"><span>Akram Sweets · Analytics</span><span></span></div>
+  </section>
+
+  <section class="slide cover" data-id="thanks">
+    <p class="kicker">Thank you</p>
+    <h1>Questions on Analytics</h1>
+    <p>Written guide: docs/ANALYTICS.md. Click Contents if the client asks what a chart or tile means.</p>
+    <div class="cover-cta">
+      <button type="button" data-goto="toc">Contents</button>
+      <button type="button" class="alt" data-goto="features">Features</button>
+      <button type="button" class="alt" data-goto="usecases">Use cases</button>
+    </div>
+    <div class="foot"><span>Akram Sweets · Analytics</span><span>Confidential</span></div>
+  </section>
+
+</div>
+
+<div class="nav">
+  <button type="button" class="ghost" data-goto="toc">Contents</button>
+  <button type="button" id="prev">Prev</button>
+  <button type="button" id="next">Next</button>
+</div>
+
+<script>
+  const slides = [...document.querySelectorAll('.slide')];
+  const byId = {};
+  slides.forEach((s, idx) => { const id = s.getAttribute('data-id'); if (id) byId[id] = idx; });
+  const foots = document.querySelectorAll('.slide:not(.cover) .foot span:last-child');
+  let i = 0;
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, idx) => s.classList.toggle('on', idx === i));
+    foots.forEach((el) => { el.textContent = (i + 1) + ' / ' + slides.length; });
+    const id = slides[i].getAttribute('data-id');
+    if (id) history.replaceState(null, '', '#' + id);
+  }
+  function go(target) {
+    const key = String(target || '').replace(/^#/, '');
+    if (byId[key] != null) show(byId[key]);
+  }
+  document.getElementById('next').onclick = () => show(i + 1);
+  document.getElementById('prev').onclick = () => show(i - 1);
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-goto]');
+    if (!btn) return;
+    e.preventDefault();
+    go(btn.getAttribute('data-goto'));
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+    if (e.key === 'Home') show(0);
+    if (e.key === 'End') show(slides.length - 1);
+    if (e.key === 'Escape') go('toc');
+  });
+  const hash = (location.hash || '').replace('#', '');
+  if (hash && byId[hash] != null) show(byId[hash]); else show(0);
+</script>
+</body>
+</html>

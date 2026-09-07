@@ -38,6 +38,9 @@
     {% else %}
     <span class="badge bg-info-subtle text-info">{{ user.role_label }}</span>
     {% endif %}
+    {% if user.is_company_owner_account() %}
+    <span class="badge bg-primary-subtle text-primary ms-1">Company owner</span>
+    {% endif %}
   </td>
   <td>{% if user.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>
   <td class="text-end">

@@ -30,7 +30,10 @@ class ShareholderForm(FlaskForm):
         ],
     )
     country_code = SelectField('Country', validators=[DataRequired()], coerce=str)
-    is_owner = BooleanField('Company owner')
+    is_owner = BooleanField(
+        'Company owner',
+        description='Company owner shareholders with a login are Super Admins and can see the full system.',
+    )
     is_active = BooleanField('Active', default=True)
     notes = TextAreaField('Notes', validators=[Optional(), Length(max=5000)])
     ownership_percent = DecimalField(

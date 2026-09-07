@@ -684,6 +684,10 @@ def apply_import(
 
     db.session.commit()
 
+    from apps.services.portal_service import sync_all_company_owner_superadmins
+
+    sync_all_company_owner_superadmins(actor=actor)
+
     from apps.services.audit_service import log_action
 
     log_action(

@@ -63,6 +63,19 @@ def main():
         if not portal_user or not portal_user.is_shareholder():
             errors.append('Shareholder A portal user missing or not linked')
 
+        owner_login = User.query.filter_by(email='pocly@akramsweets.com').first()
+        owner_sh = Shareholder.query.filter_by(is_owner=True).first()
+        if not owner_login or not owner_login.is_superadmin():
+            errors.append('Company owner shareholder login must be Super Admin')
+        elif owner_login.is_shareholder():
+            errors.append('Company owner Super Admin must not be treated as portal-only')
+        elif owner_login.home_endpoint() != 'pages.dashboard':
+            errors.append('Company owner Super Admin home must be the staff dashboard')
+        elif not owner_login.can_manage_users() or not owner_login.can_approve_periods():
+            errors.append('Company owner Super Admin must have full management permissions')
+        elif owner_sh and owner_login.shareholder_id != owner_sh.id:
+            errors.append('Company owner Super Admin must stay linked to the shareholder record')
+
     r = client.get('/auth/login')
     if r.status_code != 200:
         errors.append(f'Login page status {r.status_code}')
@@ -480,6 +493,30 @@ def main():
     r = client.get(f'/portal/reports/{period_id}/certificate')
     if r.status_code != 200 or r.mimetype != 'application/pdf':
         errors.append('Shareholder certificate PDF download failed')
+
+    client.get('/auth/logout')
+    owner_login = login_client(client, app, 'pocly@akramsweets.com', 'owner123')
+    if owner_login.status_code not in (302, 303):
+        errors.append(f'Company owner login failed status {owner_login.status_code}')
+    else:
+        loc = owner_login.headers.get('Location', '')
+        if 'portal' in loc:
+            errors.append(f'Company owner Super Admin should land on staff dashboard, got {loc}')
+
+    with client.session_transaction() as sess:
+        with app.app_context():
+            user = User.query.filter_by(email='pocly@akramsweets.com').first()
+            sess['_user_id'] = str(user.id)
+            sess['_fresh'] = True
+
+    for path in ['/', '/shareholders/', '/users/', '/periods/', '/analytics']:
+        r = client.get(path, follow_redirects=False)
+        if r.status_code != 200:
+            errors.append(f'Company owner Super Admin {path} returned {r.status_code}')
+
+    r = client.get('/portal/', follow_redirects=False)
+    if r.status_code != 200:
+        errors.append(f'Company owner Super Admin should still open My Portal, got {r.status_code}')
 
     if errors:
         print('VERIFICATION FAILED:')

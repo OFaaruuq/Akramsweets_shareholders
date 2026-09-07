@@ -116,6 +116,9 @@
           <div class="col-md-6 mb-3 d-flex align-items-end gap-3 flex-wrap">
             <div class="form-check">{{ form.is_owner(class='form-check-input', id='is-owner') }}<label class="form-check-label" for="is-owner">Company owner</label></div>
             <div class="form-check">{{ form.is_active(class='form-check-input', id='is-active') }}<label class="form-check-label" for="is-active">Active</label></div>
+            <div class="form-text w-100">
+              Company owner is also a <strong>Super Admin</strong>: with a login they can see every staff screen (periods, approvals, all shareholders, users, settings). Create portal access below to grant that login.
+            </div>
           </div>
           <div class="col-12 mb-3">
             <label class="form-label">{{ form.notes.label.text }}</label>
@@ -156,6 +159,11 @@
 
     {% if shareholder %}
     <div class="card mt-3"><div class="card-header"><h5 class="card-title mb-0">Shareholder Portal Access</h5></div><div class="card-body">
+      {% if shareholder.is_owner %}
+      <p class="alert alert-info fs-13 mb-3">
+        This shareholder is the <strong>Company owner</strong>. Creating a login makes them a <strong>Super Admin</strong> with full system access, plus their own statements under My Portal.
+      </p>
+      {% endif %}
       {% if shareholder.user_account %}
       <p class="text-muted mb-2">
         Portal login:
@@ -165,10 +173,15 @@
         {% else %}
         <span class="badge bg-secondary ms-1">Disabled</span>
         {% endif %}
+        {% if shareholder.user_account.is_superadmin() %}
+        <span class="badge bg-danger ms-1">Super Admin</span>
+        {% endif %}
       </p>
       <p class="mb-3 fs-13">Updating the form below resets the password and login email.</p>
       <div class="d-flex flex-wrap gap-2 mb-3">
-        {% if shareholder.user_account.is_active %}
+        {% if shareholder.is_owner %}
+        <p class="text-muted fs-13 mb-0">Company owner logins cannot be deactivated here. Uncheck Company owner first, or manage the account under Staff Users.</p>
+        {% elif shareholder.user_account.is_active %}
         <form method="post" action="{{ url_for('shareholders.deactivate_portal_account', shareholder_id=shareholder.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="btn btn-outline-danger btn-sm">Deactivate portal access</button>

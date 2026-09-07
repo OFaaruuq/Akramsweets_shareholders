@@ -149,12 +149,13 @@
                         </a>
                         {% endif %}
 
-                        {% if current_user.is_authenticated and current_user.is_shareholder() %}
+                        {% if current_user.is_authenticated and current_user.has_shareholder_portal() %}
                         <a href="{{ url_for('portal.reports') }}" class="dropdown-item notify-item rounded-2">
                             <iconify-icon icon="solar:document-outline" class="fs-18 align-middle"></iconify-icon>
                             <span>My reports</span>
                         </a>
-                        {% elif current_user.is_authenticated %}
+                        {% endif %}
+                        {% if current_user.is_authenticated and not current_user.is_shareholder() %}
                         <a href="{{ url_for('pages.dashboard') }}" class="dropdown-item notify-item rounded-2">
                             <iconify-icon icon="solar:home-2-outline" class="fs-18 align-middle"></iconify-icon>
                             <span>Dashboard</span>

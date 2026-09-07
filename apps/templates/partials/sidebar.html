@@ -185,6 +185,34 @@
                     </a>
                 </li>
                 {% endif %}
+
+                {% if current_user.has_shareholder_portal() %}
+                <li class="menu-title mt-2">My Portal</li>
+                <li>
+                    <a href="{{ url_for('portal.dashboard') }}" class="tp-link">
+                        <span class="nav-icon"><iconify-icon icon="solar:user-id-bold-duotone"></iconify-icon></span>
+                        <span> My Statements </span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('portal.reports') }}" class="tp-link">
+                        <span class="nav-icon"><iconify-icon icon="solar:document-text-bold-duotone"></iconify-icon></span>
+                        <span> My Reports </span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('portal.ownership') }}" class="tp-link">
+                        <span class="nav-icon"><iconify-icon icon="solar:pie-chart-2-bold-duotone"></iconify-icon></span>
+                        <span> My Ownership </span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('portal.withdrawal') }}" class="tp-link">
+                        <span class="nav-icon"><iconify-icon icon="solar:wallet-money-bold-duotone"></iconify-icon></span>
+                        <span> Capital Withdrawal </span>
+                    </a>
+                </li>
+                {% endif %}
                 {% endif %}
 
                 {% if current_user.is_authenticated %}

@@ -58,42 +58,49 @@ class User(UserMixin, db.Model):
     def role_label(self):
         return self.ROLE_LABELS.get(self.role, (self.role or 'user').replace('_', ' ').title())
 
+    def is_company_owner_account(self):
+        """Linked to an active Company Owner shareholder on the capital register."""
+        sh = self.shareholder
+        return bool(sh is not None and sh.is_owner and sh.is_active)
+
     def is_superadmin(self):
-        """System owner — full super-admin privileges above System Administrators."""
-        return self.role == self.ROLE_OWNER
+        """Full Super Admin: staff Owner role, or Company Owner shareholder login."""
+        if self.role == self.ROLE_OWNER:
+            return True
+        return self.is_company_owner_account()
 
     def is_owner_user(self):
         return self.is_superadmin()
 
     def is_management(self):
-        return self.role in (self.ROLE_OWNER, self.ROLE_ADMIN)
+        return self.is_superadmin() or self.role == self.ROLE_ADMIN
 
     def can_manage_rules(self):
-        return self.role in (self.ROLE_OWNER, self.ROLE_ADMIN)
+        return self.is_management()
 
     def can_approve_periods(self):
-        return self.role in (self.ROLE_OWNER, self.ROLE_ADMIN)
+        return self.is_management()
 
     def can_edit_shareholders(self):
-        return self.role in (self.ROLE_OWNER, self.ROLE_ADMIN)
+        return self.is_management()
 
     def can_enter_financials(self):
-        return self.role in (self.ROLE_OWNER, self.ROLE_ADMIN, self.ROLE_FINANCE)
+        return self.is_management() or self.role == self.ROLE_FINANCE
 
     def can_manage_users(self):
-        """Staff user directory — Owner (super admin) and System Admins."""
-        return self.role in (self.ROLE_OWNER, self.ROLE_ADMIN)
+        """Staff user directory — Super Admin and System Admins."""
+        return self.is_management()
 
     def can_assign_owner_role(self):
-        """Only the system owner may create or promote Super Admin accounts."""
+        """Only Super Admin may create or promote Super Admin accounts."""
         return self.is_superadmin()
 
     def can_manage_system_settings(self):
-        """Brand, SMTP, Mudarabah %, share value, images — Owner + Admin."""
-        return self.role in (self.ROLE_OWNER, self.ROLE_ADMIN)
+        """Brand, SMTP, Mudarabah %, share value, images — Super Admin + Admin."""
+        return self.is_management()
 
     def can_view_audit_log(self):
-        return self.role in (self.ROLE_OWNER, self.ROLE_ADMIN)
+        return self.is_management()
 
     def can_manage_target_user(self, target):
         """
@@ -104,17 +111,31 @@ class User(UserMixin, db.Model):
         """
         if not self.can_manage_users() or not target:
             return False
-        if target.role == self.ROLE_SHAREHOLDER:
+        if target.is_shareholder():
             return False
-        if target.role == self.ROLE_OWNER and not self.is_superadmin():
+        if target.is_superadmin() and not self.is_superadmin():
             return False
         return True
 
     def is_shareholder(self):
+        """Portal-only investor. Company owners are Super Admins with full staff access."""
+        if self.is_superadmin():
+            return False
         return self.role == self.ROLE_SHAREHOLDER and self.shareholder_id is not None
 
+    def has_shareholder_portal(self):
+        """Has a linked shareholder record (own statements), including Company Owner Super Admins."""
+        return self.shareholder_id is not None and self.shareholder is not None
+
     def home_endpoint(self):
-        """Canonical post-login home: portal for shareholders, staff dashboard otherwise."""
+        """Canonical post-login home: portal for investors, staff dashboard otherwise."""
         if self.is_shareholder():
             return 'portal.dashboard'
         return 'pages.dashboard'
+
+    @classmethod
+    def active_superadmin_count(cls, exclude_id=None):
+        query = cls.query.filter_by(role=cls.ROLE_OWNER, is_active=True)
+        if exclude_id:
+            query = query.filter(cls.id != exclude_id)
+        return query.count()

@@ -22,10 +22,7 @@ def _staff_role_choices(actor):
 
 
 def _active_owner_count(exclude_id=None):
-    query = User.query.filter_by(role=User.ROLE_OWNER, is_active=True)
-    if exclude_id:
-        query = query.filter(User.id != exclude_id)
-    return query.count()
+    return User.active_superadmin_count(exclude_id=exclude_id)
 
 
 def _apply_avatar_from_form(user, form):
@@ -142,6 +139,24 @@ def edit_user(user_id):
         new_role = form.role.data
         if new_role == User.ROLE_OWNER and not current_user.can_assign_owner_role():
             flash('Only the system owner (Super Admin) can assign the Super Admin role.', 'danger')
+            return render_template(
+                'users/form.html',
+                form=form,
+                title='Edit Staff User',
+                user=user,
+                segment='users',
+                is_superadmin=current_user.is_superadmin(),
+            )
+
+        linked_company_owner = bool(
+            user.shareholder and user.shareholder.is_owner and user.shareholder.is_active
+        )
+        if linked_company_owner and (new_role != User.ROLE_OWNER or not form.is_active.data):
+            flash(
+                'This login belongs to a Company Owner shareholder. '
+                'They remain Super Admin until you uncheck Company owner on the shareholder register.',
+                'danger',
+            )
             return render_template(
                 'users/form.html',
                 form=form,

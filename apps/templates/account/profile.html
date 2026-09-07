@@ -22,6 +22,9 @@
             <div class="text-muted fs-12 mt-1">
               {% if current_user.is_superadmin() %}
               <span class="badge bg-danger">Super Admin (Owner)</span>
+              {% if current_user.is_company_owner_account() %}
+              <span class="badge bg-primary">Company owner</span>
+              {% endif %}
               {% else %}
               {{ current_user.role_label }}
               {% endif %}
@@ -48,7 +51,7 @@
       </div>
     </div>
 
-    {% if current_user.is_shareholder() and current_user.shareholder %}
+    {% if current_user.has_shareholder_portal() and current_user.shareholder %}
     <div class="card">
       <div class="card-header"><h5 class="card-title mb-0">Shareholder details</h5></div>
       <div class="card-body">

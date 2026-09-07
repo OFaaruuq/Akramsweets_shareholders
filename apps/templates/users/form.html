@@ -25,7 +25,14 @@
     <div class="col-md-6 mb-3">
       <label class="form-label">Role</label>
       {{ form.role(class='form-select') }}
+      {% if user and user.is_company_owner_account() %}
+      <div class="form-text">
+        This account is the Company Owner shareholder login and stays Super Admin.
+        Change that from the shareholder register, not here.
+      </div>
+      {% else %}
       <div class="form-text">Super Admin (Owner) has full system control.</div>
+      {% endif %}
     </div>
     <div class="col-md-6 mb-3"><label class="form-label">Password{% if user %} (leave blank to keep current){% endif %}</label>{{ form.password(class='form-control') }}</div>
     <div class="col-12 mb-3"><div class="form-check">{{ form.is_active(class='form-check-input') }}<label class="form-check-label">Active</label></div></div>

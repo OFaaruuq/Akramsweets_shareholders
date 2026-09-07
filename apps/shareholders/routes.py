@@ -11,10 +11,12 @@ from apps.forms import PurgeShareholderRegisterForm, ShareholderCapitalUploadFor
 from apps.models.shareholder import OwnershipRecord, Shareholder
 from apps.services.audit_service import log_action
 from apps.services.portal_service import (
+    can_revoke_company_owner_superadmin,
     create_shareholder_portal_user,
     deactivate_shareholder_portal_user,
     portal_email_available,
     reactivate_shareholder_portal_user,
+    sync_company_owner_superadmin,
     sync_portal_profile,
 )
 from apps.services.shareholder_service import (
@@ -449,6 +451,11 @@ def create_shareholder():
                     )
                 except ValueError as exc:
                     flash(f'Shareholder saved, but portal account failed: {exc}', 'warning')
+            elif form.is_owner.data:
+                flash(
+                    'Company owner saved. Create a login below to grant this shareholder Super Admin access to the full system.',
+                    'info',
+                )
 
             total, _ = validate_ownership_totals(form.effective_from.data)
             if abs(total - Decimal('100')) > Decimal('0.01'):
@@ -513,69 +520,92 @@ def edit_shareholder(shareholder_id):
                 proposed_percent=form.ownership_percent.data,
             )
         else:
-            email = normalize_email(form.email.data)
-            previous_email = shareholder.email
-            was_active = shareholder.is_active
-            shareholder.name = form.name.data.strip()
-            shareholder.email = email
-            shareholder.phone = (form.phone.data or '').strip() or None
-            shareholder.is_owner = form.is_owner.data
-            shareholder.is_active = form.is_active.data
-            shareholder.notes = form.notes.data
-            shareholder.investment_amount = form.investment_amount.data or 0
-            shareholder.share_count = form.share_count.data or 0
-            shareholder.investment_date = form.investment_date.data
-            _apply_country(shareholder, form.country_code.data)
+            blocked = False
+            if shareholder.is_owner and not form.is_active.data:
+                flash('The company owner shareholder cannot be deactivated.', 'danger')
+                blocked = True
+            elif shareholder.is_owner and not form.is_owner.data:
+                ok, error = can_revoke_company_owner_superadmin(shareholder)
+                if not ok:
+                    flash(error, 'danger')
+                    blocked = True
 
-            if form.is_active.data and (
-                not latest_ownership
-                or latest_ownership.ownership_percent != form.ownership_percent.data
-                or latest_ownership.effective_from != form.effective_from.data
-            ):
-                if latest_ownership and latest_ownership.effective_from == form.effective_from.data:
-                    latest_ownership.ownership_percent = form.ownership_percent.data
-                    if latest_ownership.effective_to is not None and form.is_active.data:
-                        latest_ownership.effective_to = None
-                else:
-                    if latest_ownership and latest_ownership.effective_to is None:
-                        latest_ownership.effective_to = form.effective_from.data
-                    db.session.add(
-                        OwnershipRecord(
-                            shareholder_id=shareholder.id,
-                            ownership_percent=form.ownership_percent.data,
-                            effective_from=form.effective_from.data,
-                            created_by_id=current_user.id,
-                        )
-                    )
-
-            # Deactivating via edit: close open ownership like deactivate endpoint.
-            if was_active and not form.is_active.data:
-                open_rec = shareholder.ownership_records.filter(
-                    OwnershipRecord.effective_to.is_(None)
-                ).first()
-                if open_rec:
-                    open_rec.effective_to = datetime.utcnow().date()
-                if shareholder.user_account:
-                    shareholder.user_account.is_active = False
-
-            db.session.commit()
-
-            try:
-                sync_email = bool(form.sync_portal_email.data) or (
-                    previous_email == (shareholder.user_account.email if shareholder.user_account else None)
-                    and previous_email != email
+            if blocked:
+                ownership_ctx = _ownership_context(
+                    form.effective_from.data or datetime.utcnow().date(),
+                    exclude_shareholder_id=shareholder.id,
+                    proposed_percent=form.ownership_percent.data,
                 )
-                sync_portal_profile(shareholder, sync_email=sync_email)
-            except ValueError as exc:
-                flash(str(exc), 'warning')
-
-            total, _ = validate_ownership_totals(form.effective_from.data)
-            if form.is_active.data and abs(total - Decimal('100')) > Decimal('0.01'):
-                flash(f'Shareholder updated. Active ownership totals {total:.2f}% (expected 100%).', 'warning')
             else:
-                flash('Shareholder updated successfully.', 'success')
-            log_action('update', 'shareholder', shareholder.id, shareholder.name)
-            return redirect(url_for('shareholders.list_shareholders'))
+                email = normalize_email(form.email.data)
+                previous_email = shareholder.email
+                was_active = shareholder.is_active
+                shareholder.name = form.name.data.strip()
+                shareholder.email = email
+                shareholder.phone = (form.phone.data or '').strip() or None
+                shareholder.is_owner = form.is_owner.data
+                shareholder.is_active = form.is_active.data
+                shareholder.notes = form.notes.data
+                shareholder.investment_amount = form.investment_amount.data or 0
+                shareholder.share_count = form.share_count.data or 0
+                shareholder.investment_date = form.investment_date.data
+                _apply_country(shareholder, form.country_code.data)
+
+                if form.is_active.data and (
+                    not latest_ownership
+                    or latest_ownership.ownership_percent != form.ownership_percent.data
+                    or latest_ownership.effective_from != form.effective_from.data
+                ):
+                    if latest_ownership and latest_ownership.effective_from == form.effective_from.data:
+                        latest_ownership.ownership_percent = form.ownership_percent.data
+                        if latest_ownership.effective_to is not None and form.is_active.data:
+                            latest_ownership.effective_to = None
+                    else:
+                        if latest_ownership and latest_ownership.effective_to is None:
+                            latest_ownership.effective_to = form.effective_from.data
+                        db.session.add(
+                            OwnershipRecord(
+                                shareholder_id=shareholder.id,
+                                ownership_percent=form.ownership_percent.data,
+                                effective_from=form.effective_from.data,
+                                created_by_id=current_user.id,
+                            )
+                        )
+
+                # Deactivating via edit: close open ownership like deactivate endpoint.
+                if was_active and not form.is_active.data:
+                    open_rec = shareholder.ownership_records.filter(
+                        OwnershipRecord.effective_to.is_(None)
+                    ).first()
+                    if open_rec:
+                        open_rec.effective_to = datetime.utcnow().date()
+                    if shareholder.user_account:
+                        shareholder.user_account.is_active = False
+
+                db.session.commit()
+
+                try:
+                    sync_company_owner_superadmin(shareholder, actor=current_user, commit=True)
+                except ValueError as exc:
+                    flash(str(exc), 'danger')
+                    return redirect(url_for('shareholders.edit_shareholder', shareholder_id=shareholder.id))
+
+                try:
+                    sync_email = bool(form.sync_portal_email.data) or (
+                        previous_email == (shareholder.user_account.email if shareholder.user_account else None)
+                        and previous_email != email
+                    )
+                    sync_portal_profile(shareholder, sync_email=sync_email)
+                except ValueError as exc:
+                    flash(str(exc), 'warning')
+
+                total, _ = validate_ownership_totals(form.effective_from.data)
+                if form.is_active.data and abs(total - Decimal('100')) > Decimal('0.01'):
+                    flash(f'Shareholder updated. Active ownership totals {total:.2f}% (expected 100%).', 'warning')
+                else:
+                    flash('Shareholder updated successfully.', 'success')
+                log_action('update', 'shareholder', shareholder.id, shareholder.name)
+                return redirect(url_for('shareholders.list_shareholders'))
     elif request.method == 'POST':
         flash('Please fix the highlighted fields.', 'danger')
         ownership_ctx = _ownership_context(
@@ -632,8 +662,11 @@ def save_portal_account(shareholder_id):
 @management_required
 def deactivate_portal_account(shareholder_id):
     shareholder = Shareholder.query.get_or_404(shareholder_id)
-    deactivate_shareholder_portal_user(shareholder, current_user.id)
-    flash('Shareholder portal access deactivated.', 'success')
+    try:
+        deactivate_shareholder_portal_user(shareholder, current_user.id)
+        flash('Shareholder portal access deactivated.', 'success')
+    except ValueError as exc:
+        flash(str(exc), 'danger')
     return redirect(url_for('shareholders.edit_shareholder', shareholder_id=shareholder.id))
 
 

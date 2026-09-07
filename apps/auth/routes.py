@@ -30,6 +30,18 @@ def _otp_sent_flash(reason: str, user: User) -> str:
     return f'A verification code was sent to {email}.'
 
 
+def _ensure_company_owner_superadmin(user):
+    """Company Owner shareholder logins become Super Admin before the session is created."""
+    if not user or not user.shareholder:
+        return
+    from apps.services.portal_service import sync_company_owner_superadmin
+
+    try:
+        sync_company_owner_superadmin(user.shareholder, actor=user, commit=True)
+    except ValueError:
+        pass
+
+
 @blueprint.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
@@ -39,6 +51,7 @@ def login():
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data.strip().lower()).first()
         if user and user.is_active and user.check_password(form.password.data):
+            _ensure_company_owner_superadmin(user)
             if not otp_enabled():
                 login_user(user, remember=form.remember.data)
                 log_action('login', 'user', user.id, f'{user.email} signed in', user=user)
@@ -95,6 +108,7 @@ def verify_otp():
     if form.validate_on_submit():
         verified_user, status = verify_otp_code(form.code.data)
         if status == 'ok' and verified_user:
+            _ensure_company_owner_superadmin(verified_user)
             remember = pop_remember_flag()
             login_user(verified_user, remember=remember)
             log_action(
@@ -197,7 +211,7 @@ def account():
     if request.method == 'GET':
         phone_form.phone.data = current_user.phone or (
             current_user.shareholder.phone
-            if current_user.is_shareholder() and current_user.shareholder
+            if current_user.has_shareholder_portal() and current_user.shareholder
             else ''
         )
 
@@ -223,7 +237,7 @@ def account():
         phone = (phone_form.phone.data or '').strip() or None
         current_user.phone = phone
         # Keep shareholder contact in sync for portal users
-        if current_user.is_shareholder() and current_user.shareholder:
+        if current_user.has_shareholder_portal() and current_user.shareholder:
             current_user.shareholder.phone = phone
         db.session.commit()
         log_action('phone_update', 'user', current_user.id, phone or 'cleared')
