@@ -216,6 +216,16 @@
                 {% endif %}
 
                 {% if current_user.is_authenticated %}
+                <li class="menu-title mt-2">Training</li>
+                <li>
+                    <a href="{{ url_for('pages.public_presentation') }}" class="tp-link" target="_blank" rel="noopener">
+                        <span class="nav-icon"><iconify-icon icon="solar:notebook-bookmark-bold-duotone"></iconify-icon></span>
+                        <span> Client presentation </span>
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if current_user.is_authenticated %}
                 <li class="menu-title mt-2">Account</li>
                 {% if not current_user.is_shareholder() %}
                 <li>
