@@ -90,6 +90,12 @@ def main():
     elif 'Akram Sweets' not in r.get_data(as_text=True):
         errors.append('Public presentation /present missing expected title content')
 
+    r = client.get('/training/analytics', follow_redirects=False)
+    if r.status_code != 200:
+        errors.append(f'Public analytics guide /training/analytics returned {r.status_code}')
+    elif 'Analytics' not in r.get_data(as_text=True):
+        errors.append('Public analytics guide missing expected title content')
+
     r2 = login_client(client, app, 'admin@akramsweets.com', 'admin123')
     if r2.status_code not in (302, 303):
         errors.append(f'Admin login failed status {r2.status_code}')

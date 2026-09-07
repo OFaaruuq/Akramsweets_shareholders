@@ -9,17 +9,25 @@ from jinja2 import TemplateNotFound
 
 from apps.services.dashboard_service import get_dashboard_metrics, get_shareholder_dashboard_metrics
 
-# Public client deck: docs/present.html (server rename) or docs/HANDOVER_PRESENTATION.html
-_PRESENTATION_NAMES = ('present.html', 'HANDOVER_PRESENTATION.html')
+# Public training decks in docs/ (server may rename handover to present.html)
+_HANDOVER_NAMES = ('present.html', 'HANDOVER_PRESENTATION.html')
+_ANALYTICS_NAMES = ('analytics.html', 'ANALYTICS_PRESENTATION.html')
 
 
-def _public_presentation_path():
+def _docs_html(*names):
+    """Return the newest matching file so a renamed copy cannot hide an updated deck."""
     docs_dir = Path(__file__).resolve().parents[2] / 'docs'
-    for name in _PRESENTATION_NAMES:
-        path = docs_dir / name
-        if path.is_file():
-            return path
-    return None
+    found = [docs_dir / name for name in names if (docs_dir / name).is_file()]
+    if not found:
+        return None
+    return max(found, key=lambda path: path.stat().st_mtime)
+
+
+def _send_docs_html(*names):
+    path = _docs_html(*names)
+    if not path:
+        return render_template('pages/error-404.html'), 404
+    return send_file(path, mimetype='text/html; charset=utf-8')
 
 # Only real public/error pages remain reachable via the catch-all.
 # Theme demos (ui-*, charts-*, forms-*, tables-*, maps-*, widgets, etc.) redirect home.
@@ -133,11 +141,15 @@ def legacy_login():
 @blueprint.route('/present')
 @blueprint.route('/present.html')
 def public_presentation():
-    """Client handover deck — no login required."""
-    path = _public_presentation_path()
-    if not path:
-        return render_template('pages/error-404.html'), 404
-    return send_file(path, mimetype='text/html; charset=utf-8')
+    """Staff training: how the whole system works — no login required."""
+    return _send_docs_html(*_HANDOVER_NAMES)
+
+
+@blueprint.route('/training/analytics')
+@blueprint.route('/analytics-guide.html')
+def public_analytics_presentation():
+    """Staff training: Analytics module — no login required."""
+    return _send_docs_html(*_ANALYTICS_NAMES)
 
 
 @blueprint.route('/auth-register')

@@ -23,7 +23,13 @@ app = create_app(app_config)
 DEBUG = bool(getattr(app_config, 'DEBUG', False))
 
 if not DEBUG:
-    Minify(app=app, html=True, js=False, cssless=False, bypass=['pages.public_presentation'])
+    Minify(
+        app=app,
+        html=True,
+        js=False,
+        cssless=False,
+        bypass=['pages.public_presentation', 'pages.public_analytics_presentation'],
+    )
 
 if DEBUG:
     app.logger.info('DEBUG            = %s', DEBUG)

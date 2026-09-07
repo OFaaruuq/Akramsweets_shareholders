@@ -215,12 +215,18 @@
                 {% endif %}
                 {% endif %}
 
-                {% if current_user.is_authenticated %}
+                {% if current_user.is_authenticated and not current_user.is_shareholder() %}
                 <li class="menu-title mt-2">Training</li>
                 <li>
                     <a href="{{ url_for('pages.public_presentation') }}" class="tp-link" target="_blank" rel="noopener">
                         <span class="nav-icon"><iconify-icon icon="solar:notebook-bookmark-bold-duotone"></iconify-icon></span>
-                        <span> Client presentation </span>
+                        <span> How the system works </span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('pages.public_analytics_presentation') }}" class="tp-link" target="_blank" rel="noopener">
+                        <span class="nav-icon"><iconify-icon icon="solar:chart-2-bold-duotone"></iconify-icon></span>
+                        <span> Analytics guide </span>
                     </a>
                 </li>
                 {% endif %}

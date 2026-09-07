@@ -203,13 +203,13 @@
     <table>
       <thead><tr><th>Role</th><th>Who</th><th>Their job</th></tr></thead>
       <tbody>
-        <tr><td><strong>Super Admin</strong></td><td>Business / system owner</td><td>Full control. Approves months. Sets profit split, brand, users.</td></tr>
+        <tr><td><strong>Super Admin</strong></td><td>Business owner, or a <strong>Company Owner</strong> shareholder with a login</td><td>Sees every staff screen. Approves months. Sets profit split, brand, users. If they are also a shareholder they keep <strong>My Portal</strong> for their own statements.</td></tr>
         <tr><td><strong>System Administrator</strong></td><td>Office / operations</td><td>Shareholders, side agreements, settings. Can approve. Cannot manage Super Admins.</td></tr>
         <tr><td><strong>Finance</strong></td><td>Accounts</td><td>Enter this month’s Net Profit from Odoo, calculate, send to management. Cannot approve or change rules.</td></tr>
-        <tr><td><strong>Shareholder</strong></td><td>Investor</td><td>Portal only. Sees own certified results. Can request return of capital.</td></tr>
+        <tr><td><strong>Shareholder</strong></td><td>Investor (not the company owner)</td><td>Portal only. Sees own certified results. Can request return of capital. Does not see staff Training or office menus.</td></tr>
       </tbody>
     </table>
-    <p class="hint" style="margin-top:14px">Nobody signs up themselves. The office creates every login. Investors never see staff screens.</p>
+    <p class="hint" style="margin-top:14px">Nobody signs up themselves. The office creates every login. Ordinary investors never see staff screens. A Company Owner shareholder with a login <strong>is</strong> Super Admin and sees everything.</p>
     <div class="links"><button type="button" class="jump inline" data-goto="feat-users">Staff Users feature</button><button type="button" class="jump inline" data-goto="feat-portal">Portal feature</button></div>
     <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
   </section>
@@ -350,6 +350,7 @@
       <button type="button" class="toc-item" data-goto="feat-mudarabah"><span class="toc-n">Operations</span><strong>Mudarabah Summary</strong><span class="desc">Pool vs company share</span></button>
       <button type="button" class="toc-item" data-goto="feat-history"><span class="toc-n">Operations</span><strong>Reports History</strong><span class="desc">What was already sent</span></button>
       <button type="button" class="toc-item" data-goto="feat-admin"><span class="toc-n">Admin</span><strong>Users, settings, audit…</strong><span class="desc">How the office runs the system</span></button>
+      <button type="button" class="toc-item" data-goto="feat-training"><span class="toc-n">Training</span><strong>Training (this deck)</strong><span class="desc">How the system works + Analytics guide</span></button>
     </div>
     <div class="links"><button type="button" class="jump inline" data-goto="feat-portal">Investor portal features</button><button type="button" class="jump inline" data-goto="feat-login">Login &amp; profile</button></div>
     <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
@@ -462,10 +463,11 @@
     <table>
       <thead><tr><th>Capability</th><th>Description</th><th>Use case</th></tr></thead>
       <tbody>
-        <tr><td><strong>Add / edit person</strong></td><td>Name, email, phone, country, shares, capital, %, dates, owner flag, active</td><td>A new investor joins — add them and rebalance others to 100%</td></tr>
+        <tr><td><strong>Add / edit person</strong></td><td>Name, email, phone, country, shares, capital, %, dates, <strong>Company owner</strong> flag, active</td><td>A new investor joins — add them and rebalance others to 100%</td></tr>
+        <tr><td><strong>Company owner</strong></td><td>Checked = this person is also Super Admin once they have a login. They see the full staff menu plus My Portal</td><td>The founding owner must see everything, including their own statements</td></tr>
         <tr><td><strong>Ownership history</strong></td><td>Changing % closes the old record and starts a new from-date</td><td>Someone sells part of their holding from 1 June</td></tr>
-        <tr><td><strong>Deactivate / reactivate</strong></td><td>Ends open %, stops portal. Company-owner row cannot be deactivated. Reactivate only if % still fits</td><td>An investor exits; later they return</td></tr>
-        <tr><td><strong>Portal login</strong></td><td>Create, reset password, turn access off/on</td><td>Give them the portal; they forgot the password (no self-reset)</td></tr>
+        <tr><td><strong>Deactivate / reactivate</strong></td><td>Ends open %, stops portal. Company-owner row cannot be deactivated. Last Super Admin cannot lose owner flag</td><td>An investor exits; later they return</td></tr>
+        <tr><td><strong>Portal login</strong></td><td>Create, reset password, turn access off/on. For Company owner this login is Super Admin</td><td>Give them the portal; they forgot the password (no self-reset)</td></tr>
         <tr><td><strong>Excel import / export</strong></td><td>Upload CSV/xlsx (Somali headers ok). Preview then replace. Export xlsx</td><td>First go-live load of the company sheet</td></tr>
         <tr><td><strong>Purge</strong></td><td>Super Admin only. Wipes register, months, certificates, portal users. Keeps staff</td><td>A bad first import must be started again</td></tr>
       </tbody>
@@ -594,6 +596,26 @@
     <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
   </section>
 
+  <section class="slide" data-id="feat-training">
+    <p class="kicker">Feature · Training</p>
+    <h2>Guides in the left menu</h2>
+    <p class="who">Who: Finance, Admin, Super Admin (including Company Owner) · Menu: Training · opens in a new tab · ordinary investors do not see this</p>
+    <div class="grid g2">
+      <div class="card">
+        <h3>How the system works</h3>
+        <p>This presentation: profit calculation, monthly close, every staff menu, how-to for Finance and Admin.</p>
+        <p style="margin-top:8px">Public URL: <strong>/present</strong> (no login required if you share the link).</p>
+      </div>
+      <div class="card accent">
+        <h3>Analytics guide</h3>
+        <p>Charts &amp; Trends: approved months only, staff vs investor view, CSV, Display KPIs are not the profit engine.</p>
+        <p style="margin-top:8px">Public URL: <strong>/training/analytics</strong>.</p>
+      </div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="feat-analytics">Analytics feature</button><button type="button" class="jump inline" data-goto="features">All features</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
   <section class="slide" data-id="feat-users">
     <p class="kicker">Feature · Staff Users</p>
     <h2>Office logins</h2>
@@ -703,7 +725,7 @@
   <section class="slide" data-id="feat-portal">
     <p class="kicker">Feature · Shareholder portal</p>
     <h2>What the investor sees — and nothing else</h2>
-    <p class="who">Who: role Shareholder with a portal login · only <strong>approved</strong> months</p>
+    <p class="who">Who: role Shareholder with a portal login · only <strong>approved</strong> months. Company Owner Super Admins also have these links under <strong>My Portal</strong> plus the full staff menu.</p>
     <table>
       <thead><tr><th>Menu</th><th>Description</th><th>Use case</th></tr></thead>
       <tbody>
@@ -785,8 +807,9 @@
     <ol class="check">
       <li>Open the person under Shareholders → portal access.</li>
       <li>Login email, display name, password (min 6 characters). Save.</li>
+      <li>If they are marked <strong>Company owner</strong>, this login becomes Super Admin — they see the whole system, not portal-only.</li>
       <li>If email/WhatsApp is on, details can go out automatically.</li>
-      <li>Tell them: they only see <strong>approved</strong> months, not drafts.</li>
+      <li>Tell ordinary investors: they only see <strong>approved</strong> months, not drafts. Company Owner Super Admins also see all staff screens.</li>
       <li>Forgotten password: reset it here. There is no forgot-password on the login page.</li>
       <li>They should add WhatsApp under Account Settings.</li>
     </ol>
