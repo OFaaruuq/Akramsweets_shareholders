@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Akram Sweets — Shareholders · Client presentation</title>
+  <style>
+    :root {
+      --wine: #8A1B24;
+      --wine-dark: #5c1018;
+      --ink: #1a1714;
+      --muted: #5c564e;
+      --line: #e4ddd4;
+      --paper: #f7f3ee;
+      --card: #fff;
+      --gold: #b8893a;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; height: 100%;
+      font-family: "Georgia", "Times New Roman", serif;
+      background: #2a221e; color: var(--ink);
+    }
+    .deck { height: 100%; overflow: hidden; }
+    .slide {
+      display: none;
+      height: 100%;
+      padding: 40px 56px 76px;
+      background: var(--paper);
+      flex-direction: column;
+      position: relative;
+      overflow: auto;
+    }
+    .slide.on { display: flex; }
+    .slide.cover {
+      background: var(--wine);
+      color: #fff;
+      justify-content: flex-end;
+      padding: 64px;
+      overflow: hidden;
+    }
+    .kicker {
+      font-family: system-ui, sans-serif;
+      font-size: 12px; letter-spacing: .18em; text-transform: uppercase;
+      color: var(--gold); font-weight: 600; margin: 0 0 8px;
+    }
+    .cover .kicker { color: #f0d9a8; }
+    h1 { font-size: 38px; font-weight: 600; margin: 0 0 12px; line-height: 1.15; letter-spacing: -0.02em; }
+    .cover h1 { font-size: 44px; max-width: 16ch; }
+    h2 { font-size: 26px; font-weight: 600; margin: 0 0 14px; }
+    h3 { font-size: 14px; font-family: system-ui, sans-serif; font-weight: 700; margin: 0 0 8px; }
+    p, li { font-size: 16.5px; line-height: 1.42; color: var(--muted); }
+    .cover p { color: rgba(255,255,255,.88); max-width: 46ch; font-size: 18px; }
+    .lede { font-size: 18px; color: var(--ink); max-width: 64ch; margin: 0 0 16px; }
+    .grid { display: grid; gap: 12px; }
+    .g2 { grid-template-columns: 1fr 1fr; }
+    .g3 { grid-template-columns: 1fr 1fr 1fr; }
+    .g4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+    .card p, .card li { font-size: 14px; margin: 0; }
+    .card ul { margin: 0; padding-left: 18px; }
+    .card li { margin: 4px 0; }
+    .card.accent { border-left: 4px solid var(--wine); }
+    table { width: 100%; border-collapse: collapse; font-family: system-ui, sans-serif; font-size: 13.5px; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+    td { color: var(--ink); }
+    .flow { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
+    .step {
+      flex: 1; min-width: 110px; background: #fff; border: 1px solid var(--line);
+      border-radius: 8px; padding: 11px 13px;
+    }
+    .step n { display: block; font-family: system-ui, sans-serif; font-size: 11px; color: var(--wine); font-weight: 700; letter-spacing: .12em; }
+    .step b { display: block; font-size: 14.5px; margin: 4px 0 4px; color: var(--ink); }
+    .step span { font-size: 12.5px; color: var(--muted); }
+    .arrow { align-self: center; color: var(--wine); font-size: 20px; font-family: system-ui; }
+    .bar {
+      display: flex; height: 38px; border-radius: 6px; overflow: hidden;
+      font-family: system-ui, sans-serif; font-size: 13px; font-weight: 600; color: #fff;
+    }
+    .bar > div { display: flex; align-items: center; justify-content: center; }
+    .foot {
+      position: absolute; left: 56px; right: 200px; bottom: 20px;
+      display: flex; justify-content: space-between; align-items: center;
+      font-family: system-ui, sans-serif; font-size: 11px; color: #8a837a; letter-spacing: .04em;
+    }
+    .cover .foot { color: rgba(255,255,255,.55); right: 56px; }
+    .nav {
+      position: fixed; right: 16px; bottom: 16px; z-index: 8;
+      display: flex; gap: 6px; font-family: system-ui, sans-serif;
+    }
+    .nav button, .jump, .toc-item, .cover-cta {
+      font-family: system-ui, sans-serif; cursor: pointer;
+    }
+    .nav button {
+      background: var(--wine); color: #fff; border: 0; border-radius: 6px;
+      padding: 8px 12px; font-size: 13px;
+    }
+    .nav button.ghost { background: #fff; color: var(--wine); border: 1px solid var(--wine); }
+    .nav button:hover { background: var(--wine-dark); }
+    .nav button.ghost:hover { background: var(--paper); }
+    .hint { font-family: system-ui, sans-serif; font-size: 13px; color: var(--muted); }
+    .check { font-family: system-ui, sans-serif; font-size: 15px; color: var(--ink); padding-left: 20px; }
+    .check li { margin: 7px 0; }
+    ul.tight { margin: 0; padding-left: 18px; }
+    ul.tight li { margin: 5px 0; color: var(--ink); font-size: 15px; }
+    .role { font-family: system-ui, sans-serif; font-size: 11px; font-weight: 700; color: var(--wine); letter-spacing: .04em; text-transform: uppercase; }
+    .formula {
+      font-family: system-ui, sans-serif; background: #fff; border: 1px solid var(--line);
+      border-radius: 8px; padding: 12px 16px; font-size: 15.5px; color: var(--ink); margin: 0 0 14px;
+    }
+    .toc-item, .jump {
+      appearance: none; text-align: left; width: 100%;
+      background: var(--card); border: 1px solid var(--line); border-radius: 8px;
+      padding: 12px 14px; color: inherit;
+    }
+    .toc-item:hover, .jump:hover, .card.click:hover {
+      border-color: var(--wine); background: #fffaf8;
+    }
+    .toc-item strong { display: block; font-size: 14.5px; color: var(--ink); margin: 2px 0 4px; font-family: Georgia, serif; }
+    .toc-item span.desc { display: block; font-size: 12.5px; color: var(--muted); line-height: 1.35; }
+    .toc-n {
+      font-family: system-ui, sans-serif; font-size: 10px; letter-spacing: .12em;
+      color: var(--wine); font-weight: 700;
+    }
+    .jump.inline {
+      display: inline-block; width: auto; padding: 5px 10px; font-size: 12px;
+      font-weight: 600; color: var(--wine); margin: 2px 4px 2px 0;
+    }
+    .cover-cta {
+      margin-top: 28px; display: flex; gap: 10px; flex-wrap: wrap;
+    }
+    .cover-cta button {
+      background: #fff; color: var(--wine); border: 0; border-radius: 6px;
+      padding: 10px 16px; font-size: 14px; font-weight: 600;
+    }
+    .cover-cta button.alt {
+      background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.45);
+    }
+    .links { margin-top: 12px; }
+    .who { font-family: system-ui, sans-serif; font-size: 12.5px; color: var(--muted); margin: 0 0 10px; }
+    .uc { font-family: system-ui, sans-serif; }
+    .uc li { font-size: 14px; color: var(--ink); margin: 6px 0; }
+    @media print {
+      html, body, .deck { height: auto; overflow: visible; background: #fff; }
+      .slide { display: flex !important; height: auto; min-height: 100vh; page-break-after: always; position: relative; overflow: visible; }
+      .nav { display: none; }
+      .toc-item, .jump { border: 1px solid var(--line); }
+    }
+  </style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+  <section class="slide cover on" data-id="cover">
+    <p class="kicker">Client handover · Click any topic</p>
+    <h1>Akram Sweets Shareholders</h1>
+    <p>How the company shares monthly profit, how the office uses the system, and every feature with its description and use cases.</p>
+    <div class="cover-cta">
+      <button type="button" data-goto="toc">Open contents</button>
+      <button type="button" class="alt" data-goto="calc-steps">How profit is calculated</button>
+      <button type="button" class="alt" data-goto="features">All features &amp; use cases</button>
+    </div>
+    <div class="foot"><span>Akram Sweets</span><span>Confidential</span></div>
+  </section>
+
+  <section class="slide" data-id="toc">
+    <p class="kicker">Contents · click a card</p>
+    <h2>Jump to any topic</h2>
+    <div class="grid g3">
+      <button type="button" class="toc-item" data-goto="idea"><span class="toc-n">A · Business</span><strong>What this system is for</strong><span class="desc">Mudarabah, capital vs profit, who does what</span></button>
+      <button type="button" class="toc-item" data-goto="calc-steps"><span class="toc-n">B · Calculation</span><strong>How monthly profit is calculated</strong><span class="desc">Odoo → pool → ownership → arrangements → certificate</span></button>
+      <button type="button" class="toc-item" data-goto="rhythm"><span class="toc-n">C · Each month</span><strong>How the office closes a month</strong><span class="desc">Finance enters, management certifies, investors see it</span></button>
+      <button type="button" class="toc-item" data-goto="features"><span class="toc-n">D · Features</span><strong>Every menu: description + use cases</strong><span class="desc">Click through Dashboard, Periods, Shareholders, Portal…</span></button>
+      <button type="button" class="toc-item" data-goto="howto-finance"><span class="toc-n">E · How to</span><strong>Step-by-step for Finance &amp; Admin</strong><span class="desc">Enter profit, approve, add an investor, give portal access</span></button>
+      <button type="button" class="toc-item" data-goto="scope"><span class="toc-n">F · Go-live</span><strong>What is in / out, checklist, rehearsal</strong><span class="desc">No live Odoo, no bank — then the live practice</span></button>
+    </div>
+    <p class="hint" style="margin-top:16px">During the meeting: stay on this page and click whatever the client asks. Arrow keys still go slide by slide. Contents is always on the bottom right.</p>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="idea">
+    <p class="kicker">A · Business idea</p>
+    <h2>One place instead of spreadsheets</h2>
+    <p class="lede">Akram Sweets manages the business. Shareholders invest capital. Each month, approved profit is shared under Mudarabah — fairly, on paper, and visible to each investor.</p>
+    <div class="grid g3">
+      <div class="card accent"><h3>For accounts</h3><p>Paste Net Profit from Odoo once. The system splits it and keeps the working.</p></div>
+      <div class="card accent"><h3>For management</h3><p>Review, approve, certify. Certificates and notices go to investors.</p></div>
+      <div class="card accent"><h3>For investors</h3><p>A portal: my month, my certificate, my ownership, request to take capital back.</p></div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="roles">Who does what</button><button type="button" class="jump inline" data-goto="capital">Capital vs profit</button><button type="button" class="jump inline" data-goto="calc-steps">How we calculate</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="roles">
+    <p class="kicker">A · People</p>
+    <h2>Who does what in the company</h2>
+    <table>
+      <thead><tr><th>Role</th><th>Who</th><th>Their job</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Super Admin</strong></td><td>Business / system owner</td><td>Full control. Approves months. Sets profit split, brand, users.</td></tr>
+        <tr><td><strong>System Administrator</strong></td><td>Office / operations</td><td>Shareholders, side agreements, settings. Can approve. Cannot manage Super Admins.</td></tr>
+        <tr><td><strong>Finance</strong></td><td>Accounts</td><td>Enter this month’s Net Profit from Odoo, calculate, send to management. Cannot approve or change rules.</td></tr>
+        <tr><td><strong>Shareholder</strong></td><td>Investor</td><td>Portal only. Sees own certified results. Can request return of capital.</td></tr>
+      </tbody>
+    </table>
+    <p class="hint" style="margin-top:14px">Nobody signs up themselves. The office creates every login. Investors never see staff screens.</p>
+    <div class="links"><button type="button" class="jump inline" data-goto="feat-users">Staff Users feature</button><button type="button" class="jump inline" data-goto="feat-portal">Portal feature</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="capital">
+    <p class="kicker">A · Golden rule</p>
+    <h2>Capital is not this month’s profit</h2>
+    <div class="grid g2">
+      <div class="card">
+        <h3>Capital register — the investment</h3>
+        <p>Shares, money invested, Murabaha assets, value of one share.</p>
+        <p style="margin-top:10px">Shown on the dashboard and statements <strong>for information</strong>.</p>
+        <p style="margin-top:10px">Changing share value does <strong>not</strong> change this month’s payout.</p>
+      </div>
+      <div class="card accent">
+        <h3>Monthly profit — what we calculate</h3>
+        <p>Only <strong>Approved Monthly Net Profit from Odoo</strong>.</p>
+        <p style="margin-top:10px">Split under Mudarabah, then by ownership %, then by any special agreement.</p>
+        <p style="margin-top:10px">That is the certificate number — what you pay.</p>
+      </div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="calc-steps">See the four calculation steps</button><button type="button" class="jump inline" data-goto="feat-shareholders">Shareholders feature</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="calc-steps">
+    <p class="kicker">B · How profit is calculated</p>
+    <h2>Four steps — every month</h2>
+    <div class="formula">Investor payout = their share of the <strong>shareholders’ pool</strong> after Mudarabah — not of the full company Net Profit.</div>
+    <div class="flow">
+      <div class="step"><n>01</n><b>Take Net Profit</b><span>Copy approved monthly Net Profit from Odoo. Loss = a negative number.</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><n>02</n><b>Split the month</b><span>Mudarabah (often 50/50): shareholders’ pool vs Akram Sweets as managing partner.</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><n>03</n><b>Share the pool</b><span>Base = pool × ownership %. Active ownership must add to 100%.</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><n>04</n><b>Deals, then lock</b><span>Special arrangements, rare one-off adjustments, then management certifies. That is final.</span></div>
+    </div>
+    <p class="hint" style="margin-top:16px">The company partner share is never cut by investor side-deals. Those only move money inside the pool.</p>
+    <div class="links"><button type="button" class="jump inline" data-goto="calc-example">Worked example</button><button type="button" class="jump inline" data-goto="feat-periods">Monthly Periods feature</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="calc-example">
+    <p class="kicker">B · Worked example</p>
+    <h2>Net Profit 100,000 · Mudarabah 50 / 50</h2>
+    <div class="bar" style="margin-bottom:16px">
+      <div style="width:50%;background:#8A1B24">Shareholders’ pool 50,000</div>
+      <div style="width:50%;background:#b8893a">Akram Sweets 50,000</div>
+    </div>
+    <table>
+      <thead><tr><th>Investor</th><th>Ownership</th><th>Base share of the pool</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td>Owner</td><td>30%</td><td><strong>15,000</strong></td><td>50,000 × 30%</td></tr>
+        <tr><td>Investor A</td><td>40%</td><td><strong>20,000</strong></td><td>50,000 × 40%</td></tr>
+        <tr><td>Investor B</td><td>30%</td><td><strong>15,000</strong></td><td>50,000 × 30%</td></tr>
+        <tr><td colspan="2">Pool total</td><td><strong>50,000</strong></td><td>Must always add up</td></tr>
+      </tbody>
+    </table>
+    <p class="hint" style="margin-top:12px">With no special arrangement, base = final on the certificate. A loss month uses the same % on a negative pool.</p>
+    <div class="links"><button type="button" class="jump inline" data-goto="arrangements">If there is an owner bonus</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="arrangements">
+    <p class="kicker">B · Special arrangements</p>
+    <h2>A side deal — without changing ownership</h2>
+    <p class="lede">Ownership stays 30 / 40 / 30. After the pool is split, a standing rule can move part of some people’s <em>base share</em> to someone else (often the founding owner).</p>
+    <div class="grid g2">
+      <div class="card">
+        <h3>Typical deal</h3>
+        <p>“The owner receives 20% of every other shareholder’s monthly share.”</p>
+        <p style="margin-top:8px">Or only named people. Or profit months only, not losses.</p>
+      </div>
+      <div class="card accent">
+        <h3>Same 50,000 pool, 20% of others → Owner</h3>
+        <p>A pays 4,000 · B pays 3,000 · Owner receives +7,000.</p>
+        <p style="margin-top:8px"><strong>Final:</strong> Owner 22,000 · A 16,000 · B 12,000. Pool still 50,000. Company still 50,000.</p>
+      </div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="statement">How to read the statement</button><button type="button" class="jump inline" data-goto="feat-arrangements">Arrangements feature &amp; use cases</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="statement">
+    <p class="kicker">B · The statement</p>
+    <h2>What each line means for the business</h2>
+    <table>
+      <thead><tr><th>Line</th><th>Description</th><th>Use case</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Ownership %</strong></td><td>Their capital share this month</td><td>Explain the register, not the side bonus</td></tr>
+        <tr><td><strong>Original / base</strong></td><td>Pool × ownership, before deals</td><td>“This is the fair split of the pool”</td></tr>
+        <tr><td><strong>Arrangement</strong></td><td>Bonus paid or received</td><td>Show the signed owner/partner deal</td></tr>
+        <tr><td><strong>Manual adjustment</strong></td><td>One-off this month, with a reason</td><td>Rare exception — not a standing rule</td></tr>
+        <tr><td><strong>Final profit</strong></td><td>Certified, certificated, paid</td><td>The number that matters</td></tr>
+      </tbody>
+    </table>
+    <div class="links"><button type="button" class="jump inline" data-goto="rhythm">Monthly office rhythm</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="rhythm">
+    <p class="kicker">C · Each month</p>
+    <h2>How the office runs the close</h2>
+    <div class="flow">
+      <div class="step"><n>01</n><b>Odoo closes</b><span>Accounts has approved Net Profit (optional journal ref).</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><n>02</n><b>Finance enters</b><span>Monthly Periods → Enter Monthly Result → Save &amp; Calculate.</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><n>03</n><b>Finance checks</b><span>Pool, each person, arrangements. Then Submit for Review.</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><n>04</n><b>Management certifies</b><span>Approvals → Approve. Certificates created.</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><n>05</n><b>Pay &amp; portal</b><span>Pay people. Mark paid. Investors download themselves.</span></div>
+    </div>
+    <p class="hint" style="margin-top:16px">Statuses: <strong>Draft</strong> → <strong>Management Approval</strong> → <strong>Locked</strong> → <strong>Payment Completed</strong>.</p>
+    <div class="links">
+      <button type="button" class="jump inline" data-goto="howto-finance">Finance how-to</button>
+      <button type="button" class="jump inline" data-goto="howto-approve">Management how-to</button>
+      <button type="button" class="jump inline" data-goto="features">All features</button>
+    </div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="features">
+    <p class="kicker">D · Click a feature</p>
+    <h2>Staff menu — description &amp; use cases</h2>
+    <div class="grid g4">
+      <button type="button" class="toc-item" data-goto="feat-dashboard"><span class="toc-n">Menu</span><strong>Dashboard</strong><span class="desc">Capital + latest month at a glance</span></button>
+      <button type="button" class="toc-item" data-goto="feat-analytics"><span class="toc-n">Menu</span><strong>Analytics</strong><span class="desc">Year trends and CSV</span></button>
+      <button type="button" class="toc-item" data-goto="feat-periods"><span class="toc-n">Operations</span><strong>Monthly Periods</strong><span class="desc">Enter, calculate, lock profit</span></button>
+      <button type="button" class="toc-item" data-goto="feat-approvals"><span class="toc-n">Operations</span><strong>Approvals</strong><span class="desc">Inbox for months &amp; withdrawals</span></button>
+      <button type="button" class="toc-item" data-goto="feat-shareholders"><span class="toc-n">Operations</span><strong>Shareholders</strong><span class="desc">Register, %, import, portal</span></button>
+      <button type="button" class="toc-item" data-goto="feat-directory"><span class="toc-n">Operations</span><strong>Directory</strong><span class="desc">Find people by country</span></button>
+      <button type="button" class="toc-item" data-goto="feat-withdrawals"><span class="toc-n">Operations</span><strong>Capital Withdrawals</strong><span class="desc">Return-of-capital requests</span></button>
+      <button type="button" class="toc-item" data-goto="feat-arrangements"><span class="toc-n">Operations</span><strong>Special Arrangements</strong><span class="desc">Owner/partner side bonus</span></button>
+      <button type="button" class="toc-item" data-goto="feat-certificates"><span class="toc-n">Operations</span><strong>Certificates</strong><span class="desc">Issued monthly PDFs</span></button>
+      <button type="button" class="toc-item" data-goto="feat-mudarabah"><span class="toc-n">Operations</span><strong>Mudarabah Summary</strong><span class="desc">Pool vs company share</span></button>
+      <button type="button" class="toc-item" data-goto="feat-history"><span class="toc-n">Operations</span><strong>Reports History</strong><span class="desc">What was already sent</span></button>
+      <button type="button" class="toc-item" data-goto="feat-admin"><span class="toc-n">Admin</span><strong>Users, settings, audit…</strong><span class="desc">How the office runs the system</span></button>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="feat-portal">Investor portal features</button><button type="button" class="jump inline" data-goto="feat-login">Login &amp; profile</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="feat-dashboard">
+    <p class="kicker">Feature · Dashboard</p>
+    <h2>Staff home screen</h2>
+    <p class="who">Who: Finance, Admin, Super Admin · Menu: Dashboard</p>
+    <p class="lede">A snapshot of the capital register and the latest month’s Mudarabah split. It does not calculate profit — it shows what is already in the system.</p>
+    <div class="grid g2">
+      <div class="card">
+        <h3>Description</h3>
+        <ul>
+          <li>Heads, shares, shareholder capital, Murabaha, total assets</li>
+          <li>Latest Net Profit, pool, company share, distributed</li>
+          <li>Count of active special arrangements</li>
+          <li>Optional display figures typed under Display KPIs</li>
+        </ul>
+      </div>
+      <div class="card accent">
+        <h3>Use cases</h3>
+        <ul class="uc">
+          <li>Morning: has last month been entered? Do capital totals look right?</li>
+          <li>Before calculating a new month: are arrangements still active?</li>
+          <li>Show management the capital picture without opening Excel</li>
+        </ul>
+      </div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="feat-analytics">Analytics</button><button type="button" class="jump inline" data-goto="feat-kpis">Display KPIs</button><button type="button" class="jump inline" data-goto="features">All features</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="feat-analytics">
+    <p class="kicker">Feature · Analytics</p>
+    <h2>Yearly profit trends</h2>
+    <p class="who">Who: all staff (investors see only their own numbers under Charts &amp; Trends)</p>
+    <div class="grid g2">
+      <div class="card">
+        <h3>Description</h3>
+        <ul>
+          <li>Pick a year. Chart company P/L vs amount distributed</li>
+          <li>Table with per-shareholder breakdown (staff)</li>
+          <li>Export CSV for the board pack</li>
+        </ul>
+      </div>
+      <div class="card accent">
+        <h3>Use cases</h3>
+        <ul class="uc">
+          <li>Management reviews a full year’s Mudarabah results</li>
+          <li>Accounts exports the year to Excel</li>
+          <li>Investor checks whether their payouts rose or fell</li>
+        </ul>
+      </div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="feat-periods">Monthly Periods</button><button type="button" class="jump inline" data-goto="features">All features</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="feat-periods">
+    <p class="kicker">Feature · Monthly Periods</p>
+    <h2>The profit engine — enter, calculate, lock</h2>
+    <p class="who">Who: Finance enters and submits · Owner/Admin approve, reopen, mark paid · One record per calendar month</p>
+    <p class="lede">This is where the four calculation steps actually run. Ownership must total 100% or Save &amp; Calculate is refused.</p>
+    <table>
+      <thead><tr><th>What you can do</th><th>Description</th><th>Use case</th></tr></thead>
+      <tbody>
+        <tr><td><strong>List / filter</strong></td><td>Draft, in review, locked, paid. Filter year.</td><td>Find March and see if it is waiting on management</td></tr>
+        <tr><td><strong>Enter Monthly Result</strong></td><td>Year, month, Net Profit from Odoo, optional ref. Preview then calculate.</td><td>Close this month after Odoo is approved</td></tr>
+        <tr><td><strong>Period detail</strong></td><td>Pool vs company; each base / arrangement / final. Recalculate on draft. Excel/CSV.</td><td>Check the owner bonus before submitting</td></tr>
+        <tr><td><strong>Submit</strong></td><td>Freezes figures for management.</td><td>Finance is finished</td></tr>
+        <tr><td><strong>Approve / return / reopen</strong></td><td>Certify and issue certificates, or send back with a reason.</td><td>Lock the month or fix a mistake</td></tr>
+        <tr><td><strong>Send reports / mark paid</strong></td><td>Retry email/WhatsApp. Record that cash went out (not a bank transfer).</td><td>Resend a failed message; close the cash step</td></tr>
+      </tbody>
+    </table>
+    <div class="links"><button type="button" class="jump inline" data-goto="calc-steps">Calculation steps</button><button type="button" class="jump inline" data-goto="howto-finance">Finance how-to</button><button type="button" class="jump inline" data-goto="feat-approvals">Approvals</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="feat-approvals">
+    <p class="kicker">Feature · Approvals</p>
+    <h2>One inbox for months and capital returns</h2>
+    <p class="who">Who: all staff can open it · only Owner/Admin can decide</p>
+    <div class="grid g2">
+      <div class="card">
+        <h3>Description</h3>
+        <ul>
+          <li>Periods sitting in Management Approval</li>
+          <li>Pending capital-withdrawal requests</li>
+          <li>Same items as the bell on the top bar</li>
+        </ul>
+      </div>
+      <div class="card accent">
+        <h3>Use cases</h3>
+        <ul class="uc">
+          <li>Start the day here: certify waiting months</li>
+          <li>Open a withdrawal and approve or reject</li>
+          <li>See that Finance submitted without hunting the period list</li>
+        </ul>
+      </div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="howto-approve">How to approve a month</button><button type="button" class="jump inline" data-goto="feat-withdrawals">Withdrawals</button><button type="button" class="jump inline" data-goto="features">All features</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="feat-shareholders">
+    <p class="kicker">Feature · Shareholders</p>
+    <h2>The capital register</h2>
+    <p class="who">Who: Owner/Admin edit · Finance can view lists · Active ownership must total 100% before any month calculates</p>
+    <table>
+      <thead><tr><th>Capability</th><th>Description</th><th>Use case</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Add / edit person</strong></td><td>Name, email, phone, country, shares, capital, %, dates, owner flag, active</td><td>A new investor joins — add them and rebalance others to 100%</td></tr>
+        <tr><td><strong>Ownership history</strong></td><td>Changing % closes the old record and starts a new from-date</td><td>Someone sells part of their holding from 1 June</td></tr>
+        <tr><td><strong>Deactivate / reactivate</strong></td><td>Ends open %, stops portal. Company-owner row cannot be deactivated. Reactivate only if % still fits</td><td>An investor exits; later they return</td></tr>
+        <tr><td><strong>Portal login</strong></td><td>Create, reset password, turn access off/on</td><td>Give them the portal; they forgot the password (no self-reset)</td></tr>
+        <tr><td><strong>Excel import / export</strong></td><td>Upload CSV/xlsx (Somali headers ok). Preview then replace. Export xlsx</td><td>First go-live load of the company sheet</td></tr>
+        <tr><td><strong>Purge</strong></td><td>Super Admin only. Wipes register, months, certificates, portal users. Keeps staff</td><td>A bad first import must be started again</td></tr>
+      </tbody>
+    </table>
+    <div class="links"><button type="button" class="jump inline" data-goto="howto-shareholders">How to add an investor</button><button type="button" class="jump inline" data-goto="capital">Capital vs profit</button><button type="button" class="jump inline" data-goto="features">All features</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="feat-directory">
+    <p class="kicker">Feature · Directory</p>
+    <h2>Find people — not a second register</h2>
+    <p class="who">Who: staff · Finance sees investors only, not staff cards</p>
+    <div class="grid g2">
+      <div class="card"><h3>Description</h3><p>Search name or email. Filter country and active/inactive. Opens the real Shareholder or Staff User record. Top-bar country filter uses the same list.</p></div>
+      <div class="card accent"><h3>Use cases</h3><ul class="uc"><li>“Who are our UAE investors?”</li><li>Find a phone number quickly</li><li>Diaspora list for a meeting</li></ul></div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="feat-shareholders">Shareholders</button><button type="button" class="jump inline" data-goto="features">All features</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="feat-withdrawals">
+    <p class="kicker">Feature · Capital Withdrawals</p>
+    <h2>Return of capital — recorded, not paid by the system</h2>
+    <p class="who">Who: investor requests in the portal · Owner/Admin decide · Finance can view</p>
+    <div class="grid g2">
+      <div class="card">
+        <h3>Description</h3>
+        <ul>
+          <li>Statuses: pending → approved or rejected; approved → completed or cancelled</li>
+          <li>Reject needs a written note</li>
+          <li>Deadline (default ~183 days / 6 months) <strong>restarts from approval</strong></li>
+          <li>Does not move bank money and does not change ownership %</li>
+        </ul>
+      </div>
+      <div class="card accent">
+        <h3>Use cases</h3>
+        <ul class="uc">
+          <li>Investor asks to take capital back</li>
+          <li>Management approve; company pays within the deadline; mark returned</li>
+          <li>Then edit Shareholders so % still totals 100% — or next month will not calculate</li>
+        </ul>
+      </div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="howto-withdraw">How the request flows</button><button type="button" class="jump inline" data-goto="feat-portal">Portal</button><button type="button" class="jump inline" data-goto="features">All features</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="feat-arrangements">
+    <p class="kicker">Feature · Special Arrangements</p>
+    <h2>Standing bonus after the pool is split</h2>
+    <p class="who">Who: Owner/Admin create the rule · Finance sees the effect on the month · investors see it on the statement</p>
+    <div class="grid g2">
+      <div class="card">
+        <h3>Description</h3>
+        <ul>
+          <li>Takes a % of each source’s <strong>base share of the pool</strong> (not of full Net Profit)</li>
+          <li>All other shareholders, or named people only</li>
+          <li>Profit months, loss months, or both; start/end dates</li>
+          <li>Does not change ownership. Does not touch Akram Sweets’ partner share</li>
+          <li>Applies on the next calculate. Approved months stay as they were</li>
+        </ul>
+      </div>
+      <div class="card accent">
+        <h3>Use cases</h3>
+        <ul class="uc">
+          <li>Founding owner takes 20% of everyone else’s monthly share</li>
+          <li>A named manager takes 10% of one investor only</li>
+          <li>Bonus on profit months only</li>
+          <li>A deal that ends on a date — set Effective to</li>
+        </ul>
+      </div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="arrangements">Numbers example</button><button type="button" class="jump inline" data-goto="howto-arrangement">How to set the rule</button><button type="button" class="jump inline" data-goto="features">All features</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="feat-certificates">
+    <p class="kicker">Feature · Certificates</p>
+    <h2>Branded proof of the certified month</h2>
+    <p class="who">Who: issued automatically on Approve · staff download from this menu · investors from My Reports</p>
+    <div class="grid g2">
+      <div class="card"><h3>Description</h3><p>One certificate per shareholder per approved month. Wording, logo, and signature come from System Settings. Preview before go-live. Reopening a month sets send-status back to pending.</p></div>
+      <div class="card accent"><h3>Use cases</h3><ul class="uc"><li>After approve, confirm everyone has a certificate</li><li>Re-download March for an investor who lost the email</li><li>Show the signed document in a meeting</li></ul></div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="feat-mudarabah">Mudarabah Summary</button><button type="button" class="jump inline" data-goto="feat-settings">Certificate wording</button><button type="button" class="jump inline" data-goto="features">All features</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="feat-mudarabah">
+    <p class="kicker">Feature · Mudarabah Summary</p>
+    <h2>The agreement in a table</h2>
+    <p class="who">Who: staff</p>
+    <div class="grid g2">
+      <div class="card"><h3>Description</h3><p>Recent calculated months: Net Profit, shareholders’ pool, Akram Sweets share, % used that month, amount distributed. Also lists outstanding capital-return requests.</p></div>
+      <div class="card accent"><h3>Use cases</h3><ul class="uc"><li>Show a partner that 50/50 (or the agreed %) was applied</li><li>Prove the pool still adds up across the year</li><li>See open withdrawals next to profit history</li></ul></div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="calc-example">Worked example</button><button type="button" class="jump inline" data-goto="feat-history">Reports History</button><button type="button" class="jump inline" data-goto="features">All features</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="feat-history">
+    <p class="kicker">Feature · Reports History</p>
+    <h2>What investors already received</h2>
+    <p class="who">Who: staff see approved months · a shareholder hitting this URL is sent to their portal</p>
+    <div class="grid g2">
+      <div class="card"><h3>Description</h3><p>Approved months only. Open a person’s statement or PDF. Use with Send Reports Now on the period if delivery failed.</p></div>
+      <div class="card accent"><h3>Use cases</h3><ul class="uc"><li>Audit what was sent for a locked month</li><li>Find a statement without opening Periods</li></ul></div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="feat-certificates">Certificates</button><button type="button" class="jump inline" data-goto="features">All features</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="feat-admin">
+    <p class="kicker">Feature · Administration (Owner / Admin only)</p>
+    <h2>Click through for each admin screen</h2>
+    <div class="grid g3">
+      <button type="button" class="toc-item" data-goto="feat-users"><span class="toc-n">Admin</span><strong>Staff Users</strong><span class="desc">Finance / Admin / Super Admin accounts</span></button>
+      <button type="button" class="toc-item" data-goto="feat-audit"><span class="toc-n">Admin</span><strong>Audit Trail</strong><span class="desc">Who locked March?</span></button>
+      <button type="button" class="toc-item" data-goto="feat-settings"><span class="toc-n">Admin</span><strong>System Settings</strong><span class="desc">Mudarabah %, brand, email, WhatsApp</span></button>
+      <button type="button" class="toc-item" data-goto="feat-whatsapp"><span class="toc-n">Admin</span><strong>WhatsApp Log</strong><span class="desc">Did the message send?</span></button>
+      <button type="button" class="toc-item" data-goto="feat-images"><span class="toc-n">Admin</span><strong>Manage Images</strong><span class="desc">Login, email, dashboard pictures</span></button>
+      <button type="button" class="toc-item" data-goto="feat-kpis"><span class="toc-n">Admin</span><strong>Display KPIs</strong><span class="desc">Optional dashboard figures — not the engine</span></button>
+    </div>
+    <p class="hint" style="margin-top:14px">Finance does not see this block. Super Admin sees the heading “Super Admin”; System Admin sees “Administration”.</p>
+    <div class="links"><button type="button" class="jump inline" data-goto="features">Back to all features</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="feat-users">
+    <p class="kicker">Feature · Staff Users</p>
+    <h2>Office logins</h2>
+    <p class="who">Who: Owner/Admin · only Super Admin can create or edit Super Admins · last Super Admin cannot be demoted</p>
+    <div class="grid g2">
+      <div class="card"><h3>Description</h3><p>Create/edit email, name, WhatsApp phone, role, password, photo, active. Invite can go by email/WhatsApp. Password on create min 6 characters; leave blank on edit to keep the old one.</p></div>
+      <div class="card accent"><h3>Use cases</h3><ul class="uc"><li>Hire a Finance user and send their login</li><li>Reset a staff password (there is no forgot-password on the website)</li><li>Promote someone to System Admin</li></ul></div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="roles">Roles</button><button type="button" class="jump inline" data-goto="feat-admin">Admin menu</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="feat-audit">
+    <p class="kicker">Feature · Audit Trail</p>
+    <h2>Traceability</h2>
+    <p class="who">Who: Owner/Admin</p>
+    <div class="grid g2">
+      <div class="card"><h3>Description</h3><p>Logins, calculations, submit, approve, reject, reopen, payment, users, arrangements, withdrawals, settings changes.</p></div>
+      <div class="card accent"><h3>Use cases</h3><ul class="uc"><li>“Who locked March?”</li><li>Prove a month was certified in a dispute</li><li>Show the client during handover that months are traceable</li></ul></div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="feat-admin">Admin menu</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="feat-settings">
+    <p class="kicker">Feature · System Settings</p>
+    <h2>Rules the next month will use</h2>
+    <p class="who">Who: Owner/Admin · five rooms in one menu</p>
+    <table>
+      <thead><tr><th>Room</th><th>Description</th><th>Use case</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Profit &amp; Capital</strong></td><td>Mudarabah shareholder %, share value, total shares, Murabaha, days to return capital</td><td>Agree 50/50 (or other %). Capital fields are display only</td></tr>
+        <tr><td><strong>Brand</strong></td><td>Company name, colours, logo</td><td>Portal, emails, certificates look like Akram Sweets</td></tr>
+        <tr><td><strong>Certificates</strong></td><td>Title, intro, labels, roster, signature image, legal text. Preview</td><td>Approve wording before the first live month</td></tr>
+        <tr><td><strong>Email &amp; SMTP</strong></td><td>From-address, server, toggles for invites, auto-send on approve, report day</td><td>Login codes and monthly reports actually arrive</td></tr>
+        <tr><td><strong>WhatsApp</strong></td><td>Twilio on/off, PDF attach, public URL, test send</td><td>OTP and notices on the phone</td></tr>
+      </tbody>
+    </table>
+    <div class="links"><button type="button" class="jump inline" data-goto="feat-whatsapp">WhatsApp Log</button><button type="button" class="jump inline" data-goto="feat-admin">Admin menu</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="feat-whatsapp">
+    <p class="kicker">Feature · WhatsApp Log</p>
+    <h2>Did the investor get the message?</h2>
+    <p class="who">Who: Owner/Admin</p>
+    <div class="grid g2">
+      <div class="card"><h3>Description</h3><p>Outbound and inbound Twilio rows and delivery status. First place to look if WhatsApp is silent. Needs Twilio on the server and a phone on the account.</p></div>
+      <div class="card accent"><h3>Use cases</h3><ul class="uc"><li>Investor says they got no WhatsApp</li><li>Confirm OTP was sent after a login complaint</li></ul></div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="feat-settings">WhatsApp settings</button><button type="button" class="jump inline" data-goto="feat-admin">Admin menu</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="feat-images">
+    <p class="kicker">Feature · Manage Images</p>
+    <h2>Pictures on login, email, dashboard</h2>
+    <p class="who">Who: Owner/Admin</p>
+    <div class="grid g2">
+      <div class="card"><h3>Description</h3><p>Upload png/jpg/webp/gif. Assign to login background, email header, dashboard banner, or library only. Clear a slot or delete.</p></div>
+      <div class="card accent"><h3>Use cases</h3><ul class="uc"><li>Put the shop photo on the login page for handover</li><li>Match email headers to the brand</li></ul></div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="feat-admin">Admin menu</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="feat-kpis">
+    <p class="kicker">Feature · Display KPIs</p>
+    <h2>Optional dashboard figures — not the profit engine</h2>
+    <p class="who">Who: Owner/Admin</p>
+    <div class="grid g2">
+      <div class="card"><h3>Description</h3><p>Type revenues, expenses, COGS, other income, notes. They appear on the staff dashboard as “from Odoo” display. They are <strong>never</strong> used to split the month.</p></div>
+      <div class="card accent"><h3>Use cases</h3><ul class="uc"><li>Board-style P&amp;L snapshot next to real Mudarabah numbers</li><li>Avoid confusing these with Net Profit on Monthly Periods</li></ul></div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="capital">Capital vs profit</button><button type="button" class="jump inline" data-goto="feat-dashboard">Dashboard</button><button type="button" class="jump inline" data-goto="feat-admin">Admin menu</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="feat-login">
+    <p class="kicker">Feature · Login &amp; My Profile</p>
+    <h2>How everyone gets in</h2>
+    <p class="who">Who: every role · Account → My Profile (staff) or Account Settings (investor)</p>
+    <div class="grid g2">
+      <div class="card">
+        <h3>Description</h3>
+        <ul>
+          <li>Email + password. Inactive users cannot sign in</li>
+          <li>If OTP is on: a code is emailed and/or WhatsApp’d</li>
+          <li>Profile: photo, WhatsApp phone, change password (needs current password)</li>
+          <li>No public sign-up. No forgot-password email</li>
+        </ul>
+      </div>
+      <div class="card accent">
+        <h3>Use cases</h3>
+        <ul class="uc">
+          <li>First login: change the demo password</li>
+          <li>Add a mobile so OTP and monthly notices arrive</li>
+          <li>Staff reset another user’s password from Staff Users / Shareholders</li>
+          <li>Log Out on a shared computer; switch role in training</li>
+        </ul>
+      </div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="feat-users">Staff Users</button><button type="button" class="jump inline" data-goto="feat-portal">Portal</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="feat-portal">
+    <p class="kicker">Feature · Shareholder portal</p>
+    <h2>What the investor sees — and nothing else</h2>
+    <p class="who">Who: role Shareholder with a portal login · only <strong>approved</strong> months</p>
+    <table>
+      <thead><tr><th>Menu</th><th>Description</th><th>Use case</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Dashboard</strong></td><td>Latest certified payout, YTD, ownership snapshot</td><td>“What did I earn last certified month?”</td></tr>
+        <tr><td><strong>Charts &amp; Trends</strong></td><td>Their history only</td><td>See if my payouts went up this year</td></tr>
+        <tr><td><strong>My Reports</strong></td><td>Statement: base, arrangement, final. Download PDF + certificate</td><td>Send March to my accountant</td></tr>
+        <tr><td><strong>My Ownership</strong></td><td>Current %, shares, capital, history (read-only)</td><td>Confirm I still hold 12%</td></tr>
+        <tr><td><strong>Capital Withdrawal</strong></td><td>Request amount + reason; watch status</td><td>Ask to take capital back</td></tr>
+        <tr><td><strong>Account Settings</strong></td><td>Photo, WhatsApp phone, password</td><td>Put my number on file for OTP</td></tr>
+      </tbody>
+    </table>
+    <div class="links"><button type="button" class="jump inline" data-goto="howto-portal">How to give portal access</button><button type="button" class="jump inline" data-goto="feat-withdrawals">Withdrawals</button><button type="button" class="jump inline" data-goto="features">All features</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="howto-finance">
+    <p class="kicker">E · How to · Finance</p>
+    <h2>Enter this month’s profit</h2>
+    <ol class="check">
+      <li>Sign in as Finance (email, password, then the code if asked).</li>
+      <li>If ownership is not 100%, stop — ask Admin to fix Shareholders first.</li>
+      <li>Open <strong>Monthly Periods → Enter Monthly Result</strong>.</li>
+      <li>Choose year and month (cannot duplicate a month).</li>
+      <li>Type <strong>Approved Monthly Net Profit from Odoo</strong>. Minus for a loss. Optional journal ref.</li>
+      <li>Preview the pool and each person. Then <strong>Save &amp; Calculate</strong>.</li>
+      <li>Open the month. Check base, arrangement, final. Add a manual adjustment only for a true one-off, with a reason.</li>
+      <li><strong>Submit for Review</strong>. You cannot change figures until management sends it back.</li>
+    </ol>
+    <div class="links"><button type="button" class="jump inline" data-goto="feat-periods">Periods feature</button><button type="button" class="jump inline" data-goto="howto-approve">Then management</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="howto-approve">
+    <p class="kicker">E · How to · Management</p>
+    <h2>Approve the month and notify investors</h2>
+    <ol class="check">
+      <li>Sign in as Super Admin or System Administrator.</li>
+      <li>Open <strong>Approvals</strong> (or the bell). Open the submitted month.</li>
+      <li>Check: Net Profit matches Odoo, split is the agreed %, finals add to the pool.</li>
+      <li>Wrong → <strong>Return to draft</strong> with a reason. Finance fixes and re-submits.</li>
+      <li>Right → <strong>Approve &amp; Certify</strong>. Certificates issue. Reports go if email/WhatsApp is on (or Send Reports Now).</li>
+      <li>When cash has actually been paid: <strong>Mark payment completed</strong> (record only — no bank).</li>
+      <li>To correct a locked month <em>before</em> payment: Reopen with a reason; it becomes draft and must be certified again.</li>
+    </ol>
+    <div class="links"><button type="button" class="jump inline" data-goto="feat-approvals">Approvals feature</button><button type="button" class="jump inline" data-goto="feat-certificates">Certificates</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="howto-shareholders">
+    <p class="kicker">E · How to · Shareholders</p>
+    <h2>Keep the register at 100%</h2>
+    <div class="grid g2">
+      <div class="card">
+        <h3>Someone joins</h3>
+        <ul>
+          <li>Shareholders → Add: name, email, phone, country</li>
+          <li>Shares, capital, ownership % and from-date</li>
+          <li>Reduce others so total stays 100%</li>
+          <li>Create portal login if they should see the portal</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Someone leaves or % changes</h3>
+        <ul>
+          <li>Edit % with a new date (history is kept)</li>
+          <li>Or deactivate — % ends, portal stops</li>
+          <li>Company-owner shareholder cannot be deactivated</li>
+          <li>First load: Upload Excel/CSV, Preview, then import</li>
+        </ul>
+      </div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="feat-shareholders">Shareholders feature</button><button type="button" class="jump inline" data-goto="howto-portal">Give portal access</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="howto-portal">
+    <p class="kicker">E · How to · Portal access</p>
+    <h2>Give an investor a login</h2>
+    <ol class="check">
+      <li>Open the person under Shareholders → portal access.</li>
+      <li>Login email, display name, password (min 6 characters). Save.</li>
+      <li>If email/WhatsApp is on, details can go out automatically.</li>
+      <li>Tell them: they only see <strong>approved</strong> months, not drafts.</li>
+      <li>Forgotten password: reset it here. There is no forgot-password on the login page.</li>
+      <li>They should add WhatsApp under Account Settings.</li>
+    </ol>
+    <div class="links"><button type="button" class="jump inline" data-goto="feat-portal">Portal features</button><button type="button" class="jump inline" data-goto="feat-login">Login</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="howto-arrangement">
+    <p class="kicker">E · How to · Special arrangement</p>
+    <h2>Put the side deal on the system</h2>
+    <ol class="check">
+      <li>Owner/Admin: open <strong>Special Arrangements</strong>.</li>
+      <li>Name it, e.g. “Owner 20% from others”.</li>
+      <li>Recipient = an active shareholder. % = of each source’s <strong>base monthly share</strong>.</li>
+      <li>All others, or tick named people. Profit and/or loss. Start date; end optional.</li>
+      <li>Save. Next calculate in that date range applies it. Check on the period before you approve.</li>
+    </ol>
+    <div class="links"><button type="button" class="jump inline" data-goto="feat-arrangements">Arrangements feature</button><button type="button" class="jump inline" data-goto="arrangements">Numbers example</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="howto-withdraw">
+    <p class="kicker">E · How to · Capital return</p>
+    <h2>When an investor wants money back</h2>
+    <div class="flow" style="margin-bottom:16px">
+      <div class="step"><n>01</n><b>They request</b><span>Portal → amount and reason.</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><n>02</n><b>You decide</b><span>Approvals / Withdrawals. Approve or reject with a note.</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><n>03</n><b>Clock</b><span>Deadline starts from approval (default ~6 months).</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><n>04</n><b>Complete</b><span>When cash has gone, mark returned. Then update % on Shareholders.</span></div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="feat-withdrawals">Withdrawals feature</button><button type="button" class="jump inline" data-goto="feat-portal">Portal</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="scope">
+    <p class="kicker">F · Honest scope</p>
+    <h2>In the system vs still done outside</h2>
+    <div class="grid g2">
+      <div class="card accent">
+        <h3>You use the system to</h3>
+        <ul>
+          <li>Share each month’s Odoo Net Profit under Mudarabah</li>
+          <li>Keep the register and ownership at 100%</li>
+          <li>Honour side bonuses without rewriting ownership</li>
+          <li>Certify, certificate, and notify investors</li>
+          <li>Record capital-return requests</li>
+          <li>Give each investor a private portal</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>You still do outside</h3>
+        <ul>
+          <li>Close the books in <strong>Odoo</strong> — no live link; someone types Net Profit</li>
+          <li>Actually <strong>pay</strong> people — “payment completed” is a tick</li>
+          <li>Update ownership after capital really leaves</li>
+        </ul>
+      </div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="checklist">Go-live checklist</button><button type="button" class="jump inline" data-goto="faq">If something blocks a month</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="faq">
+    <p class="kicker">F · If it will not calculate</p>
+    <h2>What the office should do</h2>
+    <table>
+      <thead><tr><th>What you see</th><th>What to do</th></tr></thead>
+      <tbody>
+        <tr><td>Ownership is not 100%</td><td>Shareholders: add, reduce, or deactivate until active % totals 100</td></tr>
+        <tr><td>Cannot submit / approve</td><td>Calculate first. Approve only after Finance submitted</td></tr>
+        <tr><td>Cannot edit a submitted month</td><td>Management returns to draft</td></tr>
+        <tr><td>Cannot reopen after payment completed</td><td>Treat as closed — cash is recorded as paid</td></tr>
+        <tr><td>Password works, no login</td><td>OTP email/WhatsApp failed — not a wrong password</td></tr>
+        <tr><td>Investor cannot see the month</td><td>Not approved yet</td></tr>
+        <tr><td>Bonus did not apply</td><td>Rule inactive, wrong dates, or profit-only on a loss month</td></tr>
+      </tbody>
+    </table>
+    <div class="links"><button type="button" class="jump inline" data-goto="feat-shareholders">Shareholders</button><button type="button" class="jump inline" data-goto="feat-login">Login</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="checklist">
+    <p class="kicker">F · Before go-live</p>
+    <h2>Business checklist</h2>
+    <div class="grid g2">
+      <div>
+        <p class="role">Numbers and people</p>
+        <ul class="check">
+          <li>□ Mudarabah % agreed and saved</li>
+          <li>□ Share value, shares, Murabaha entered</li>
+          <li>□ Shareholders loaded; ownership = 100%</li>
+          <li>□ Special arrangements match signed deals</li>
+          <li>□ Super Admin password changed from any demo login</li>
+          <li>□ Finance and Admin users created</li>
+        </ul>
+      </div>
+      <div>
+        <p class="role">How you will operate</p>
+        <ul class="check">
+          <li>□ Certificate wording and signature approved</li>
+          <li>□ Email tested (login code + a sample report)</li>
+          <li>□ WhatsApp tested if you will use it</li>
+          <li>□ Portal logins issued</li>
+          <li>□ One rehearsal month: enter → submit → approve → portal</li>
+          <li>□ Named person who types Net Profit from Odoo each month</li>
+        </ul>
+      </div>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="practice">Rehearsal</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide" data-id="practice">
+    <p class="kicker">F · Live practice</p>
+    <h2>Three short rehearsals — click for the how-to</h2>
+    <div class="grid g3">
+      <button type="button" class="toc-item" data-goto="howto-finance"><span class="toc-n">1 · Finance · 20 min</span><strong>Enter a sample month</strong><span class="desc">Use a future month. Calculate, read the split, submit.</span></button>
+      <button type="button" class="toc-item" data-goto="howto-approve"><span class="toc-n">2 · Management · 15 min</span><strong>Return, then approve</strong><span class="desc">Send back with a reason, re-submit, certify, open a certificate.</span></button>
+      <button type="button" class="toc-item" data-goto="feat-portal"><span class="toc-n">3 · Investor · 15 min</span><strong>Open the portal</strong><span class="desc">Find the certified month, download PDF and certificate.</span></button>
+    </div>
+    <div class="links"><button type="button" class="jump inline" data-goto="toc">Back to contents</button></div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span></span></div>
+  </section>
+
+  <section class="slide cover" data-id="thanks">
+    <p class="kicker">Thank you</p>
+    <h1>Questions</h1>
+    <p>Use Contents any time the client asks “what does this screen do?” — every feature has a description and use cases.</p>
+    <div class="cover-cta">
+      <button type="button" data-goto="toc">Contents</button>
+      <button type="button" class="alt" data-goto="features">Features &amp; use cases</button>
+      <button type="button" class="alt" data-goto="calc-steps">How we calculate</button>
+    </div>
+    <div class="foot"><span>Akram Sweets · Shareholders</span><span>Confidential</span></div>
+  </section>
+
+</div>
+
+<div class="nav">
+  <button type="button" class="ghost" id="tocBtn" data-goto="toc">Contents</button>
+  <button type="button" id="prev">Prev</button>
+  <button type="button" id="next">Next</button>
+</div>
+
+<script>
+  const slides = [...document.querySelectorAll('.slide')];
+  const byId = {};
+  slides.forEach((s, idx) => {
+    const id = s.getAttribute('data-id');
+    if (id) byId[id] = idx;
+  });
+  const foots = document.querySelectorAll('.slide:not(.cover) .foot span:last-child');
+  let i = 0;
+
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, idx) => s.classList.toggle('on', idx === i));
+    foots.forEach((el) => { el.textContent = (i + 1) + ' / ' + slides.length; });
+    const id = slides[i].getAttribute('data-id');
+    if (id) history.replaceState(null, '', '#' + id);
+  }
+
+  function go(target) {
+    if (target == null) return;
+    if (typeof target === 'number') { show(target); return; }
+    const key = String(target).replace(/^#/, '');
+    if (byId[key] != null) show(byId[key]);
+  }
+
+  document.getElementById('next').onclick = () => show(i + 1);
+  document.getElementById('prev').onclick = () => show(i - 1);
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-goto]');
+    if (!btn) return;
+    e.preventDefault();
+    go(btn.getAttribute('data-goto'));
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+    if (e.key === 'Home') show(0);
+    if (e.key === 'End') show(slides.length - 1);
+    if (e.key === 'Escape') go('toc');
+  });
+  const hash = (location.hash || '').replace('#', '');
+  if (hash && byId[hash] != null) show(byId[hash]);
+  else show(0);
+</script>
+</body>
+</html>
